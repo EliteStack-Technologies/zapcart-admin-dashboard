@@ -9,6 +9,7 @@ import Categories from "./pages/Categories";
 import Offers from "./pages/Offers";
 import Banners from "./pages/Banners";
 import Flyers from "./pages/Flyers";
+import UploadImages from "./pages/UploadImages";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/offers" element={<Offers />} />
           <Route path="/banners" element={<Banners />} />
           <Route path="/flyers" element={<Flyers />} />
+          <Route path="/upload-images" element={<UploadImages />} />
           <Route path="/account" element={<Account />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
