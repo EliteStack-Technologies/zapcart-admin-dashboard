@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Plus, FileText, Download, Trash2, Upload, Calendar } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import AddFlyerDialog from "@/components/AddFlyerDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Flyers = () => {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedFlyer, setSelectedFlyer] = useState<number | null>(null);
   const flyers = [
     { 
       id: 1, 
@@ -47,6 +55,15 @@ const Flyers = () => {
     },
   ];
 
+  const handleDelete = () => {
+    toast({
+      title: "Flyer deleted",
+      description: "The flyer has been successfully removed.",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedFlyer(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -58,7 +75,7 @@ const Flyers = () => {
               Upload and manage PDF flyers and promotional materials
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
             <Upload className="w-4 h-4" />
             Upload Flyer
           </Button>
@@ -151,7 +168,14 @@ const Flyers = () => {
                         <Button variant="outline" size="icon">
                           <Download className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="icon">
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => {
+                            setSelectedFlyer(flyer.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
@@ -162,6 +186,16 @@ const Flyers = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Dialogs */}
+        <AddFlyerDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete Flyer"
+          description="Are you sure you want to delete this flyer? This action cannot be undone."
+          onConfirm={handleDelete}
+        />
       </div>
     </DashboardLayout>
   );

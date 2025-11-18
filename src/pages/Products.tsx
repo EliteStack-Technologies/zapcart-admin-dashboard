@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import AddProductDialog from "@/components/AddProductDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Products = () => {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const products = [
     {
       id: 1,
@@ -56,6 +64,15 @@ const Products = () => {
     },
   ];
 
+  const handleDelete = () => {
+    toast({
+      title: "Product deleted",
+      description: "The product has been successfully removed.",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedProduct(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -67,7 +84,7 @@ const Products = () => {
               Manage your product inventory and pricing
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
             <Plus className="w-4 h-4" />
             Add Product
           </Button>
@@ -144,7 +161,14 @@ const Products = () => {
                         <Button variant="ghost" size="icon">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            setSelectedProduct(product.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
@@ -155,6 +179,16 @@ const Products = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Dialogs */}
+        <AddProductDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete Product"
+          description="Are you sure you want to delete this product? This action cannot be undone."
+          onConfirm={handleDelete}
+        />
       </div>
     </DashboardLayout>
   );
