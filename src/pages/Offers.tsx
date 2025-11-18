@@ -1,11 +1,19 @@
+import { useState } from "react";
 import { Plus, Search, Edit, Trash2, Tag } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import AddOfferDialog from "@/components/AddOfferDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Offers = () => {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<number | null>(null);
   const offers = [
     { 
       id: 1, 
@@ -63,6 +71,15 @@ const Offers = () => {
     },
   ];
 
+  const handleDelete = () => {
+    toast({
+      title: "Offer deleted",
+      description: "The offer tag has been successfully removed.",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedOffer(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -74,7 +91,7 @@ const Offers = () => {
               Create and manage promotional offer tags
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
             <Plus className="w-4 h-4" />
             Create Offer
           </Button>
@@ -128,7 +145,14 @@ const Offers = () => {
                     <Button variant="ghost" size="icon">
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        setSelectedOffer(offer.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -152,6 +176,16 @@ const Offers = () => {
             </Card>
           ))}
         </div>
+
+        {/* Dialogs */}
+        <AddOfferDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete Offer Tag"
+          description="Are you sure you want to delete this offer? Products using this offer will not be affected."
+          onConfirm={handleDelete}
+        />
       </div>
     </DashboardLayout>
   );

@@ -1,10 +1,18 @@
+import { useState } from "react";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import AddCategoryDialog from "@/components/AddCategoryDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Categories = () => {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const categories = [
     { id: 1, name: "Beverages", productCount: 45, color: "#3B82F6" },
     { id: 2, name: "Snacks", productCount: 32, color: "#EF4444" },
@@ -13,6 +21,15 @@ const Categories = () => {
     { id: 5, name: "Frozen Foods", productCount: 22, color: "#8B5CF6" },
     { id: 6, name: "Bakery", productCount: 15, color: "#EC4899" },
   ];
+
+  const handleDelete = () => {
+    toast({
+      title: "Category deleted",
+      description: "The category has been successfully removed.",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedCategory(null);
+  };
 
   return (
     <DashboardLayout>
@@ -25,7 +42,7 @@ const Categories = () => {
               Organize products into categories
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
             <Plus className="w-4 h-4" />
             Add Category
           </Button>
@@ -65,7 +82,14 @@ const Categories = () => {
                     <Button variant="ghost" size="icon">
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -80,6 +104,16 @@ const Categories = () => {
             </Card>
           ))}
         </div>
+
+        {/* Dialogs */}
+        <AddCategoryDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete Category"
+          description="Are you sure you want to delete this category? Products in this category will not be deleted."
+          onConfirm={handleDelete}
+        />
       </div>
     </DashboardLayout>
   );

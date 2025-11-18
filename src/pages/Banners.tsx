@@ -1,10 +1,18 @@
+import { useState } from "react";
 import { Plus, Upload, Edit, Trash2, Eye } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import AddBannerDialog from "@/components/AddBannerDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Banners = () => {
+  const { toast } = useToast();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedBanner, setSelectedBanner] = useState<number | null>(null);
   const banners = [
     { 
       id: 1, 
@@ -32,6 +40,15 @@ const Banners = () => {
     },
   ];
 
+  const handleDelete = () => {
+    toast({
+      title: "Banner deleted",
+      description: "The banner has been successfully removed.",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedBanner(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -43,7 +60,7 @@ const Banners = () => {
               Upload and manage promotional banners for your storefront
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
             <Upload className="w-4 h-4" />
             Upload Banner
           </Button>
@@ -109,7 +126,14 @@ const Banners = () => {
                     <Button variant="outline" size="icon">
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="icon">
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => {
+                        setSelectedBanner(banner.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -118,6 +142,16 @@ const Banners = () => {
             </Card>
           ))}
         </div>
+
+        {/* Dialogs */}
+        <AddBannerDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete Banner"
+          description="Are you sure you want to delete this banner? This action cannot be undone."
+          onConfirm={handleDelete}
+        />
       </div>
     </DashboardLayout>
   );
