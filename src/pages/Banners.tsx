@@ -4,16 +4,25 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import AddBannerDialog from "@/components/AddBannerDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
+
+interface Banner {
+  id: number;
+  imageUrl: string;
+  status: "active" | "inactive";
+  createdAt: string;
+}
 
 const Banners = () => {
   const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<number | null>(null);
-  const banners = [
+  const [banners, setBanners] = useState<Banner[]>([
     { 
       id: 1, 
       imageUrl: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da",
@@ -38,7 +47,7 @@ const Banners = () => {
       status: "active",
       createdAt: "2024-11-01"
     },
-  ];
+  ]);
 
   const handleDelete = () => {
     toast({
@@ -47,6 +56,22 @@ const Banners = () => {
     });
     setDeleteDialogOpen(false);
     setSelectedBanner(null);
+  };
+
+  const toggleBannerStatus = (bannerId: number) => {
+    setBanners(prev => prev.map(banner => 
+      banner.id === bannerId 
+        ? { ...banner, status: banner.status === "active" ? "inactive" as const : "active" as const }
+        : banner
+    ));
+    
+    const banner = banners.find(b => b.id === bannerId);
+    const newStatus = banner?.status === "active" ? "inactive" : "active";
+    
+    toast({
+      title: "Status updated",
+      description: `Banner is now ${newStatus}.`,
+    });
   };
 
   return (
@@ -110,7 +135,7 @@ const Banners = () => {
                 </Badge>
               </div>
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       Banner #{banner.id}
@@ -119,24 +144,40 @@ const Banners = () => {
                       Created: {banner.createdAt}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => {
-                        setSelectedBanner(banner.id);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={`toggle-${banner.id}`} className="text-sm cursor-pointer">
+                        {banner.status === "active" ? "Active" : "Inactive"}
+                      </Label>
+                      <Switch
+                        id={`toggle-${banner.id}`}
+                        checked={banner.status === "active"}
+                        onCheckedChange={() => toggleBannerStatus(banner.id)}
+                      />
+                    </div>
                   </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      setSelectedBanner(banner.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
