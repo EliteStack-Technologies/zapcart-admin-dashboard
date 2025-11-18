@@ -1,11 +1,15 @@
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload } from "lucide-react";
+import { useState } from "react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X } from "lucide-react";
 import { NavLink } from "./NavLink";
+import { Button } from "./ui/button";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
   const navItems = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/products", icon: Package, label: "Products" },
@@ -19,13 +23,36 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="flex min-h-screen bg-background">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-r border-sidebar-border">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-sidebar-foreground">
-            Business Hub
-          </h1>
-          <p className="text-sm text-sidebar-foreground/60 mt-1">Management Dashboard</p>
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-64 bg-sidebar border-r border-sidebar-border
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-sidebar-foreground">
+              Business Hub
+            </h1>
+            <p className="text-sm text-sidebar-foreground/60 mt-1">Management Dashboard</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </Button>
         </div>
         
         <nav className="px-3 space-y-1">
@@ -35,6 +62,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               to={item.to}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+              onClick={() => setSidebarOpen(false)}
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
@@ -44,8 +72,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+      <main className="flex-1 overflow-auto w-full">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b px-4 py-3 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Business Hub</h1>
+        </div>
+        
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>
