@@ -1,12 +1,39 @@
-import { Save, Phone, Mail, MapPin, Facebook, Instagram } from "lucide-react";
+import { Save, Phone, Mail, MapPin, Facebook, Instagram, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Account = () => {
+  const [userEmail, setUserEmail] = useState("");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || "");
+      }
+    };
+    getUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/auth");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -18,11 +45,41 @@ const Account = () => {
               Manage your business contact information and social media presence
             </p>
           </div>
-          <Button className="gap-2">
-            <Save className="w-4 h-4" />
-            Save Changes
-          </Button>
+          <div className="flex gap-2">
+            <Button className="gap-2">
+              <Save className="w-4 h-4" />
+              Save Changes
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </div>
+
+        {/* Account Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Account Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="account-email">Account Email</Label>
+              <Input 
+                id="account-email"
+                type="email"
+                value={userEmail}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">
+                This is your login email address
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Separator />
 
         {/* Contact Information */}
         <Card>
