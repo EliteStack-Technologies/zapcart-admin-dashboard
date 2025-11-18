@@ -3,16 +3,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, X, Image as ImageIcon, Trash2, Search } from "lucide-react";
+import { Upload, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
-
-interface ImagePreview {
-  id: string;
-  file: File;
-  preview: string;
-}
+import UploadImagesDialog from "@/components/UploadImagesDialog";
 
 interface UploadedImage {
   id: number;
@@ -24,7 +18,7 @@ interface UploadedImage {
 
 const UploadImages = () => {
   const { toast } = useToast();
-  const [images, setImages] = useState<ImagePreview[]>([]);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
   
@@ -74,58 +68,6 @@ const UploadImages = () => {
     },
   ]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newImages: ImagePreview[] = [];
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith("image/")) {
-        const preview = URL.createObjectURL(file);
-        newImages.push({
-          id: Math.random().toString(36).substr(2, 9),
-          file,
-          preview,
-        });
-      }
-    });
-
-    setImages((prev) => [...prev, ...newImages]);
-  };
-
-  const removeImage = (id: string) => {
-    setImages((prev) => {
-      const image = prev.find((img) => img.id === id);
-      if (image) {
-        URL.revokeObjectURL(image.preview);
-      }
-      return prev.filter((img) => img.id !== id);
-    });
-  };
-
-  const clearAll = () => {
-    images.forEach((img) => URL.revokeObjectURL(img.preview));
-    setImages([]);
-  };
-
-  const handleUpload = () => {
-    if (images.length === 0) {
-      toast({
-        title: "No images selected",
-        description: "Please select at least one image to upload.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Here you would upload to backend
-    toast({
-      title: "Images uploaded",
-      description: `Successfully uploaded ${images.length} image(s).`,
-    });
-    clearAll();
-  };
-
   const handleDeleteImage = () => {
     toast({
       title: "Image deleted",
@@ -141,173 +83,81 @@ const UploadImages = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground">Upload Images</h1>
+            <h1 className="text-4xl font-bold text-foreground">Image Library</h1>
             <p className="text-muted-foreground mt-2">
-              Upload multiple images at once and manage your image library
+              Manage all your uploaded images in one place
             </p>
           </div>
+          <Button className="gap-2" onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="w-4 h-4" />
+            Upload Images
+          </Button>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="upload" className="gap-2">
-              <Upload className="w-4 h-4" />
-              Upload New
-            </TabsTrigger>
-            <TabsTrigger value="library" className="gap-2">
-              <ImageIcon className="w-4 h-4" />
-              Image Library ({uploadedImages.length})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Upload Tab */}
-          <TabsContent value="upload" className="space-y-6 mt-6">
-            {images.length > 0 && (
-              <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={clearAll}>
-                  Clear All
-                </Button>
-                <Button onClick={handleUpload} className="gap-2">
-                  <Upload className="w-4 h-4" />
-                  Upload {images.length} Image{images.length !== 1 ? "s" : ""}
-                </Button>
-              </div>
-            )}
-
-            {/* Upload Area */}
-            <Card>
-              <CardContent className="p-12">
-                <label
-                  htmlFor="image-upload"
-                  className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center">
-                    <ImageIcon className="w-16 h-16 mb-4 text-muted-foreground" />
-                    <p className="mb-2 text-lg font-semibold text-foreground">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      PNG, JPG, WEBP (Multiple files supported)
-                    </p>
-                  </div>
-                  <input
-                    id="image-upload"
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileSelect}
+        {/* Image Library */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold">
+                All Images ({uploadedImages.length})
+              </h2>
+              <div className="flex-1 max-w-md ml-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search images..."
+                    className="pl-10"
                   />
-                </label>
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            </div>
 
-            {/* Preview Grid */}
-            {images.length > 0 && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Preview ({images.length} image{images.length !== 1 ? "s" : ""})
-                  </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {images.map((image) => (
-                      <div
-                        key={image.id}
-                        className="relative group aspect-square rounded-lg overflow-hidden border"
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {uploadedImages.map((image) => (
+                <div
+                  key={image.id}
+                  className="relative group aspect-square rounded-lg overflow-hidden border bg-muted"
+                >
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-xs text-white font-medium truncate mb-1">
+                        {image.name}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-white/70">
+                        <span>{image.size} MB</span>
+                        <span>{image.uploadedAt}</span>
+                      </div>
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => {
+                          setSelectedImageId(image.id);
+                          setDeleteDialogOpen(true);
+                        }}
                       >
-                        <img
-                          src={image.preview}
-                          alt={image.file.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            onClick={() => removeImage(image.id)}
-                            className="rounded-full"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                          <p className="text-xs text-white truncate">{image.file.name}</p>
-                          <p className="text-xs text-white/70">
-                            {(image.file.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Image Library Tab */}
-          <TabsContent value="library" className="space-y-6 mt-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-semibold">
-                    Uploaded Images ({uploadedImages.length})
-                  </h2>
-                  <div className="flex-1 max-w-md ml-6">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search images..."
-                        className="pl-10"
-                      />
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                  {uploadedImages.map((image) => (
-                    <div
-                      key={image.id}
-                      className="relative group aspect-square rounded-lg overflow-hidden border bg-muted"
-                    >
-                      <img
-                        src={image.url}
-                        alt={image.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-xs text-white font-medium truncate mb-1">
-                            {image.name}
-                          </p>
-                          <div className="flex items-center justify-between text-xs text-white/70">
-                            <span>{image.size} MB</span>
-                            <span>{image.uploadedAt}</span>
-                          </div>
-                        </div>
-                        <div className="absolute top-2 right-2">
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            className="h-8 w-8 rounded-full"
-                            onClick={() => {
-                              setSelectedImageId(image.id);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Delete Confirmation Dialog */}
+        {/* Dialogs */}
+        <UploadImagesDialog 
+          open={uploadDialogOpen} 
+          onOpenChange={setUploadDialogOpen} 
+        />
         <DeleteConfirmDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
