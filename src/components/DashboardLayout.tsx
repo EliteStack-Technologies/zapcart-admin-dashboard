@@ -1,4 +1,4 @@
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload } from "lucide-react";
 import { NavLink } from "./NavLink";
 
 interface DashboardLayoutProps {
@@ -13,6 +13,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/offers", icon: Tag, label: "Offer Tags" },
     { to: "/banners", icon: Image, label: "Banners" },
     { to: "/flyers", icon: FileText, label: "Flyers" },
+    { to: "/upload-images", icon: Upload, label: "Upload Images" },
     { to: "/account", icon: Phone, label: "Account Details" },
   ];
 
