@@ -2,8 +2,10 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, X, Image as ImageIcon, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 interface ImagePreview {
   id: string;
@@ -11,9 +13,65 @@ interface ImagePreview {
   preview: string;
 }
 
+interface UploadedImage {
+  id: number;
+  name: string;
+  url: string;
+  size: number;
+  uploadedAt: string;
+}
+
 const UploadImages = () => {
   const { toast } = useToast();
   const [images, setImages] = useState<ImagePreview[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
+  
+  // Mock uploaded images - replace with real data from backend
+  const [uploadedImages] = useState<UploadedImage[]>([
+    {
+      id: 1,
+      name: "product-image-1.jpg",
+      url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
+      size: 2.4,
+      uploadedAt: "2024-01-15"
+    },
+    {
+      id: 2,
+      name: "banner-promo.png",
+      url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
+      size: 1.8,
+      uploadedAt: "2024-01-14"
+    },
+    {
+      id: 3,
+      name: "category-hero.jpg",
+      url: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400",
+      size: 3.2,
+      uploadedAt: "2024-01-13"
+    },
+    {
+      id: 4,
+      name: "offer-banner.jpg",
+      url: "https://images.unsplash.com/photo-1560343090-f0409e92791a?w=400",
+      size: 2.1,
+      uploadedAt: "2024-01-12"
+    },
+    {
+      id: 5,
+      name: "product-showcase.png",
+      url: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=400",
+      size: 1.9,
+      uploadedAt: "2024-01-11"
+    },
+    {
+      id: 6,
+      name: "brand-logo.png",
+      url: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400",
+      size: 0.8,
+      uploadedAt: "2024-01-10"
+    },
+  ]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -65,6 +123,15 @@ const UploadImages = () => {
       description: `Successfully uploaded ${images.length} image(s).`,
     });
     clearAll();
+  };
+
+  const handleDeleteImage = () => {
+    toast({
+      title: "Image deleted",
+      description: "The image has been successfully removed.",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedImageId(null);
   };
 
   return (
@@ -161,6 +228,74 @@ const UploadImages = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Uploaded Images List */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold">
+                Uploaded Images ({uploadedImages.length})
+              </h2>
+              <div className="flex-1 max-w-md ml-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search images..."
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {uploadedImages.map((image) => (
+                <div
+                  key={image.id}
+                  className="relative group aspect-square rounded-lg overflow-hidden border bg-muted"
+                >
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-xs text-white font-medium truncate mb-1">
+                        {image.name}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-white/70">
+                        <span>{image.size} MB</span>
+                        <span>{image.uploadedAt}</span>
+                      </div>
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => {
+                          setSelectedImageId(image.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Delete Image"
+          description="Are you sure you want to delete this image? This action cannot be undone."
+          onConfirm={handleDeleteImage}
+        />
       </div>
     </DashboardLayout>
   );
