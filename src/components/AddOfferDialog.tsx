@@ -65,15 +65,6 @@ const AddOfferDialog = ({ open, onOpenChange }: AddOfferDialogProps) => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="discount">Discount Text*</Label>
-              <Input
-                id="discount"
-                placeholder="25% OFF"
-                required
-              />
-            </div>
-
             <div className="space-y-3">
               <Label>Tag Color*</Label>
               <div className="grid grid-cols-8 gap-2">

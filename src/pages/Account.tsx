@@ -45,16 +45,7 @@ const Account = () => {
               Manage your business contact information and social media presence
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button className="gap-2">
-              <Save className="w-4 h-4" />
-              Save Changes
-            </Button>
-            <Button variant="outline" onClick={handleLogout} className="gap-2">
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
-          </div>
+      
         </div>
 
         {/* Account Info */}
@@ -164,27 +155,7 @@ const Account = () => {
           </CardContent>
         </Card>
 
-        {/* Business Hours */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Business Hours</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { day: "Monday - Friday", hours: "9:00 AM - 6:00 PM" },
-              { day: "Saturday", hours: "10:00 AM - 4:00 PM" },
-              { day: "Sunday", hours: "Closed" },
-            ].map((schedule, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between py-3">
-                  <span className="font-medium text-foreground">{schedule.day}</span>
-                  <span className="text-muted-foreground">{schedule.hours}</span>
-                </div>
-                {i < 2 && <Separator />}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+     
 
         {/* Action Buttons */}
         <div className="flex gap-4">
@@ -192,9 +163,7 @@ const Account = () => {
             <Save className="w-4 h-4" />
             Save All Changes
           </Button>
-          <Button variant="outline" className="flex-1">
-            Cancel
-          </Button>
+    
         </div>
       </div>
     </DashboardLayout>

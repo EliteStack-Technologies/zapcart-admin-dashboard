@@ -30,7 +30,7 @@ const UploadImages = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 54;
   
   // Mock uploaded images - replace with real data from backend
   const [uploadedImages] = useState<UploadedImage[]>([

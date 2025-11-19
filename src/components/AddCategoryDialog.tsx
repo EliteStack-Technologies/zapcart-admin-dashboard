@@ -55,35 +55,7 @@ const AddCategoryDialog = ({ open, onOpenChange }: AddCategoryDialogProps) => {
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Category Color*</Label>
-              <div className="grid grid-cols-8 gap-2">
-                {presetColors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-lg transition-all ${
-                      selectedColor === color 
-                        ? "ring-2 ring-offset-2 ring-primary scale-110" 
-                        : "hover:scale-105"
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center gap-3 mt-3">
-                <Label htmlFor="customColor" className="text-sm">Custom:</Label>
-                <Input
-                  id="customColor"
-                  type="color"
-                  value={selectedColor}
-                  onChange={(e) => setSelectedColor(e.target.value)}
-                  className="w-20 h-10 cursor-pointer"
-                />
-                <span className="text-sm text-muted-foreground">{selectedColor}</span>
-              </div>
-            </div>
+        
           </div>
 
           <DialogFooter>

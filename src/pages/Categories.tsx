@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, FolderOpen } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,12 @@ const Categories = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const categories = [
-    { id: 1, name: "Beverages", productCount: 45, color: "#3B82F6" },
-    { id: 2, name: "Snacks", productCount: 32, color: "#EF4444" },
-    { id: 3, name: "Pantry", productCount: 28, color: "#10B981" },
-    { id: 4, name: "Dairy", productCount: 18, color: "#F59E0B" },
-    { id: 5, name: "Frozen Foods", productCount: 22, color: "#8B5CF6" },
-    { id: 6, name: "Bakery", productCount: 15, color: "#EC4899" },
+    { id: 1, name: "Beverages", productCount: 45 },
+    { id: 2, name: "Snacks", productCount: 32 },
+    { id: 3, name: "Pantry", productCount: 28 },
+    { id: 4, name: "Dairy", productCount: 18 },
+    { id: 5, name: "Frozen Foods", productCount: 22 },
+    { id: 6, name: "Bakery", productCount: 15 },
   ];
 
   const handleDelete = () => {
@@ -69,14 +69,8 @@ const Categories = () => {
             <Card key={category.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${category.color}20` }}
-                  >
-                    <div 
-                      className="w-6 h-6 rounded"
-                      style={{ backgroundColor: category.color }}
-                    />
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                    <FolderOpen className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon">

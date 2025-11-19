@@ -118,10 +118,10 @@ const Banners = () => {
         </div>
 
         {/* Banners Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
           {banners.map((banner) => (
             <Card key={banner.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative aspect-video bg-muted">
+              <div className="relative aspect-square bg-muted">
                 <img 
                   src={banner.imageUrl}
                   alt={`Banner ${banner.id}`}
@@ -134,49 +134,39 @@ const Banners = () => {
                   {banner.status}
                 </Badge>
               </div>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
+              <CardContent className="p-3">
+                <div className="flex justify-between gap-2 mb-2">
                   <div>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-xs font-medium text-foreground">
                       Banner #{banner.id}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Created: {banner.createdAt}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {banner.createdAt}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor={`toggle-${banner.id}`} className="text-sm cursor-pointer">
-                        {banner.status === "active" ? "Active" : "Inactive"}
-                      </Label>
-                      <Switch
-                        id={`toggle-${banner.id}`}
-                        checked={banner.status === "active"}
-                        onCheckedChange={() => toggleBannerStatus(banner.id)}
-                      />
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id={`toggle-${banner.id}`}
+                      checked={banner.status === "active"}
+                      onCheckedChange={() => toggleBannerStatus(banner.id)}
+                    />
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Preview
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
+                <div className="flex gap-1">
+                
+                  <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                    <Edit className="w-3 h-3" />
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 h-8 text-xs"
                     onClick={() => {
                       setSelectedBanner(banner.id);
                       setDeleteDialogOpen(true);
                     }}
                   >
-                    <Trash2 className="w-4 h-4 mr-2 text-destructive" />
-                    Delete
+                    <Trash2 className="w-3 h-3 text-destructive" />
                   </Button>
                 </div>
               </CardContent>
