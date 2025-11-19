@@ -22,7 +22,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background ">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
@@ -41,7 +41,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="p-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-sidebar-foreground">
-              Business Hub
+              Zapcart
             </h1>
             <p className="text-sm text-sidebar-foreground/60 mt-1">Management Dashboard</p>
           </div>
@@ -82,7 +82,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           >
             <Menu className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-semibold">Business Hub</h1>
+          <h1 className="text-lg font-semibold">Zapcart</h1>
         </div>
         
         <div className="p-4 sm:p-6 lg:p-8">
