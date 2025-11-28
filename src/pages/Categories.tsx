@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Search, Edit, Trash2, FolderOpen } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -7,29 +7,55 @@ import { Card, CardContent } from "@/components/ui/card";
 import AddCategoryDialog from "@/components/AddCategoryDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
+import { getCategory, deleteCategory } from "@/services/category";
 
 const Categories = () => {
   const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const categories = [
-    { id: 1, name: "Beverages", productCount: 45 },
-    { id: 2, name: "Snacks", productCount: 32 },
-    { id: 3, name: "Pantry", productCount: 28 },
-    { id: 4, name: "Dairy", productCount: 18 },
-    { id: 5, name: "Frozen Foods", productCount: 22 },
-    { id: 6, name: "Bakery", productCount: 15 },
-  ];
+  const [selectedCategory, setSelectedCategory] = useState<{ _id: number; name: string; productCount: number } | null>(null);
+  const [categories,setCategories]=useState([])
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const data = await getCategory();
+          setCategories(data);
+        } catch (error) {
+          console.error("Error fetching banners:", error);
+        }
+      };
+      fetchData();
+    }, []);
 
-  const handleDelete = () => {
-    toast({
-      title: "Category deleted",
-      description: "The category has been successfully removed.",
-    });
-    setDeleteDialogOpen(false);
-    setSelectedCategory(null);
+
+  const handleDelete = async () => {
+    if (!selectedCategory?._id) return;
+
+    try {
+      await deleteCategory(String(selectedCategory._id));
+      
+      // Update state by filtering out the deleted category
+      setCategories((prev) => prev.filter((cat) => cat._id !== selectedCategory._id));
+      
+      toast({
+        title: "Category deleted",
+        description: "The category has been successfully removed.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete category",
+        variant: "destructive",
+      });
+      console.error("Error deleting category:", error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setSelectedCategory(null);
+    }
   };
+
+  
 
   return (
     <DashboardLayout>
@@ -73,14 +99,21 @@ const Categories = () => {
                     <FolderOpen className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setEditDialogOpen(true);
+                      }}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="icon"
                       onClick={() => {
-                        setSelectedCategory(category.id);
+                        setSelectedCategory(category);
                         setDeleteDialogOpen(true);
                       }}
                     >
@@ -92,7 +125,7 @@ const Categories = () => {
                   {category.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {category.productCount} products
+                  {category.productCount || 0} products
                 </p>
               </CardContent>
             </Card>
@@ -100,7 +133,13 @@ const Categories = () => {
         </div>
 
         {/* Dialogs */}
-        <AddCategoryDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <AddCategoryDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} setCategories={setCategories}/>
+        <AddCategoryDialog 
+          open={editDialogOpen} 
+          setCategories={setCategories}
+          onOpenChange={setEditDialogOpen}
+          editingCategory={selectedCategory || undefined}
+        />
         <DeleteConfirmDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}

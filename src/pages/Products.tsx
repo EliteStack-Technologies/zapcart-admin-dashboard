@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -23,71 +24,101 @@ import {
 import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
+import { getProduct,  deleteProduct, changeStatus } from "@/services/product";
 
 const Products = () => {
   const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<{
+    _id: string;
+    title: string;
+    old_price: number;
+    actual_price: number;
+    offer_price: number | null;
+    unit_type: string;
+    offer_start_date: string;
+    offer_end_date: string;
+    image_url: string;
+    offer_id: string;
+    status?: string;
+  } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [products, setProducts] = useState([]);
+
   const itemsPerPage = 10;
-  
-  const products = [
-    {
-      id: 1,
-      title: "Premium Coffee Beans",
-      category: "Beverages",
-      oldPrice: 29.99,
-      actualPrice: 24.99,
-      offerPrice: 19.99,
-      status: "Active",
-      offer: "Summer Sale"
-    },
-    {
-      id: 2,
-      title: "Organic Green Tea",
-      category: "Beverages",
-      oldPrice: 22.50,
-      actualPrice: 18.50,
-      offerPrice: null,
-      status: "Active",
-      offer: null
-    },
-    {
-      id: 3,
-      title: "Dark Chocolate Bar",
-      category: "Snacks",
-      oldPrice: 7.99,
-      actualPrice: 5.99,
-      offerPrice: 4.99,
-      status: "Active",
-      offer: "Flash Deal"
-    },
-    {
-      id: 4,
-      title: "Natural Honey Jar",
-      category: "Pantry",
-      oldPrice: 15.99,
-      actualPrice: 12.99,
-      offerPrice: null,
-      status: "Active",
-      offer: null
-    },
-  ];
 
   // Calculate pagination
-  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const totalPages = Math.ceil((products?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProducts = products.slice(startIndex, endIndex);
+  const currentProducts = Array.isArray(products) ? products.slice(startIndex, endIndex) : [];
 
-  const handleDelete = () => {
-    toast({
-      title: "Product deleted",
-      description: "The product has been successfully removed.",
-    });
-    setDeleteDialogOpen(false);
-    setSelectedProduct(null);
+    useEffect(() => {
+        const fetchData = async () => {
+          try {
+            const data = await getProduct();
+            
+            // Ensure data is always an array
+            setProducts(Array.isArray(data?.products) ? data?.products : data?.products || []);
+          } catch (error) {
+            console.error("Error fetching products:", error);
+            setProducts([]);
+          }
+        };
+        fetchData();
+      }, []);
+
+  const handleDelete = async () => {
+    if (!selectedProduct?._id) return;
+
+    try {
+      await deleteProduct(String(selectedProduct._id));
+      
+      // Update state by filtering out the deleted product
+      setProducts((prev) => prev.filter((p) => p._id !== selectedProduct._id));
+      
+      toast({
+        title: "Product deleted",
+        description: "The product has been successfully removed.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete product",
+        variant: "destructive",
+      });
+      console.error("Error deleting product:", error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setSelectedProduct(null);
+    }
+  };
+
+  const handleStatusToggle = async (product: any) => {
+    try {
+      
+      // Call API to update product status
+      await changeStatus(String(product._id));
+            const data = await getProduct();
+            
+            // Ensure data is always an array
+            setProducts(Array.isArray(data?.products) ? data?.products : data?.products || [])
+
+
+      toast({
+        title: "Status updated",
+        description: `Product status changed `,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update product status",
+        variant: "destructive",
+      });
+      console.error("Error updating status:", error);
+    }
   };
 
   return (
@@ -129,6 +160,8 @@ const Products = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>SI No</TableHead>
+                  <TableHead>Image</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Old Price</TableHead>
@@ -140,49 +173,78 @@ const Products = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentProducts.map((product) => (
+                {currentProducts.map((product, index) => (
                   <TableRow key={product.id}>
+                    <TableCell>{startIndex + index + 1}</TableCell>
+                    <TableCell>
+                      {product.image || product.image_url ? (
+                        <img 
+                          src={`http://localhost:8000/uploads/${product.image}`} 
+                          alt={product.title}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">
+                          No Image
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{product.title}</TableCell>
-                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.category_id?.name || "--"}</TableCell>
                     <TableCell className="text-muted-foreground line-through">
-                      ${product.oldPrice.toFixed(2)}
+                      ${product.old_price}
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${product.actualPrice.toFixed(2)}
+                      ${product.actual_price}
                     </TableCell>
                     <TableCell>
-                      {product.offerPrice ? (
+                      {product.offer_price ? (
                         <span className="text-primary font-medium">
-                          ${product.offerPrice.toFixed(2)}
+                          ${product.offer_price}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {product.offer ? (
-                        <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
-                          {product.offer}
+                      {product.offer_id ? (
+<span
+  className="px-2 py-1 text-black rounded-md text-xs font-medium"
+  style={{ backgroundColor: product.offer_id?.color_code }}
+>
+
+                          {product.offer_id?.name}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 bg-success/10 text-success rounded-full text-xs font-medium">
-                        {product.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={product.status === "active"}
+                          onCheckedChange={() => handleStatusToggle(product)}
+                        />
+                      
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setEditDialogOpen(true);
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon"
                           onClick={() => {
-                            setSelectedProduct(product.id);
+                            setSelectedProduct(product);
                             setDeleteDialogOpen(true);
                           }}
                         >
@@ -232,7 +294,17 @@ const Products = () => {
         </Card>
 
         {/* Dialogs */}
-        <AddProductDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <AddProductDialog 
+          open={addDialogOpen} 
+          onOpenChange={setAddDialogOpen}
+          setProducts={setProducts}
+        />
+        <AddProductDialog 
+          open={editDialogOpen} 
+          onOpenChange={setEditDialogOpen}
+          editingProduct={selectedProduct || undefined}
+          setProducts={setProducts}
+        />
         <DeleteConfirmDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}

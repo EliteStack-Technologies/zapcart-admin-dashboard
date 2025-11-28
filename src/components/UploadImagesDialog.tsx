@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,8 +8,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { uploadProductImages, getProductList } from "@/services/product";
 
 interface ImagePreview {
   id: string;
@@ -17,14 +27,54 @@ interface ImagePreview {
   preview: string;
 }
 
+interface Product {
+  _id: string;
+  title: string;
+}
+
 interface UploadImagesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  setUploadedImages:any;
 }
 
-const UploadImagesDialog = ({ open, onOpenChange }: UploadImagesDialogProps) => {
+const UploadImagesDialog = ({ open, onOpenChange,setUploadedImages }: UploadImagesDialogProps) => {
   const { toast } = useToast();
   const [images, setImages] = useState<ImagePreview[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+
+  // Load products when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchProducts();
+    }
+  }, [open]);
+
+  const fetchProducts = async () => {
+    setIsLoadingProducts(true);
+    try {
+      const data = await getProductList();
+      // Ensure data is always an array
+      const productList = Array.isArray(data?.products) ? data?.products : Array.isArray(data) ? data : [];
+      setProducts(productList);
+    } catch (error: any) {
+      console.error("Error fetching products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+
+
+
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -60,7 +110,7 @@ const UploadImagesDialog = ({ open, onOpenChange }: UploadImagesDialogProps) => 
     setImages([]);
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (images.length === 0) {
       toast({
         title: "No images selected",
@@ -70,13 +120,53 @@ const UploadImagesDialog = ({ open, onOpenChange }: UploadImagesDialogProps) => 
       return;
     }
 
-    // Here you would upload to backend
-    toast({
-      title: "Images uploaded",
-      description: `Successfully uploaded ${images.length} image(s).`,
-    });
-    clearAll();
-    onOpenChange(false);
+    setIsLoading(true);
+
+    try {
+      // Create FormData for multi-part file upload
+      const formData = new FormData();
+      
+      // Append all images
+      images.forEach((image) => {
+        formData.append("images", image.file);
+      });
+
+      const response = await uploadProductImages(formData);
+      
+      // Update parent state with new images from response
+      if (setUploadedImages) {
+        // Handle different response formats
+        let newImages = [];
+        if (response?.data) {
+          newImages = Array.isArray(response.data) ? response.data : [response.data];
+        } else if (response?.images) {
+          newImages = Array.isArray(response.images) ? response.images : [response.images];
+        }
+        
+        // Add new images to existing images
+        if (newImages.length > 0) {
+          setUploadedImages((prev: any[]) => [...prev, ...newImages]);
+        }
+      }
+
+      toast({
+        title: "Images uploaded",
+        description: `Successfully uploaded ${images.length} image(s) to product.`,
+      });
+      
+      clearAll();
+      setSelectedProduct("");
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload images",
+        variant: "destructive",
+      });
+      console.error("Error uploading images:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -162,17 +252,22 @@ const UploadImagesDialog = ({ open, onOpenChange }: UploadImagesDialogProps) => 
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={handleClose}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleClose}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button 
             type="button" 
             onClick={handleUpload} 
-            disabled={images.length === 0}
+            disabled={images.length === 0 || isLoading}
             className="gap-2"
           >
             <Upload className="w-4 h-4" />
-            Upload {images.length > 0 ? `${images.length} Image${images.length !== 1 ? "s" : ""}` : "Images"}
+            {isLoading ? "Uploading..." : `Upload ${images.length > 0 ? `${images.length} Image${images.length !== 1 ? "s" : ""}` : "Images"}`}
           </Button>
         </DialogFooter>
       </DialogContent>

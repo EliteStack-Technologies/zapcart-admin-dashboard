@@ -1,77 +1,101 @@
-import { useState } from "react";
-import { Plus, Upload, Edit, Trash2, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Upload, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import AddBannerDialog from "@/components/AddBannerDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
+import { changeBannerStatus, getBanners, deleteBanner } from "@/services/banners";
 
 interface Banner {
-  id: number;
-  imageUrl: string;
+  _id: string;
+  image_url: string;
   status: "active" | "inactive";
   createdAt: string;
 }
 
 const Banners = () => {
   const { toast } = useToast();
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedBanner, setSelectedBanner] = useState<number | null>(null);
-  const [banners, setBanners] = useState<Banner[]>([
-    { 
-      id: 1, 
-      imageUrl: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da",
-      status: "active",
-      createdAt: "2024-11-10"
-    },
-    { 
-      id: 2, 
-      imageUrl: "https://images.unsplash.com/photo-1607082349566-187342175e2f",
-      status: "active",
-      createdAt: "2024-11-08"
-    },
-    { 
-      id: 3, 
-      imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
-      status: "inactive",
-      createdAt: "2024-11-05"
-    },
-    { 
-      id: 4, 
-      imageUrl: "https://images.unsplash.com/photo-1472851294608-062f824d29cc",
-      status: "active",
-      createdAt: "2024-11-01"
-    },
-  ]);
+  const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
+  const [banners, setBanners] = useState<Banner[]>([]);
 
-  const handleDelete = () => {
-    toast({
-      title: "Banner deleted",
-      description: "The banner has been successfully removed.",
-    });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getBanners();
+        setBanners(data);
+      } catch (error) {
+        console.error("Error fetching banners:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // ---------------------------
+  // DELETE BANNER
+  // ---------------------------
+  const handleDelete = async () => {
+    if (!selectedBanner?._id) return;
+
+    try {
+      await deleteBanner(selectedBanner._id);
+
+      // Remove banner from state
+      setBanners((prev) => prev.filter((b) => b._id !== selectedBanner._id));
+
+      toast({
+        title: "Banner deleted",
+        description: "The banner has been successfully removed.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete banner.",
+        variant: "destructive",
+      });
+    }
+
     setDeleteDialogOpen(false);
     setSelectedBanner(null);
   };
 
-  const toggleBannerStatus = (bannerId: number) => {
-    setBanners(prev => prev.map(banner => 
-      banner.id === bannerId 
-        ? { ...banner, status: banner.status === "active" ? "inactive" as const : "active" as const }
-        : banner
-    ));
-    
-    const banner = banners.find(b => b.id === bannerId);
-    const newStatus = banner?.status === "active" ? "inactive" : "active";
-    
-    toast({
-      title: "Status updated",
-      description: `Banner is now ${newStatus}.`,
-    });
+  // ---------------------------
+  // TOGGLE STATUS
+  // ---------------------------
+  const toggleBannerStatus = async (bannerId: string) => {
+    try {
+      await changeBannerStatus(bannerId);
+
+      setBanners((prev) =>
+        prev.map((banner) =>
+          banner._id === bannerId
+            ? {
+                ...banner,
+                status: banner.status === "active" ? "inactive" : "active",
+              }
+            : banner
+        )
+      );
+
+      const updated = banners.find((b) => b._id === bannerId);
+
+      toast({
+        title: "Status updated",
+        description: `Banner is now ${updated?.status === "active" ? "inactive" : "active"}.`,
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to change banner status",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -96,14 +120,14 @@ const Banners = () => {
           <Card>
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground">Total Banners</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{banners.length}</p>
+              <p className="text-3xl font-bold mt-2">{banners.length}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground">Active Banners</p>
-              <p className="text-3xl font-bold text-success mt-2">
-                {banners.filter(b => b.status === "active").length}
+              <p className="text-3xl font-bold text-green-600 mt-2">
+                {banners.filter((b) => b.status === "active").length}
               </p>
             </CardContent>
           </Card>
@@ -111,7 +135,7 @@ const Banners = () => {
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground">Inactive Banners</p>
               <p className="text-3xl font-bold text-muted-foreground mt-2">
-                {banners.filter(b => b.status === "inactive").length}
+                {banners.filter((b) => b.status === "inactive").length}
               </p>
             </CardContent>
           </Card>
@@ -120,49 +144,39 @@ const Banners = () => {
         {/* Banners Grid */}
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
           {banners.map((banner) => (
-            <Card key={banner.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <Card key={banner._id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative aspect-square bg-muted">
-                <img 
-                  src={banner.imageUrl}
-                  alt={`Banner ${banner.id}`}
+                <img
+                  src={`http://localhost:8000/uploads/${banner.image_url}`}
+                  alt="Banner"
                   className="w-full h-full object-cover"
                 />
-                <Badge 
-                  className="absolute top-4 right-4"
+
+                <Badge
+                  className="absolute top-4 right-4 capitalize"
                   variant={banner.status === "active" ? "default" : "secondary"}
                 >
                   {banner.status}
                 </Badge>
               </div>
+
               <CardContent className="p-3">
-                <div className="flex justify-between gap-2 mb-2">
-                  <div>
-                    <p className="text-xs font-medium text-foreground">
-                      Banner #{banner.id}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {banner.createdAt}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id={`toggle-${banner.id}`}
-                      checked={banner.status === "active"}
-                      onCheckedChange={() => toggleBannerStatus(banner.id)}
-                    />
-                  </div>
+                <div className="flex justify-between mb-2">
+                  <p className="text-xs text-muted-foreground">{banner.createdAt}</p>
+
+                  <Switch
+                    checked={banner.status === "active"}
+                    onCheckedChange={() => toggleBannerStatus(banner._id)}
+                  />
                 </div>
+
                 <div className="flex gap-1">
-                
-                  <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
-                    <Edit className="w-3 h-3" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="flex-1 h-8 text-xs"
                     onClick={() => {
-                      setSelectedBanner(banner.id);
+                      setSelectedBanner(banner);
                       setDeleteDialogOpen(true);
                     }}
                   >
@@ -175,7 +189,8 @@ const Banners = () => {
         </div>
 
         {/* Dialogs */}
-        <AddBannerDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <AddBannerDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} setBanners={setBanners} />
+
         <DeleteConfirmDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
