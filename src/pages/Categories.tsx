@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, FolderOpen } from "lucide-react";
+import { Plus, Search, Edit, Trash2, FolderOpen, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { getCategory, deleteCategory } from "@/services/category";
 
 const Categories = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -55,6 +57,10 @@ const Categories = () => {
     }
   };
 
+  const handleViewProducts = async (category: any) => {
+    navigate(`/categories/${category._id}/products`);
+  };
+
   
 
   return (
@@ -95,9 +101,17 @@ const Categories = () => {
             <Card key={category.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                    <FolderOpen className="w-6 h-6 text-white" />
-                  </div>
+                  {category.image || category.image_url ? (
+                    <img 
+                      src={category.image || category.image_url} 
+                      alt={category.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                      <FolderOpen className="w-6 h-6 text-white" />
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button 
                       variant="ghost" 
@@ -124,9 +138,18 @@ const Categories = () => {
                 <h3 className="text-xl font-bold text-foreground mb-2">
                   {category.name}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-3">
                   {category.productCount || 0} products
                 </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full gap-2"
+                  onClick={() => handleViewProducts(category)}
+                >
+                  <Eye className="w-4 h-4" />
+                  View Products
+                </Button>
               </CardContent>
             </Card>
           ))}

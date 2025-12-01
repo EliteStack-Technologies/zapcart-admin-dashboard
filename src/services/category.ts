@@ -1,7 +1,7 @@
 import axiosInstance from "./axiosInstance";
 export const getCategory = async () => {
   try {
-    const response = await axiosInstance.get(`/api/v1/categories`);
+    const response = await axiosInstance.get(`/api/v1/categories?sub_domain_name=abc`);
 
     return response.data;
   } catch (error: any) {
@@ -35,10 +35,17 @@ export const addCategory = async (data: any) => {
   }
 };
 
-export const updateCategory = async (categoryId: string,data:any) => {
+export const updateCategory = async (categoryId: string, data: any) => {
   try {
     const response = await axiosInstance.put(
-      `/api/v1/categories/${categoryId}`,data);
+      `/api/v1/categories/${categoryId}`,
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data;
   } catch (error: any) {
     const errorMessage =
@@ -61,7 +68,25 @@ export const deleteCategory = async (categoryId: string) => {
       error.response?.data?.message ||
       error.message ||
       "An error occurred while deleting the category";
+
     console.error("Error deleting category:", errorMessage);
+
+    throw new Error(errorMessage);
+  }
+};
+
+export const getCategoryProducts = async (categoryId: string) => {
+  try {
+    const response = await axiosInstance.get(`/api/v1/categories/${categoryId}/products?sub_domain_name=abc`);
+
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while fetching category products";
+
+    console.error("Error fetching category products:", errorMessage);
 
     throw new Error(errorMessage);
   }
