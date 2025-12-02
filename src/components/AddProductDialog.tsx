@@ -31,6 +31,7 @@ import { addProduct, updateProduct } from "@/services/product";
 import { getProductImages } from "@/services/ProductImage";
 import { getOfferTags } from "@/services/offersTags";
 import { getCategory } from "@/services/category";
+import { getRows } from "@/services/rows";
 interface AddProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -48,6 +49,7 @@ interface AddProductDialogProps {
     image?: string;
     offer_id: string | { _id: string; name: string };
     category_id?: string | { _id: string; name: string };
+    row_id?: string | { _id: string; name: string };
     status?: string;
   };
 }
@@ -68,10 +70,11 @@ const AddProductDialog = ({
   const [loadingImages, setLoadingImages] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string>("");
   const [unitType, setUnitType] = useState<string>(
-    editingProduct?.unit_type || ""
+    editingProduct?.unit_type || "Nos"
   );
   const [offers, setOffers] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
 
   // Helper to get ID from string or object
   const getId = (item: any) => {
@@ -85,8 +88,12 @@ const AddProductDialog = ({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
     getId(editingProduct?.category_id)
   );
+  const [selectedRowId, setSelectedRowId] = useState<string>(
+    getId(editingProduct?.row_id)
+  );
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingRows, setLoadingRows] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -129,6 +136,9 @@ const AddProductDialog = ({
       if (editingProduct.category_id) {
         setSelectedCategoryId(getId(editingProduct.category_id));
       }
+      if (editingProduct.row_id) {
+        setSelectedRowId(getId(editingProduct.row_id));
+      }
 
       // Set existing image preview
       const imgUrl = editingProduct.image_url || editingProduct.image;
@@ -170,9 +180,10 @@ const AddProductDialog = ({
       setEndDate(undefined);
       setSelectedImage(null);
       setImagePreview(null);
-      setUnitType("");
+      setUnitType("Nos");
       setSelectedOfferId("");
       setSelectedCategoryId("");
+      setSelectedRowId("");
     }
 
     // Fetch product images when dialog opens
@@ -180,6 +191,7 @@ const AddProductDialog = ({
       fetchProductImages();
       fetchOffers();
       fetchCategories();
+      fetchRows();
     }
   }, [editingProduct, open, reset]);
 
@@ -241,16 +253,32 @@ const AddProductDialog = ({
     }
   };
 
-  const onSubmit = async (data: any) => {
-    if (!startDate || !endDate || !isValid(startDate) || !isValid(endDate)) {
+  const fetchRows = async () => {
+    setLoadingRows(true);
+    try {
+      const data = await getRows();
+      const rowsList =
+        data?.rows || data?.data || (Array.isArray(data) ? data : []);
+      setRows(rowsList);
+      
+      // Auto-select first row if not editing and rows exist
+      if (!editingProduct && rowsList.length > 0) {
+        const firstRowId = rowsList[0]._id || rowsList[0].id;
+        setSelectedRowId(firstRowId);
+      }
+    } catch (error: any) {
+      console.error("Error fetching rows:", error);
       toast({
         title: "Error",
-        description: "Please select valid start and end dates for the offer",
+        description: "Failed to load rows",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setLoadingRows(false);
     }
+  };
 
+  const onSubmit = async (data: any) => {
     if (!imagePreview) {
       toast({
         title: "Error",
@@ -264,6 +292,15 @@ const AddProductDialog = ({
       toast({
         title: "Error",
         description: "Please select a unit type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedRowId) {
+      toast({
+        title: "Error",
+        description: "Please select a row",
         variant: "destructive",
       });
       return;
@@ -284,13 +321,20 @@ const AddProductDialog = ({
         formData.append("offer_price", Number(data.offer_price).toString());
       }
       formData.append("unit_type", unitType);
-      formData.append("offer_start_date", format(startDate, "yyyy-MM-dd"));
-      formData.append("offer_end_date", format(endDate, "yyyy-MM-dd"));
+      if (startDate && isValid(startDate)) {
+        formData.append("offer_start_date", format(startDate, "yyyy-MM-dd"));
+      }
+      if (endDate && isValid(endDate)) {
+        formData.append("offer_end_date", format(endDate, "yyyy-MM-dd"));
+      }
       if (selectedOfferId) {
         formData.append("offer_id", selectedOfferId);
       }
       if (selectedCategoryId) {
         formData.append("category_id", selectedCategoryId);
+      }
+      if (selectedRowId) {
+        formData.append("row_id", selectedRowId);
       }
 
       // Append image file if a new file was selected
@@ -519,6 +563,40 @@ const AddProductDialog = ({
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="row">Row*</Label>
+              <Select
+                value={selectedRowId}
+                onValueChange={setSelectedRowId}
+                disabled={loadingRows}
+              >
+                <SelectTrigger id="row">
+                  <SelectValue
+                    placeholder={
+                      loadingRows ? "Loading rows..." : "Select a row"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {rows.length > 0 ? (
+                    rows.map((row) => {
+                      const rowId = row._id || row.id;
+                      const rowName = row.name || "Row";
+                      return (
+                        <SelectItem key={rowId} value={rowId}>
+                          {rowName}
+                        </SelectItem>
+                      );
+                    })
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      {loadingRows ? "Loading..." : "No rows available"}
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="old_price">Old Price</Label>
@@ -573,7 +651,7 @@ const AddProductDialog = ({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Offer Start Date*</Label>
+                <Label>Offer Start Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -596,7 +674,7 @@ const AddProductDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label>Offer End Date*</Label>
+                <Label>Offer End Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button

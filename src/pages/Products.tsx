@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +39,7 @@ const Products = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<{
     _id: string;
     title: string;
@@ -235,6 +244,16 @@ const Products = () => {
                           size="icon"
                           onClick={() => {
                             setSelectedProduct(product);
+                            setViewDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            setSelectedProduct(product);
                             setEditDialogOpen(true);
                           }}
                         >
@@ -312,6 +331,98 @@ const Products = () => {
           description="Are you sure you want to delete this product? This action cannot be undone."
           onConfirm={handleDelete}
         />
+
+        {/* View Product Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Product Details</DialogTitle>
+              <DialogDescription>
+                View complete information about this product
+              </DialogDescription>
+            </DialogHeader>
+            {selectedProduct && (
+              <div className="space-y-6">
+                {/* Product Image */}
+                <div className="flex justify-center">
+                  {selectedProduct.image || selectedProduct.image_url ? (
+                    <img 
+                      src={`http://localhost:8000/uploads/${selectedProduct.image}`}
+                      alt={selectedProduct.title}
+                      className="w-48 h-48 object-cover rounded-lg border"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 bg-muted rounded-lg flex items-center justify-center">
+                      <span className="text-muted-foreground">No Image</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Information */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Product Name</Label>
+                    <p className="text-base font-medium">{selectedProduct.title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Category</Label>
+                    <p className="text-base font-medium">{selectedProduct.category_id?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Unit Type</Label>
+                    <p className="text-base font-medium">{selectedProduct.unit_type}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Status</Label>
+                    <p className="text-base font-medium capitalize">{selectedProduct.status || "active"}</p>
+                  </div>
+                </div>
+
+                {/* Pricing Information */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Pricing</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Old Price</Label>
+                      <p className="text-base font-medium line-through">${selectedProduct.old_price}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Actual Price</Label>
+                      <p className="text-base font-medium text-primary">${selectedProduct.actual_price}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Offer Price</Label>
+                      <p className="text-base font-medium">
+                        {selectedProduct.offer_price ? `$${selectedProduct.offer_price}` : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Offer Information */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Offer Details</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Offer Tag</Label>
+                      <p className="text-base font-medium">
+                        {selectedProduct.offer_id?.name || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Offer Period</Label>
+                      <p className="text-base font-medium">
+                        {selectedProduct.offer_start_date && selectedProduct.offer_end_date
+                          ? `${new Date(selectedProduct.offer_start_date).toLocaleDateString()} - ${new Date(selectedProduct.offer_end_date).toLocaleDateString()}`
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
