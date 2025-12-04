@@ -33,9 +33,40 @@ export interface ClientProfileResponse {
   client: ClientProfile;
 }
 
-export const getClientProfile = async () => {
-  const response = await axiosInstance.get<ClientProfileResponse>("/api/v1/clients/me");
-  return response.data.client;
+// Cache for profile data to prevent multiple API calls
+let profileCache: ClientProfile | null = null;
+let profileFetchPromise: Promise<ClientProfile> | null = null;
+
+// Helper to clear cache when needed (e.g., after updates)
+export const clearProfileCache = () => {
+  profileCache = null;
+  profileFetchPromise = null;
+};
+
+export const getClientProfile = async (forceRefresh = false) => {
+  // Return cached data if available and not forcing refresh
+  if (profileCache && !forceRefresh) {
+    return profileCache;
+  }
+
+  // If a fetch is already in progress, return that promise
+  if (profileFetchPromise) {
+    return profileFetchPromise;
+  }
+
+  // Create new fetch promise
+  profileFetchPromise = (async () => {
+    try {
+      const response = await axiosInstance.get<ClientProfileResponse>("/api/v1/clients/me");
+      profileCache = response.data.client;
+      return profileCache;
+    } finally {
+      // Clear the promise after completion (success or failure)
+      profileFetchPromise = null;
+    }
+  })();
+
+  return profileFetchPromise;
 };
 
 export const updateCurrency = async (currencyId: string) => {

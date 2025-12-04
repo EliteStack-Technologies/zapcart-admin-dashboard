@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { format, isValid, parseISO } from "date-fns";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   getClientProfile,
+  clearProfileCache,
   updateCurrency,
   changePassword,
   getCurrencies,
@@ -38,6 +39,7 @@ export default function Profile() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const fetchingRef = useRef(false); // Prevent duplicate API calls
 
   const {
     register: registerPassword,
@@ -53,14 +55,17 @@ export default function Profile() {
   });
 
   useEffect(() => {
+    // Prevent duplicate calls
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     fetchProfileData();
   }, []);
 
-  const fetchProfileData = async () => {
+  const fetchProfileData = async (forceRefresh = false) => {
     setLoading(true);
     try {
       const [profileData, currenciesData] = await Promise.all([
-        getClientProfile(),
+        getClientProfile(forceRefresh), // Use cache by default, force refresh only when needed
         getCurrencies().catch(() => []), // If currencies API fails, continue with empty array
       ]);
       
@@ -103,8 +108,9 @@ export default function Profile() {
         title: "Success",
         description: "Currency updated successfully",
       });
+      clearProfileCache(); // Clear cache to fetch fresh data
       await refreshCurrency(); // Update global currency context
-      fetchProfileData(); // Refresh profile data
+      fetchProfileData(true); // Force refresh profile data
     } catch (error: any) {
       console.error("Error updating currency:", error);
       toast({
