@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import { getClientProfile } from "@/services/profile";
 
 interface Currency {
@@ -22,6 +22,8 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     const stored = localStorage.getItem("currency");
     return stored ? JSON.parse(stored) : null;
   });
+  
+  const isFetchingRef = useRef(false); // Prevent duplicate API calls
 
   const setCurrency = (newCurrency: Currency) => {
     setCurrencyState(newCurrency);
@@ -29,22 +31,37 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshCurrency = async () => {
+    // Prevent duplicate calls
+    if (isFetchingRef.current) return;
+    
+    isFetchingRef.current = true;
     try {
-      const profile = await getClientProfile();
+      const profile = await getClientProfile(false); // Use cached data if available
       if (profile.currency_id && typeof profile.currency_id === 'object') {
         setCurrency(profile.currency_id);
       }
     } catch (error) {
       console.error("Error refreshing currency:", error);
+    } finally {
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
-    // Fetch currency on mount if not already set
-    if (!currency) {
-      refreshCurrency();
+    // Only fetch currency if user is authenticated and currency not in localStorage
+    const token = localStorage.getItem("accessToken");
+    const stored = localStorage.getItem("currency");
+    
+    if (token && !stored && !isFetchingRef.current) {
+      // Small delay to ensure token is set in axios instance
+      const timer = setTimeout(() => {
+        refreshCurrency();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - run only once on mount
 
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency, refreshCurrency }}>
