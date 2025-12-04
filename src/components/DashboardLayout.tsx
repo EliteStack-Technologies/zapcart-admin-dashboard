@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,8 +28,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/offers", icon: Tag, label: "Offer Tags" },
     { to: "/banners", icon: Image, label: "Banners" },
     { to: "/flyers", icon: FileText, label: "Flyers" },
-    { to: "/upload-images", icon: Upload, label: "Upload Images" },
+    // { to: "/upload-images", icon: Upload, label: "Upload Images" },
     { to: "/account", icon: Phone, label: "Account Details" },
+    { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
 
   return (

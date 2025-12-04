@@ -27,6 +27,7 @@ import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCategoryProducts } from "@/services/category";
 import { deleteProduct, changeStatus } from "@/services/product";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const CategoryProducts = () => {
   const { categoryId } = useParams();
@@ -40,6 +41,7 @@ const CategoryProducts = () => {
   const [categoryName, setCategoryName] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { currency } = useCurrency();
 
   const itemsPerPage = 10;
 
@@ -213,15 +215,15 @@ const CategoryProducts = () => {
                         </TableCell>
                         <TableCell className="font-medium">{product.title}</TableCell>
                         <TableCell className="text-muted-foreground line-through">
-                          ${product.old_price}
+                          {currency?.symbol || '$'}{product.old_price}
                         </TableCell>
                         <TableCell className="font-medium">
-                          ${product.actual_price}
+                          {currency?.symbol || '$'}{product.actual_price}
                         </TableCell>
                         <TableCell>
                           {product.offer_price ? (
                             <span className="text-primary font-medium">
-                              ${product.offer_price}
+                              {currency?.symbol || '$'}{product.offer_price}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>

@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { Label } from "@/components/ui/label";
 import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
@@ -55,6 +56,7 @@ const Products = () => {
   } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [products, setProducts] = useState([]);
+  const { currency } = useCurrency();
 
   const itemsPerPage = 10;
 
@@ -201,15 +203,15 @@ const Products = () => {
                     <TableCell className="font-medium">{product.title}</TableCell>
                     <TableCell>{product.category_id?.name || "--"}</TableCell>
                     <TableCell className="text-muted-foreground line-through">
-                      ${product.old_price}
+                      {currency?.symbol || '$'}{product.old_price}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      ${product.actual_price}
+                    <TableCell className="font-medium text-primary">
+                      {currency?.symbol || '$'}{product.actual_price}
                     </TableCell>
                     <TableCell>
                       {product.offer_price ? (
-                        <span className="text-primary font-medium">
-                          ${product.offer_price}
+                        <span className="text-green-600 font-semibold">
+                          {currency?.symbol || '$'}{product.offer_price}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
@@ -384,16 +386,16 @@ const Products = () => {
                   <div className="grid gap-4 md:grid-cols-3">
                     <div>
                       <Label className="text-sm text-muted-foreground">Old Price</Label>
-                      <p className="text-base font-medium line-through">${selectedProduct.old_price}</p>
+                      <p className="text-base font-medium line-through">{currency?.symbol || '$'}{selectedProduct.old_price}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Actual Price</Label>
-                      <p className="text-base font-medium text-primary">${selectedProduct.actual_price}</p>
+                      <p className="text-base font-medium text-primary">{currency?.symbol || '$'}{selectedProduct.actual_price}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Offer Price</Label>
-                      <p className="text-base font-medium">
-                        {selectedProduct.offer_price ? `$${selectedProduct.offer_price}` : "N/A"}
+                      <p className="text-base font-medium text-green-600">
+                        {selectedProduct.offer_price ? `${currency?.symbol || '$'}${selectedProduct.offer_price}` : "N/A"}
                       </p>
                     </div>
                   </div>

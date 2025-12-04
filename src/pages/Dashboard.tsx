@@ -2,8 +2,11 @@ import { Package, Tag, Image, TrendingUp } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import StatCard from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Dashboard = () => {
+  const { currency } = useCurrency();
+  
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -54,15 +57,15 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { name: "Premium Coffee Beans", price: "$24.99", status: "Active" },
-                  { name: "Organic Green Tea", price: "$18.50", status: "Active" },
-                  { name: "Dark Chocolate Bar", price: "$5.99", status: "Offer" },
-                  { name: "Natural Honey Jar", price: "$12.99", status: "Active" },
+                  { name: "Premium Coffee Beans", price: "24.99", status: "Active" },
+                  { name: "Organic Green Tea", price: "18.50", status: "Active" },
+                  { name: "Dark Chocolate Bar", price: "5.99", status: "Offer" },
+                  { name: "Natural Honey Jar", price: "12.99", status: "Active" },
                 ].map((product, i) => (
                   <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div>
                       <p className="font-medium text-foreground">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">{product.price}</p>
+                      <p className="text-sm text-muted-foreground">{currency?.symbol || '$'}{product.price}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       product.status === "Offer" 
