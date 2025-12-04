@@ -61,6 +61,7 @@ const Categories = () => {
     navigate(`/categories/${category._id}/products`);
   };
 
+  console.log(categories,"categoriescategoriescategories");
   
 
   return (
@@ -103,7 +104,7 @@ const Categories = () => {
                 <div className="flex items-start justify-between mb-4">
                   {category.image || category.image_url ? (
                     <img 
-                      src={category.image || category.image_url} 
+                      src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${category.image}`} 
                       alt={category.name}
                       className="w-12 h-12 rounded-lg object-cover"
                     />
@@ -138,9 +139,9 @@ const Categories = () => {
                 <h3 className="text-xl font-bold text-foreground mb-2">
                   {category.name}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-3">
+                {/* <p className="text-sm text-muted-foreground mb-3">
                   {category.productCount || 0} products
-                </p>
+                </p> */}
                 <Button 
                   variant="outline" 
                   size="sm" 
