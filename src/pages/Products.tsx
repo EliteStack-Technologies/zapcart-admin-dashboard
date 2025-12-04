@@ -190,7 +190,7 @@ const Products = () => {
                     <TableCell>
                       {product.image || product.image_url ? (
                         <img 
-                          src={`http://localhost:8000/uploads/${product.image}`} 
+                          src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${product.image}`} 
                           alt={product.title}
                           className="w-12 h-12 object-cover rounded"
                         />
@@ -349,7 +349,7 @@ const Products = () => {
                 <div className="flex justify-center">
                   {selectedProduct.image || selectedProduct.image_url ? (
                     <img 
-                      src={`http://localhost:8000/uploads/${selectedProduct.image}`}
+                      src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${selectedProduct.image}`}
                       alt={selectedProduct.title}
                       className="w-48 h-48 object-cover rounded-lg border"
                     />

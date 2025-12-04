@@ -756,7 +756,7 @@ const AddProductDialog = ({
               {imagePreview ? (
                 <div className="relative w-full">
                   <img
-                    src={`http://localhost:8000/uploads/${imagePreview}`}
+                    src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${imagePreview}`}
                     alt="Product preview "
                     className="w-full h-48 object-cover rounded-lg border border-border"
                   />

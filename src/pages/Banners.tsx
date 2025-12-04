@@ -147,7 +147,7 @@ const Banners = () => {
             <Card key={banner._id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative aspect-square bg-muted">
                 <img
-                  src={`http://localhost:8000/uploads/${banner.image_url}`}
+                  src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${banner.image_url}`}
                   alt="Banner"
                   className="w-full h-full object-cover"
                 />
