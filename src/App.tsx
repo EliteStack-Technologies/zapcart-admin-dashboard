@@ -17,9 +17,7 @@ import Flyers from "@/pages/Flyers";
 import UploadImages from "@/pages/UploadImages";
 import Account from "@/pages/Account";
 import Profile from "@/pages/Profile";
-import Auth from "@/pages/Auth";
 import Login from "@/pages/Login";
-import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -35,7 +33,6 @@ const App = () => (
           <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
             <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
