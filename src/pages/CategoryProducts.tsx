@@ -203,7 +203,7 @@ const CategoryProducts = () => {
                         <TableCell>
                           {product.image || product.image_url ? (
                             <img 
-                              src={product.image || product.image_url} 
+                      src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${product.image}`} 
                               alt={product.title}
                               className="w-12 h-12 object-cover rounded"
                             />
