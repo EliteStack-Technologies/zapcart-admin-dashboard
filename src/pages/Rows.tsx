@@ -23,15 +23,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
-import { getRows, addRow, updateRow, deleteRow } from "@/services/rows";
+import { getSections, addSection, updateSection, deleteSection } from "@/services/rows";
 
 const Rows = () => {
   const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<{ _id: number; name: string } | null>(null);
-  const [rows, setRows] = useState<any[]>([]);
+  const [selectedSection, setSelectedSection] = useState<{ _id: number; name: string } | null>(null);
+  const [sections, setSections] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,22 +47,22 @@ const Rows = () => {
     },
   });
 
-  // Filter rows based on search
-  const filteredRows = rows.filter((row) =>
-    row.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter sections based on search
+  const filteredSections = sections.filter((section) =>
+    section.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getRows();
-        const rowsList = data?.rows || data?.data || (Array.isArray(data) ? data : []);
-        setRows(rowsList);
+        const data = await getSections();
+        const sectionsList = data?.sections || data?.data || (Array.isArray(data) ? data : []);
+        setSections(sectionsList);
       } catch (error) {
-        console.error("Error fetching rows:", error);
+        console.error("Error fetching sections:", error);
         toast({
           title: "Error",
-          description: "Failed to load rows",
+          description: "Failed to load sections",
           variant: "destructive",
         });
       }
@@ -71,40 +71,40 @@ const Rows = () => {
   }, [toast]);
 
   useEffect(() => {
-    if (selectedRow && editDialogOpen) {
-      setValue("name", selectedRow.name);
+    if (selectedSection && editDialogOpen) {
+      setValue("name", selectedSection.name);
     } else if (!editDialogOpen) {
       reset();
     }
-  }, [selectedRow, editDialogOpen, setValue, reset]);
+  }, [selectedSection, editDialogOpen, setValue, reset]);
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      if (selectedRow) {
+      if (selectedSection) {
         // UPDATE MODE
-        const response = await updateRow(String(selectedRow._id), { name: data.name });
-        const updatedRow = response?.data || response;
+        const response = await updateSection(String(selectedSection._id), { name: data.name });
+        const updatedSection = response?.data || response;
 
-        setRows((prev) =>
-          prev.map((r) => (r._id === selectedRow._id ? updatedRow : r))
+        setSections((prev) =>
+          prev.map((s) => (s._id === selectedSection._id ? updatedSection : s))
         );
 
         toast({
-          title: "Row updated",
-          description: "Row has been successfully updated.",
+          title: "Section updated",
+          description: "Section has been successfully updated.",
         });
         setEditDialogOpen(false);
       } else {
         // CREATE MODE
-        const response = await addRow({ name: data.name });
-        const newRow = response?.data || response;
+        const response = await addSection({ name: data.name });
+        const newSection = response?.data || response;
 
-        setRows((prev) => [...prev, newRow]);
+        setSections((prev) => [...prev, newSection]);
 
         toast({
-          title: "Row created",
-          description: "Row has been successfully added.",
+          title: "Section created",
+          description: "Section has been successfully added.",
         });
         setAddDialogOpen(false);
       }
@@ -123,28 +123,28 @@ const Rows = () => {
   };
 
   const handleDelete = async () => {
-    if (!selectedRow?._id) return;
+    if (!selectedSection?._id) return;
 
     try {
-      await deleteRow(String(selectedRow._id));
+      await deleteSection(String(selectedSection._id));
 
-      // Update state by filtering out the deleted row
-      setRows((prev) => prev.filter((r) => r._id !== selectedRow._id));
+      // Update state by filtering out the deleted section
+      setSections((prev) => prev.filter((s) => s._id !== selectedSection._id));
 
       toast({
-        title: "Row deleted",
-        description: "The row has been successfully removed.",
+        title: "Section deleted",
+        description: "The section has been successfully removed.",
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete row",
+        description: error.message || "Failed to delete section",
         variant: "destructive",
       });
-      console.error("Error deleting row:", error);
+      console.error("Error deleting section:", error);
     } finally {
       setDeleteDialogOpen(false);
-      setSelectedRow(null);
+      setSelectedSection(null);
     }
   };
 
@@ -154,14 +154,14 @@ const Rows = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground">Row Management</h1>
+            <h1 className="text-4xl font-bold text-foreground">Section Management</h1>
             <p className="text-muted-foreground mt-2">
-              Manage rows for product organization
+              Manage sections for product organization
             </p>
           </div>
           <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
             <Plus className="w-4 h-4" />
-            Add Row
+            Add Section
           </Button>
         </div>
 
@@ -172,7 +172,7 @@ const Rows = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search rows..."
+                  placeholder="Search sections..."
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -182,30 +182,30 @@ const Rows = () => {
           </CardContent>
         </Card>
 
-        {/* Rows Table */}
+        {/* Sections Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>SI No</TableHead>
-                  <TableHead>Row Name</TableHead>
+                  <TableHead>Section Name</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRows.length > 0 ? (
-                  filteredRows.map((row, index) => (
-                    <TableRow key={row._id}>
+                {filteredSections.length > 0 ? (
+                  filteredSections.map((section, index) => (
+                    <TableRow key={section._id}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="font-medium">{section.name}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setSelectedRow(row);
+                              setSelectedSection(section);
                               setEditDialogOpen(true);
                             }}
                           >
@@ -215,7 +215,7 @@ const Rows = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setSelectedRow(row);
+                              setSelectedSection(section);
                               setDeleteDialogOpen(true);
                             }}
                           >
@@ -228,7 +228,7 @@ const Rows = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                      No rows found
+                      No sections found
                     </TableCell>
                   </TableRow>
                 )}
@@ -237,23 +237,23 @@ const Rows = () => {
           </CardContent>
         </Card>
 
-        {/* Add Row Dialog */}
+        {/* Add Section Dialog */}
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Row</DialogTitle>
+              <DialogTitle>Add New Section</DialogTitle>
               <DialogDescription>
-                Create a new row for product organization.
+                Create a new section for product organization.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-6 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Row Name*</Label>
+                  <Label htmlFor="name">Section Name*</Label>
                   <Input
                     id="name"
-                    placeholder="Row A"
-                    {...register("name", { required: "Row name is required" })}
+                    placeholder="Section A"
+                    {...register("name", { required: "Section name is required" })}
                   />
                   {errors.name && (
                     <p className="text-xs text-destructive">{errors.name.message}</p>
@@ -271,30 +271,30 @@ const Rows = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Adding..." : "Add Row"}
+                  {isLoading ? "Adding..." : "Add Section"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* Edit Row Dialog */}
+        {/* Edit Section Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Row</DialogTitle>
+              <DialogTitle>Edit Section</DialogTitle>
               <DialogDescription>
-                Update the row name.
+                Update the section name.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-6 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-name">Row Name*</Label>
+                  <Label htmlFor="edit-name">Section Name*</Label>
                   <Input
                     id="edit-name"
-                    placeholder="Row A"
-                    {...register("name", { required: "Row name is required" })}
+                    placeholder="Section A"
+                    {...register("name", { required: "Section name is required" })}
                   />
                   {errors.name && (
                     <p className="text-xs text-destructive">{errors.name.message}</p>
@@ -312,7 +312,7 @@ const Rows = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Updating..." : "Update Row"}
+                  {isLoading ? "Updating..." : "Update Section"}
                 </Button>
               </DialogFooter>
             </form>
@@ -323,9 +323,9 @@ const Rows = () => {
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Row</DialogTitle>
+              <DialogTitle>Delete Section</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this row? This action cannot be undone.
+                Are you sure you want to delete this section? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

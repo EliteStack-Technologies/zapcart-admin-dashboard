@@ -397,39 +397,43 @@ export default function Orders() {
 
               {/* Order Items */}
               <div>
-                <Label className="text-lg font-semibold">Order Items</Label>
-                <div className="mt-3 space-y-3">
-                  {selectedOrder.items.map((item) => (
-                    <div
-                      key={item._id}
-                      className="flex items-center gap-4 p-3 border rounded-lg"
-                    >
-                      {/* <img
-                        src={item.product_id.image}
-                        alt={item.product_id.title}
-                        className="w-16 h-16 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder-image.png";
-                        }}
-                      /> */}
-                      <div className="flex-1">
-                        <p className="font-semibold">{item.product_id.title}</p>
-                        <p className="text-sm text-muted-foreground">{item.title}</p>
-                        {item.product_id.actual_price && (
-                          <p className="text-sm text-muted-foreground">
-                            Actual Price: ₹{item.product_id.actual_price}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">₹{item.price}</p>
-                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                        <p className="text-sm font-semibold">
-                          Total: ₹{item.price * item.quantity}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                <Label className="text-lg font-semibold mb-3 block">Order Items</Label>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-center">Quantity</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedOrder.items.map((item, index) => (
+                        <TableRow key={item._id}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <p className="font-medium">{item.product_id.title}</p>
+                              {item.product_id.actual_price && (
+                                <p className="text-xs text-muted-foreground">
+                                  Actual Price: ₹{item.product_id.actual_price}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹{item.price}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline">{item.quantity}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            ₹{item.price * item.quantity}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
 

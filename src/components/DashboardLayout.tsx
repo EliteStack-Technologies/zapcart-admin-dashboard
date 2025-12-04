@@ -21,10 +21,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   
   const navItems = [
     { to: "/", icon: Home, label: "Dashboard" },
+    { to: "/orders", icon: ShoppingCart, label: "Orders" },
     { to: "/products", icon: Package, label: "Products" },
     { to: "/categories", icon: FolderOpen, label: "Categories" },
-    { to: "/rows", icon: Columns3, label: "Rows" },
-    { to: "/orders", icon: ShoppingCart, label: "Orders" },
+    { to: "/rows", icon: Columns3, label: "Sections" },
     { to: "/offers", icon: Tag, label: "Offer Tags" },
     { to: "/banners", icon: Image, label: "Banners" },
     { to: "/flyers", icon: FileText, label: "Flyers" },

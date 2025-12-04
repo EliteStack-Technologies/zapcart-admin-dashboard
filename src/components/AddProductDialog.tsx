@@ -31,7 +31,7 @@ import { addProduct, updateProduct } from "@/services/product";
 import { getProductImages } from "@/services/ProductImage";
 import { getOfferTags } from "@/services/offersTags";
 import { getCategory } from "@/services/category";
-import { getRows } from "@/services/rows";
+import { getSections } from "@/services/rows";
 interface AddProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,7 +49,7 @@ interface AddProductDialogProps {
     image?: string;
     offer_id: string | { _id: string; name: string };
     category_id?: string | { _id: string; name: string };
-    row_id?: string | { _id: string; name: string };
+    section_id?: string | { _id: string; name: string };
     status?: string;
   };
 }
@@ -74,7 +74,7 @@ const AddProductDialog = ({
   );
   const [offers, setOffers] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [rows, setRows] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
 
   // Helper to get ID from string or object
   const getId = (item: any) => {
@@ -88,12 +88,12 @@ const AddProductDialog = ({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
     getId(editingProduct?.category_id)
   );
-  const [selectedRowId, setSelectedRowId] = useState<string>(
-    getId(editingProduct?.row_id)
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(
+    getId(editingProduct?.section_id)
   );
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
-  const [loadingRows, setLoadingRows] = useState(false);
+  const [loadingSections, setLoadingSections] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -136,8 +136,8 @@ const AddProductDialog = ({
       if (editingProduct.category_id) {
         setSelectedCategoryId(getId(editingProduct.category_id));
       }
-      if (editingProduct.row_id) {
-        setSelectedRowId(getId(editingProduct.row_id));
+      if (editingProduct.section_id) {
+        setSelectedSectionId(getId(editingProduct.section_id));
       }
 
       // Set existing image preview
@@ -183,7 +183,7 @@ const AddProductDialog = ({
       setUnitType("Nos");
       setSelectedOfferId("");
       setSelectedCategoryId("");
-      setSelectedRowId("");
+      setSelectedSectionId("");
     }
 
     // Fetch product images when dialog opens
@@ -191,7 +191,7 @@ const AddProductDialog = ({
       fetchProductImages();
       fetchOffers();
       fetchCategories();
-      fetchRows();
+      fetchSections();
     }
   }, [editingProduct, open, reset]);
 
@@ -253,28 +253,28 @@ const AddProductDialog = ({
     }
   };
 
-  const fetchRows = async () => {
-    setLoadingRows(true);
+  const fetchSections = async () => {
+    setLoadingSections(true);
     try {
-      const data = await getRows();
-      const rowsList =
-        data?.rows || data?.data || (Array.isArray(data) ? data : []);
-      setRows(rowsList);
+      const data = await getSections();
+      const sectionsList =
+        data?.sections || data?.data || (Array.isArray(data) ? data : []);
+      setSections(sectionsList);
       
-      // Auto-select first row if not editing and rows exist
-      if (!editingProduct && rowsList.length > 0) {
-        const firstRowId = rowsList[0]._id || rowsList[0].id;
-        setSelectedRowId(firstRowId);
+      // Auto-select first section if not editing and sections exist
+      if (!editingProduct && sectionsList.length > 0) {
+        const firstSectionId = sectionsList[0]._id || sectionsList[0].id;
+        setSelectedSectionId(firstSectionId);
       }
     } catch (error: any) {
-      console.error("Error fetching rows:", error);
+      console.error("Error fetching sections:", error);
       toast({
         title: "Error",
-        description: "Failed to load rows",
+        description: "Failed to load sections",
         variant: "destructive",
       });
     } finally {
-      setLoadingRows(false);
+      setLoadingSections(false);
     }
   };
 
@@ -297,10 +297,10 @@ const AddProductDialog = ({
       return;
     }
 
-    if (!selectedRowId) {
+    if (!selectedSectionId) {
       toast({
-        title: "Error",
-        description: "Please select a row",
+        title: "Validation Error",
+        description: "Please select a section",
         variant: "destructive",
       });
       return;
@@ -333,8 +333,8 @@ const AddProductDialog = ({
       if (selectedCategoryId) {
         formData.append("category_id", selectedCategoryId);
       }
-      if (selectedRowId) {
-        formData.append("row_id", selectedRowId);
+      if (selectedSectionId) {
+        formData.append("section_id", selectedSectionId);
       }
 
       // Append image file if a new file was selected
@@ -564,33 +564,33 @@ const AddProductDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="row">Row*</Label>
+              <Label htmlFor="section">Section*</Label>
               <Select
-                value={selectedRowId}
-                onValueChange={setSelectedRowId}
-                disabled={loadingRows}
+                value={selectedSectionId}
+                onValueChange={setSelectedSectionId}
+                disabled={loadingSections}
               >
-                <SelectTrigger id="row">
+                <SelectTrigger id="section">
                   <SelectValue
                     placeholder={
-                      loadingRows ? "Loading rows..." : "Select a row"
+                      loadingSections ? "Loading sections..." : "Select a section"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {rows.length > 0 ? (
-                    rows.map((row) => {
-                      const rowId = row._id || row.id;
-                      const rowName = row.name || "Row";
+                  {sections.length > 0 ? (
+                    sections.map((section) => {
+                      const sectionId = section._id || section.id;
+                      const sectionName = section.name || "Section";
                       return (
-                        <SelectItem key={rowId} value={rowId}>
-                          {rowName}
+                        <SelectItem key={sectionId} value={sectionId}>
+                          {sectionName}
                         </SelectItem>
                       );
                     })
                   ) : (
                     <div className="p-2 text-sm text-muted-foreground">
-                      {loadingRows ? "Loading..." : "No rows available"}
+                      {loadingSections ? "Loading..." : "No sections available"}
                     </div>
                   )}
                 </SelectContent>
