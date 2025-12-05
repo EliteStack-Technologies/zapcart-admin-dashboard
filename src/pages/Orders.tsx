@@ -260,7 +260,7 @@ export default function Orders() {
                           <TableCell>{order.customer_name}</TableCell>
                           <TableCell>{order.customer_phone}</TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
-                          <TableCell>{currency?.symbol || '₹'}{order.total_amount}</TableCell>
+                          <TableCell>{currency?.symbol || '₹'}{Number(order.total_amount).toFixed(2)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
                           <TableCell>
@@ -447,7 +447,7 @@ export default function Orders() {
                 </div>
                 <div className="flex justify-between text-lg">
                   <Label className="font-bold">Total Amount</Label>
-                  <p className="font-bold">{currency?.symbol || '₹'}{selectedOrder.total_amount}</p>
+                  <p className="font-bold">{currency?.symbol || '₹'}{Number(selectedOrder.total_amount).toFixed(2)}</p>
                 </div>
               </div>
 
