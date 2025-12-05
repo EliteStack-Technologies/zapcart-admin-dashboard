@@ -66,7 +66,6 @@ const onSubmit = async (data: any) => {
       // UPDATE MODE
       response = await updateOffer(editingOffer._id, payload);
       const updatedOffer = response?.data;
-      console.log(updatedOffer, "updatedOffer");
 
       if (!updatedOffer?._id) {
         console.error("Updated offer missing _id:", updatedOffer);

@@ -44,14 +44,17 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<{
     _id: string;
     title: string;
+    product_code?: string;
     old_price: number;
     actual_price: number;
     offer_price: number | null;
     unit_type: string;
     offer_start_date: string;
     offer_end_date: string;
-    image_url: string;
-    offer_id: string;
+    image_url?: string;
+    image?: string;
+    offer_id?: string | { _id: string; name: string };
+    category_id?: { _id: string; name: string };
     status?: string;
   } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -174,6 +177,7 @@ const Products = () => {
                   <TableHead>SI No</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead>Product</TableHead>
+                  <TableHead>Product Code</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Old Price</TableHead>
                   <TableHead>Actual Price</TableHead>
@@ -201,6 +205,9 @@ const Products = () => {
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{product.title}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {product.product_code || "-"}
+                    </TableCell>
                     <TableCell>{product.category_id?.name || "--"}</TableCell>
                     <TableCell className="text-muted-foreground line-through">
                       {currency?.symbol || '$'}{product.old_price}
@@ -367,6 +374,10 @@ const Products = () => {
                     <p className="text-base font-medium">{selectedProduct.title}</p>
                   </div>
                   <div>
+                    <Label className="text-sm text-muted-foreground">Product Code</Label>
+                    <p className="text-base font-medium">{selectedProduct.product_code || "N/A"}</p>
+                  </div>
+                  <div>
                     <Label className="text-sm text-muted-foreground">Category</Label>
                     <p className="text-base font-medium">{selectedProduct.category_id?.name || "N/A"}</p>
                   </div>
@@ -408,7 +419,9 @@ const Products = () => {
                     <div>
                       <Label className="text-sm text-muted-foreground">Offer Tag</Label>
                       <p className="text-base font-medium">
-                        {selectedProduct.offer_id?.name || "N/A"}
+                        {typeof selectedProduct.offer_id === 'object' && selectedProduct.offer_id?.name 
+                          ? selectedProduct.offer_id.name 
+                          : "N/A"}
                       </p>
                     </div>
                     <div>
