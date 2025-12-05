@@ -39,6 +39,7 @@ interface AddProductDialogProps {
   editingProduct?: {
     _id: string;
     title: string;
+    product_code?: string;
     old_price: number;
     actual_price: number;
     offer_price: number | null;
@@ -47,7 +48,7 @@ interface AddProductDialogProps {
     offer_end_date: string;
     image_url?: string;
     image?: string;
-    offer_id: string | { _id: string; name: string };
+    offer_id?: string | { _id: string; name: string };
     category_id?: string | { _id: string; name: string };
     section_id?: string | { _id: string; name: string };
     status?: string;
@@ -106,6 +107,7 @@ const AddProductDialog = ({
   } = useForm({
     defaultValues: {
       title: editingProduct?.title || "",
+      product_code: editingProduct?.product_code || "",
       unit_type: editingProduct?.unit_type || "",
       old_price: editingProduct?.old_price || "",
       actual_price: editingProduct?.actual_price || "",
@@ -119,6 +121,7 @@ const AddProductDialog = ({
     if (editingProduct && open) {
       reset({
         title: editingProduct.title,
+        product_code: editingProduct.product_code || "",
         unit_type: editingProduct.unit_type,
         old_price: editingProduct.old_price,
         actual_price: editingProduct.actual_price,
@@ -312,6 +315,9 @@ const AddProductDialog = ({
       // Create FormData for multipart upload
       const formData = new FormData();
       formData.append("title", data.title);
+      if (data.product_code) {
+        formData.append("product_code", data.product_code);
+      }
       formData.append(
         "old_price",
         data.old_price ? Number(data.old_price).toString() : "0"
@@ -474,6 +480,15 @@ const AddProductDialog = ({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
+                <Label htmlFor="product_code">Product Code (Optional)</Label>
+                <Input
+                  id="product_code"
+                  placeholder="Enter product code"
+                  {...register("product_code")}
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="unit_type">Unit Type*</Label>
                 <Select value={unitType} onValueChange={setUnitType}>
                   <SelectTrigger id="unit_type">
@@ -485,9 +500,10 @@ const AddProductDialog = ({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
                 <Select
                   value={selectedCategoryId}
                   onValueChange={setSelectedCategoryId}
@@ -524,7 +540,6 @@ const AddProductDialog = ({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="offer">Offer</Label>
