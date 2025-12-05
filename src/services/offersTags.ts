@@ -20,7 +20,7 @@ export const addOffers = async (data: any) => {
   try {
     const response = await axiosInstance.post("/api/v1/offer-tags", data, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": "application/json",
       },
     });
     return response.data;
@@ -36,10 +36,12 @@ export const addOffers = async (data: any) => {
   }
 };
 
-export const updateOffer = async (offerId: string,data:any) => {
+export const updateOffer = async (offerId: string, data: any) => {
   try {
     const response = await axiosInstance.put(
-      `/api/v1/offer-tags/${offerId}`,data);
+      `/api/v1/offer-tags/${offerId}`,
+      data
+    );
     return response.data;
   } catch (error: any) {
     const errorMessage =
@@ -54,7 +56,9 @@ export const updateOffer = async (offerId: string,data:any) => {
 
 export const deleteOffer = async (offerId: string) => {
   try {
-    const response = await axiosInstance.delete(`/api/v1/offer-tags/${offerId}`);
+    const response = await axiosInstance.delete(
+      `/api/v1/offer-tags/${offerId}`
+    );
 
     return response.data;
   } catch (error: any) {
@@ -67,4 +71,3 @@ export const deleteOffer = async (offerId: string) => {
     throw new Error(errorMessage);
   }
 };
-
