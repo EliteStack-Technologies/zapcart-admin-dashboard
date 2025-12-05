@@ -415,7 +415,7 @@ export default function Orders() {
                         <TableRow key={item._id}>
                           <TableCell>
                             <div className="space-y-1">
-                              <p className="font-medium">{item.product_id.title}</p>
+                              <p className="font-medium">{item.title}</p>
                               {item.product_id.actual_price && (
                                 <p className="text-xs text-muted-foreground">
                                   Actual Price: {currency?.symbol || '₹'}{item.product_id.actual_price}
