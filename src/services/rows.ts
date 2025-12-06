@@ -59,3 +59,21 @@ export const deleteSection = async (sectionId: string) => {
     throw new Error(errorMessage);
   }
 };
+
+export const swapSectionOrder = async (section1_id: string, section2_id: string) => {
+  try {
+    const response = await axiosInstance.post("/api/v1/sections/swap-order", {
+      section1_id,
+      section2_id,
+    });
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while swapping section order";
+
+    console.error("Error swapping section order:", errorMessage);
+    throw new Error(errorMessage);
+  }
+};
