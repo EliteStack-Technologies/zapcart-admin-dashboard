@@ -1,7 +1,7 @@
 import axiosInstance from "./axiosInstance";
-export const getProduct = async () => {
+export const getProduct = async (page = 1, limit = 10) => {
   try {
-    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=abc`);
+    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=abc&page=${page}&limit=${limit}`);
 
     return response.data;
   } catch (error: any) {

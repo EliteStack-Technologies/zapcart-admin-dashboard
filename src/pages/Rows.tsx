@@ -23,7 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
-import { getSections, addSection, updateSection, deleteSection } from "@/services/rows";
+import { getSections, addSection, updateSection, deleteSection, swapSectionOrder } from "@/services/rows";
 
 const Rows = () => {
   const { toast } = useToast();
@@ -34,6 +34,7 @@ const Rows = () => {
   const [sections, setSections] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [orderInputs, setOrderInputs] = useState<{ [key: string]: number }>({});
 
   const {
     register,
@@ -57,7 +58,14 @@ const Rows = () => {
       try {
         const data = await getSections();
         const sectionsList = data?.sections || data?.data || (Array.isArray(data) ? data : []);
-        setSections(sectionsList);
+        // Sort sections by order field if it exists, otherwise keep original order
+        const sortedSections = sectionsList.sort((a: any, b: any) => {
+          if (a.order !== undefined && b.order !== undefined) {
+            return a.order - b.order;
+          }
+          return 0;
+        });
+        setSections(sortedSections);
       } catch (error) {
         console.error("Error fetching sections:", error);
         toast({
@@ -148,6 +156,47 @@ const Rows = () => {
     }
   };
 
+  const handleOrderChange = async (currentIndex: number, newOrder: number) => {
+    if (newOrder < 1 || newOrder > filteredSections.length || newOrder === currentIndex + 1) {
+      return;
+    }
+
+    const targetIndex = newOrder - 1;
+    const section1 = filteredSections[currentIndex];
+    const section2 = filteredSections[targetIndex];
+
+    try {
+      // Direct swap between current position and target position
+      await swapSectionOrder(String(section1._id), String(section2._id));
+
+      // Swap in local state
+      setSections((prev) => {
+        const newSections = [...prev];
+        const idx1 = newSections.findIndex(s => s._id === section1._id);
+        const idx2 = newSections.findIndex(s => s._id === section2._id);
+        
+        if (idx1 !== -1 && idx2 !== -1) {
+          // Swap the two sections
+          [newSections[idx1], newSections[idx2]] = [newSections[idx2], newSections[idx1]];
+        }
+        
+        return newSections;
+      });
+
+      toast({
+        title: "Order updated",
+        description: "Section order has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update section order",
+        variant: "destructive",
+      });
+      console.error("Error swapping section order:", error);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -190,6 +239,7 @@ const Rows = () => {
                 <TableRow>
                   <TableHead>SI No</TableHead>
                   <TableHead>Section Name</TableHead>
+                  <TableHead>Order</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -199,6 +249,39 @@ const Rows = () => {
                     <TableRow key={section._id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell className="font-medium">{section.name}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={filteredSections.length}
+                          value={orderInputs[section._id] ?? index + 1}
+                          className="w-20"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setOrderInputs(prev => ({
+                              ...prev,
+                              [section._id]: value === '' ? '' : parseInt(value)
+                            }));
+                          }}
+                          onBlur={(e) => {
+                            const newOrder = parseInt(e.target.value);
+                            if (!isNaN(newOrder) && newOrder >= 1 && newOrder <= filteredSections.length && newOrder !== index + 1) {
+                              handleOrderChange(index, newOrder);
+                            }
+                            // Reset to actual position
+                            setOrderInputs(prev => {
+                              const updated = { ...prev };
+                              delete updated[section._id];
+                              return updated;
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                        />
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -227,7 +310,7 @@ const Rows = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                       No sections found
                     </TableCell>
                   </TableRow>

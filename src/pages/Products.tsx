@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -59,30 +66,27 @@ const Products = () => {
   } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [products, setProducts] = useState([]);
+  const [limit, setLimit] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
   const { currency } = useCurrency();
-
-  const itemsPerPage = 10;
-
-  // Calculate pagination
-  const totalPages = Math.ceil((products?.length || 0) / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = Array.isArray(products) ? products.slice(startIndex, endIndex) : [];
 
     useEffect(() => {
         const fetchData = async () => {
           try {
-            const data = await getProduct();
+            const data = await getProduct(currentPage, limit);
             
-            // Ensure data is always an array
-            setProducts(Array.isArray(data?.products) ? data?.products : data?.products || []);
+            // Set products and pagination data from API response
+            setProducts(Array.isArray(data?.products) ? data?.products : []);
+            setTotalPages(data?.totalPages || 1);
+            setTotalProducts(data?.total || 0);
           } catch (error) {
             console.error("Error fetching products:", error);
             setProducts([]);
           }
         };
         fetchData();
-      }, []);
+      }, [currentPage, limit]);
 
   const handleDelete = async () => {
     if (!selectedProduct?._id) return;
@@ -188,9 +192,16 @@ const Products = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentProducts.map((product, index) => (
-                  <TableRow key={product.id}>
-                    <TableCell>{startIndex + index + 1}</TableCell>
+                {products.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                      No products found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  products.map((product, index) => (
+                    <TableRow key={product._id}>
+                      <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                     <TableCell>
                       {product.image || product.image_url ? (
                         <img 
@@ -281,43 +292,97 @@ const Products = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
             
             {/* Pagination */}
-            <div className="flex items-center justify-between px-6 py-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, products.length)} of {products.length} products
-              </p>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <PaginationItem key={i + 1}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(i + 1)}
-                        isActive={currentPage === i + 1}
-                        className="cursor-pointer"
-                      >
-                        {i + 1}
-                      </PaginationLink>
+            {totalProducts > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
+                {/* Left section - Info and Rows per page */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Showing info */}
+                  <p className="text-sm text-muted-foreground whitespace-nowrap">
+                    Showing {(currentPage - 1) * limit + 1} to {Math.min(currentPage * limit, totalProducts)} of {totalProducts} products
+                  </p>
+                  
+                  {/* Rows per page selector */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-muted-foreground whitespace-nowrap">
+                      Rows per page:
+                    </label>
+                    <Select 
+                      value={String(limit)} 
+                      onValueChange={(value) => {
+                        setLimit(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-20 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="250">250</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Right section - Pagination controls */}
+                <Pagination>
+                  <PaginationContent>
+                    {/* Previous button */}
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
                     </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
+                    
+                    {/* Page numbers */}
+                    {(() => {
+                      const pages = [];
+                      const maxVisiblePages = 5;
+                      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                      
+                      if (endPage - startPage < maxVisiblePages - 1) {
+                        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                      }
+                      
+                      for (let i = startPage; i <= endPage; i++) {
+                        pages.push(
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(i)}
+                              isActive={currentPage === i}
+                              className="cursor-pointer"
+                            >
+                              {i}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      }
+                      
+                      return pages;
+                    })()}
+                    
+                    {/* Next button */}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </CardContent>
         </Card>
 
