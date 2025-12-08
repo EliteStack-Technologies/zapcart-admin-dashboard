@@ -1,7 +1,9 @@
+import { getSubdomain } from "@/utils/getSubdomain";
 import axiosInstance from "./axiosInstance";
+const sub_domain= getSubdomain()
 export const getBanners = async () => {
   try {
-    const response = await axiosInstance.get(`/api/v1/banners?sub_domain_name=abc`);
+    const response = await axiosInstance.get(`/api/v1/banners?sub_domain_name=${sub_domain}`);
 
     return response.data.data;
   } catch (error: any) {
