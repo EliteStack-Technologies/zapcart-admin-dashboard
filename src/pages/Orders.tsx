@@ -426,13 +426,13 @@ export default function Orders() {
                               <p className="font-medium">{item.title}</p>
                               {item.product_id.actual_price && (
                                 <p className="text-xs text-muted-foreground">
-                                  Actual Price: {currency?.symbol || '₹'}{item.product_id.actual_price}
+                                  Actual Price: {currency?.symbol || '₹'} {item.product_id.actual_price}
                                 </p>
                               )}
                             </div>
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {currency?.symbol || '₹'}{item.price}
+                            {currency?.symbol || '₹'} {item.price}
                           </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline">{item.quantity}</Badge>
@@ -451,11 +451,11 @@ export default function Orders() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between">
                   <Label className="text-muted-foreground">Subtotal</Label>
-                  <p className="font-semibold">{currency?.symbol || '₹'}{selectedOrder.subtotal}</p>
+                  <p className="font-semibold">{currency?.symbol || '₹'} {selectedOrder.subtotal}</p>
                 </div>
                 <div className="flex justify-between text-lg">
                   <Label className="font-bold">Total Amount</Label>
-                  <p className="font-bold">{currency?.symbol || '₹'}{Number(selectedOrder.total_amount).toFixed(2)}</p>
+                  <p className="font-bold">{currency?.symbol || '₹'} {Number(selectedOrder.total_amount).toFixed(2)}</p>
                 </div>
               </div>
 

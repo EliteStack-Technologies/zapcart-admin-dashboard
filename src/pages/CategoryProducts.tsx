@@ -219,15 +219,15 @@ const CategoryProducts = () => {
                           {product.product_code || "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground line-through">
-                          {currency?.symbol || '$'}{product.old_price}
+                          {currency?.symbol || '$'} {product.old_price}
                         </TableCell>
                         <TableCell className="font-medium">
-                          {currency?.symbol || '$'}{product.actual_price}
+                          {currency?.symbol || '$'} {product.actual_price}
                         </TableCell>
                         <TableCell>
                           {product.offer_price ? (
                             <span className="text-primary font-medium">
-                              {currency?.symbol || '$'}{product.offer_price}
+                              {currency?.symbol || '$'} {product.offer_price}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
