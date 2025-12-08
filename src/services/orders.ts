@@ -23,6 +23,7 @@ export interface Order {
   subtotal: number;
   total_amount: number;
   order_status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+  notes?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;

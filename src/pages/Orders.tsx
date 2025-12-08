@@ -397,6 +397,14 @@ export default function Orders() {
                 </div>
               </div>
 
+              {/* Notes Section */}
+              {selectedOrder.notes && (
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <Label className="text-muted-foreground">Order Notes</Label>
+                  <p className="mt-2 text-sm">{selectedOrder.notes}</p>
+                </div>
+              )}
+
               {/* Order Items */}
               <div>
                 <Label className="text-lg font-semibold mb-3 block">Order Items</Label>
