@@ -41,6 +41,8 @@ import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { getProduct,  deleteProduct, changeStatus } from "@/services/product";
+import { getCategory } from "@/services/category";
+import { getOfferTags } from "@/services/offersTags";
 
 const Products = () => {
   const { toast } = useToast();
@@ -69,6 +71,15 @@ const Products = () => {
   const [limit, setLimit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("none");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
   const { currency } = useCurrency();
 
     useEffect(() => {
@@ -87,6 +98,61 @@ const Products = () => {
         };
         fetchData();
       }, [currentPage, limit]);
+
+      // Fetch categories and offers for filters
+      useEffect(() => {
+        const fetchFilters = async () => {
+          try {
+            // Fetch categories - returns array directly
+            const categoriesData = await getCategory();
+            setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+            
+            // Fetch offers - returns array directly
+            const offersData = await getOfferTags();
+            setOffers(Array.isArray(offersData) ? offersData : []);
+          } catch (error) {
+            console.error("Error fetching filters:", error);
+          }
+        };
+        fetchFilters();
+      }, []);
+
+      // Filter and sort products
+      const filteredAndSortedProducts = products
+        .filter((product: any) => {
+          // Search filter
+          const matchesSearch = searchTerm === "" ||
+            product.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.product_code?.toLowerCase().includes(searchTerm.toLowerCase());
+          
+          // Category filter
+          const matchesCategory = categoryFilter === "all" || product.category_id?._id === categoryFilter;
+          
+          // Offer filter
+          const matchesOffer = offerFilter === "all" || product.offer_id?._id === offerFilter;
+          
+          // Status filter
+          const matchesStatus = statusFilter === "all" || product.status === statusFilter;
+          
+          // Price range filter
+          const price = product.actual_price;
+          const matchesMinPrice = minPrice === "" || price >= parseFloat(minPrice);
+          const matchesMaxPrice = maxPrice === "" || price <= parseFloat(maxPrice);
+          
+          return matchesSearch && matchesCategory && matchesOffer && matchesStatus && matchesMinPrice && matchesMaxPrice;
+        })
+        .sort((a: any, b: any) => {
+          if (sortBy === "name-asc") {
+            return (a.title || "").localeCompare(b.title || "");
+          } else if (sortBy === "name-desc") {
+            return (b.title || "").localeCompare(a.title || "");
+          } else if (sortBy === "price-asc") {
+            return (a.actual_price || 0) - (b.actual_price || 0);
+          } else if (sortBy === "price-desc") {
+            return (b.actual_price || 0) - (a.actual_price || 0);
+          }
+          return 0;
+        });
 
   const handleDelete = async () => {
     if (!selectedProduct?._id) return;
@@ -159,15 +225,98 @@ const Products = () => {
         {/* Search and Filter */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  className="pl-10"
-                />
+            <div className="space-y-4">
+              {/* Search and Sort */}
+              <div className="flex gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products by name or code..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+            
               </div>
-              <Button variant="outline">Filter</Button>
+
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {/* Sort By */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sort by</SelectItem>
+                    <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                    <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                    <SelectItem value="price-asc">Price (Low to High)</SelectItem>
+                    <SelectItem value="price-desc">Price (High to Low)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Category Filter */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category._id} value={category._id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Offer Filter */}
+                <Select value={offerFilter} onValueChange={setOfferFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Offer Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Offers</SelectItem>
+                    {offers.map((offer) => (
+                      <SelectItem key={offer._id} value={offer._id}>
+                        {offer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Clear Filters Button */}
+                {(searchTerm || sortBy !== "none" || categoryFilter !== "all" || offerFilter !== "all" || statusFilter !== "all" || minPrice || maxPrice) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSortBy("none");
+                      setCategoryFilter("all");
+                      setOfferFilter("all");
+                      setStatusFilter("all");
+                      setMinPrice("");
+                      setMaxPrice("");
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+           
             </div>
           </CardContent>
         </Card>
@@ -192,14 +341,14 @@ const Products = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.length === 0 ? (
+                {filteredAndSortedProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       No products found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  products.map((product, index) => (
+                  filteredAndSortedProducts.map((product, index) => (
                     <TableRow key={product._id}>
                       <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                     <TableCell>
