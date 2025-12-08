@@ -462,11 +462,11 @@ const Products = () => {
                   <div className="grid gap-4 md:grid-cols-3">
                     <div>
                       <Label className="text-sm text-muted-foreground">Old Price</Label>
-                      <p className="text-base font-medium line-through">{currency?.symbol || '$'} {selectedProduct.old_price}</p>
+                      <p className="text-base font-medium line-through">{currency?.symbol || '$'}{" "}{selectedProduct.old_price}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Actual Price</Label>
-                      <p className="text-base font-medium text-primary">{currency?.symbol || '$'} {selectedProduct.actual_price}</p>
+                      <p className="text-base font-medium text-primary">{currency?.symbol || '$'}{" "}{selectedProduct.actual_price}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Offer Price</Label>

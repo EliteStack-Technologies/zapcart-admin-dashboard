@@ -260,7 +260,7 @@ export default function Orders() {
                           <TableCell>{order.customer_name}</TableCell>
                           <TableCell>{order.customer_phone}</TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
-                          <TableCell>{currency?.symbol || '₹'}{Number(order.total_amount).toFixed(2)}</TableCell>
+                          <TableCell>{currency?.symbol || '₹'} {Number(order.total_amount).toFixed(2)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
                           <TableCell>
@@ -438,7 +438,7 @@ export default function Orders() {
                             <Badge variant="outline">{item.quantity}</Badge>
                           </TableCell>
                           <TableCell className="text-right font-semibold">
-                            {currency?.symbol || '₹'}{item.price * item.quantity}
+                            {currency?.symbol || '₹'} {item.price * item.quantity}
                           </TableCell>
                         </TableRow>
                       ))}
