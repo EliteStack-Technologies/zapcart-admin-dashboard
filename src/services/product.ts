@@ -1,8 +1,10 @@
+import { getSubdomain } from "@/utils/getSubdomain";
 import axiosInstance from "./axiosInstance";
+const sub_domain= getSubdomain()
+
 export const getProduct = async (page = 1, limit = 10) => {
   try {
-    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=abc&page=${page}&limit=${limit}`);
-
+    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=${sub_domain}&page=${page}&limit=${limit}`);
     return response.data;
   } catch (error: any) {
     const errorMessage =
@@ -77,7 +79,7 @@ export const deleteProduct = async (productId: string) => {
 
 export const getProductList = async () => {
   try {
-    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=abc`);
+    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=${sub_domain}`);
     return response.data;
   } catch (error: any) {
     const errorMessage =
