@@ -37,6 +37,7 @@ const AddCategoryDialog = ({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageError, setImageError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -86,6 +87,7 @@ const AddCategoryDialog = ({
     reader.readAsDataURL(file);
 
     setSelectedImage(file);
+    setImageError("");
   };
 
   const handleRemoveImage = () => {
@@ -97,6 +99,17 @@ const AddCategoryDialog = ({
   };
 
   const onSubmit = async (data: any) => {
+    // Validate image is provided
+    if (!selectedImage && !imagePreview) {
+      setImageError("Category image is required");
+      toast({
+        title: "Validation Error",
+        description: "Please upload a category image",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -205,7 +218,7 @@ const AddCategoryDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Category Image</Label>
+              <Label>Category Image*</Label>
               
               {imagePreview ? (
                 <div className="relative w-full">
@@ -229,7 +242,7 @@ const AddCategoryDialog = ({
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="gap-2"
+                    className={`gap-2 ${imageError ? "border-destructive" : ""}`}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="w-4 h-4" />
@@ -239,6 +252,11 @@ const AddCategoryDialog = ({
                     JPG, PNG or WEBP (max 5MB)
                   </span>
                 </div>
+              )}
+              {imageError && (
+                <p className="text-xs text-destructive">
+                  {imageError}
+                </p>
               )}
               <input
                 ref={fileInputRef}
