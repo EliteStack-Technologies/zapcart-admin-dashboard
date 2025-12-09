@@ -35,7 +35,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Loader2, Trash2 } from "lucide-react";
+import { Eye, Loader2, Trash2, Printer } from "lucide-react";
 import { getOrders, getOrderById, updateOrderStatus, deleteOrder, Order } from "@/services/orders";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -185,6 +185,166 @@ export default function Orders() {
   const openDeleteDialog = (orderId: string) => {
     setOrderToDelete(orderId);
     setDeleteDialogOpen(true);
+  };
+
+  const handlePrintOrder = () => {
+    if (!selectedOrder) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Order ${selectedOrder.order_number}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+          }
+          .info-section {
+            margin-bottom: 20px;
+          }
+          .info-row {
+            display: flex;
+            margin-bottom: 8px;
+          }
+          .info-label {
+            font-weight: bold;
+            width: 150px;
+          }
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          .items-table th,
+          .items-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+          }
+          .items-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+          }
+          .items-table td.right {
+            text-align: right;
+          }
+          .items-table td.center {
+            text-align: center;
+          }
+          .total-section {
+            margin-top: 20px;
+            text-align: right;
+          }
+          .total-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+          }
+          .total-label {
+            font-weight: bold;
+            margin-right: 20px;
+            min-width: 150px;
+            text-align: right;
+          }
+          .total-amount {
+            font-size: 18px;
+            font-weight: bold;
+          }
+          @media print {
+            body {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Order Receipt</h1>
+        </div>
+        
+        <div class="info-section">
+          <h2>Customer Information</h2>
+          <div class="info-row">
+            <div class="info-label">Customer Name:</div>
+            <div>${selectedOrder.customer_name}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Phone Number:</div>
+            <div>${selectedOrder.customer_phone}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Order Number:</div>
+            <div>${selectedOrder.order_number}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Order Date:</div>
+            <div>${formatDate(selectedOrder.createdAt)}</div>
+          </div>
+      
+        </div>
+
+        <div class="info-section">
+          <h2>Order Items</h2>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th class="right">Price</th>
+                <th class="center">Quantity</th>
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${selectedOrder.items.map(item => `
+                <tr>
+                  <td>${item.title}</td>
+                  <td class="right">${currency?.symbol || '₹'} ${item.price.toFixed(2)}</td>
+                  <td class="center">${item.quantity}</td>
+                  <td class="right">${currency?.symbol || '₹'} ${(item.price * item.quantity).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="total-section">
+          <div class="total-row">
+            <div class="total-label">Subtotal:</div>
+            <div>${currency?.symbol || '₹'} ${selectedOrder.subtotal.toFixed(2)}</div>
+          </div>
+          <div class="total-row total-amount">
+            <div class="total-label">Total Amount:</div>
+            <div>${currency?.symbol || '₹'} ${Number(selectedOrder.total_amount).toFixed(2)}</div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
   };
 
   const formatDate = (dateString: string) => {
@@ -419,8 +579,23 @@ export default function Orders() {
       >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>View complete order information</DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Order Details</DialogTitle>
+                <DialogDescription>View complete order information</DialogDescription>
+              </div>
+              {selectedOrder && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintOrder}
+                  className="gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {detailsLoading ? (
