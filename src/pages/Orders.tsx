@@ -18,6 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -47,7 +55,9 @@ export default function Orders() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const { currency } = useCurrency();
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -64,9 +74,10 @@ export default function Orders() {
     setLoading(true);
     try {
       const statusFilter = status && status !== "all" ? status : undefined;
-      const data = await getOrders(page, 10, statusFilter);
+      const data = await getOrders(page, limit, statusFilter);
       setOrders(data.orders || []);
       setTotalPages(data.totalPages || 1);
+      setTotalOrders(data.total || 0);
       setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -82,7 +93,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders(1, activeTab);
-  }, [activeTab]);
+  }, [activeTab, limit]);
 
   const handleViewOrder = useCallback(async (orderId: string) => {
     // Prevent multiple simultaneous calls
@@ -255,7 +266,7 @@ export default function Orders() {
                     ) : (
                       filteredOrders.map((order, index) => (
                         <TableRow key={order._id}>
-                          <TableCell>{(currentPage - 1) * 10 + index + 1}</TableCell>
+                          <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                           <TableCell className="font-medium">{order.order_number}</TableCell>
                           <TableCell>{order.customer_name}</TableCell>
                           <TableCell>{order.customer_phone}</TableCell>
@@ -303,25 +314,89 @@ export default function Orders() {
                 </Table>
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => fetchOrders(currentPage - 1, activeTab)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span>
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    onClick={() => fetchOrders(currentPage + 1, activeTab)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
+              {totalOrders > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
+                  {/* Left section - Info and Rows per page */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Showing info */}
+                    <p className="text-sm text-muted-foreground whitespace-nowrap">
+                      Showing {(currentPage - 1) * limit + 1} to {Math.min(currentPage * limit, totalOrders)} of {totalOrders} orders
+                    </p>
+                    
+                    {/* Rows per page selector */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-muted-foreground whitespace-nowrap">
+                        Rows per page:
+                      </label>
+                      <Select 
+                        value={String(limit)} 
+                        onValueChange={(value) => {
+                          setLimit(Number(value));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-20 h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                          <SelectItem value="250">250</SelectItem>
+                          <SelectItem value="500">500</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Right section - Pagination controls */}
+                  <Pagination>
+                    <PaginationContent>
+                      {/* Previous button */}
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => fetchOrders(currentPage - 1, activeTab)}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {/* Page numbers */}
+                      {(() => {
+                        const pages = [];
+                        const maxVisiblePages = 5;
+                        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                        
+                        if (endPage - startPage < maxVisiblePages - 1) {
+                          startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                        }
+                        
+                        for (let i = startPage; i <= endPage; i++) {
+                          pages.push(
+                            <PaginationItem key={i}>
+                              <PaginationLink
+                                onClick={() => fetchOrders(i, activeTab)}
+                                isActive={currentPage === i}
+                                className="cursor-pointer"
+                              >
+                                {i}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        }
+                        
+                        return pages;
+                      })()}
+                      
+                      {/* Next button */}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => fetchOrders(currentPage + 1, activeTab)}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </>
