@@ -189,7 +189,6 @@ const CategoryProducts = () => {
                       <TableHead>Image</TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead>Product Code</TableHead>
-                      <TableHead>Old Price</TableHead>
                       <TableHead>Actual Price</TableHead>
                       <TableHead>Offer Price</TableHead>
                       <TableHead>Offer Tag</TableHead>
@@ -218,9 +217,7 @@ const CategoryProducts = () => {
                         <TableCell className="text-muted-foreground">
                           {product.product_code || "-"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground line-through">
-                          {currency?.symbol || '$'} {product.old_price}
-                        </TableCell>
+                      
                         <TableCell className="font-medium">
                           {currency?.symbol || '$'} {product.actual_price}
                         </TableCell>

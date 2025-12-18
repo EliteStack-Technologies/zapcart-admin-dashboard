@@ -40,7 +40,6 @@ interface AddProductDialogProps {
     _id: string;
     title: string;
     product_code?: string;
-    old_price: number;
     actual_price: number;
     offer_price: number | null;
     unit_type: string;
@@ -109,7 +108,6 @@ const AddProductDialog = ({
       title: editingProduct?.title || "",
       product_code: editingProduct?.product_code || "",
       unit_type: editingProduct?.unit_type || "",
-      old_price: editingProduct?.old_price || "",
       actual_price: editingProduct?.actual_price || "",
       offer_price: editingProduct?.offer_price || "",
       offer_id: getId(editingProduct?.offer_id),
@@ -123,7 +121,6 @@ const AddProductDialog = ({
         title: editingProduct.title,
         product_code: editingProduct.product_code || "",
         unit_type: editingProduct.unit_type,
-        old_price: editingProduct.old_price,
         actual_price: editingProduct.actual_price,
         offer_price: editingProduct.offer_price,
         offer_id: getId(editingProduct.offer_id),
@@ -318,14 +315,9 @@ const AddProductDialog = ({
       if (data.product_code) {
         formData.append("product_code", data.product_code);
       }
-      formData.append(
-        "old_price",
-        data.old_price ? Number(data.old_price).toString() : "0"
-      );
+ 
       formData.append("actual_price", Number(data.actual_price).toString());
-      if (data.offer_price) {
-        formData.append("offer_price", Number(data.offer_price).toString());
-      }
+      formData.append("offer_price", Number(data.offer_price).toString());
       formData.append("unit_type", unitType);
       if (startDate && isValid(startDate)) {
         formData.append("offer_start_date", format(startDate, "yyyy-MM-dd"));
@@ -466,7 +458,7 @@ const AddProductDialog = ({
               <Label htmlFor="title">Product Title*</Label>
               <Input
                 id="title"
-                placeholder="Premium Rice 10KG"
+                placeholder=""
                 {...register("title", {
                   required: "Product title is required",
                 })}
@@ -612,30 +604,14 @@ const AddProductDialog = ({
               </Select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="old_price">Old Price</Label>
-                <Input
-                  id="old_price"
-                  type="number"
-                  step="0.01"
-                  placeholder="520"
-                  {...register("old_price")}
-                />
-                {errors.old_price && (
-                  <p className="text-xs text-destructive">
-                    {errors.old_price.message}
-                  </p>
-                )}
-              </div>
-
+            <div className="grid gap-4 md:grid-cols-2">
+             
               <div className="space-y-2">
                 <Label htmlFor="actual_price">Actual Price*</Label>
                 <Input
                   id="actual_price"
                   type="number"
                   step="0.01"
-                  placeholder="450"
                   {...register("actual_price", {
                     required: "Actual price is required",
                   })}
@@ -648,13 +624,23 @@ const AddProductDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="offer_price">Offer Price</Label>
+                <Label htmlFor="offer_price">Offer Price*</Label>
                 <Input
                   id="offer_price"
                   type="number"
                   step="0.01"
-                  placeholder="399"
-                  {...register("offer_price")}
+                  {...register("offer_price", {
+                    required: "Offer price is required",
+                    validate: (value) => {
+                      const offerPrice = Number(value);
+                      const actualPrice = Number(watch("actual_price"));
+                      if (offerPrice < 0) return "Offer price cannot be negative";
+                      if (actualPrice && offerPrice > actualPrice) {
+                        return "Offer price cannot be higher than actual price";
+                      }
+                      return true;
+                    }
+                  })}
                 />
                 {errors.offer_price && (
                   <p className="text-xs text-destructive">

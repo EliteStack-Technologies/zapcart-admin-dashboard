@@ -11,6 +11,7 @@ export interface OrderItem {
   title: string;
   price: number;
   quantity: number;
+  product_code?: string;
 }
 
 export interface Order {
@@ -24,6 +25,7 @@ export interface Order {
   total_amount: number;
   order_status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
   notes?: string;
+  product_code?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
