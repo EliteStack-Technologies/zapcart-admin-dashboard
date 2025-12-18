@@ -100,7 +100,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 overflow-y-auto h-screen flex flex-col">
+      <main className="flex-1 lg:ml-64 overflow-auto h-screen">
         {/* Mobile Header */}
         <div className="lg:hidden sticky top-0 z-30 bg-background border-b px-4 py-3 flex items-center gap-3">
           <Button
@@ -113,7 +113,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <h1 className="text-lg font-semibold">Zapcart</h1>
         </div>
         
-        <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

@@ -18,13 +18,23 @@ const Categories = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<{ _id: number; name: string; productCount: number } | null>(null);
   const [categories,setCategories]=useState([])
+  const [loading, setLoading] = useState(true);
     useEffect(() => {
       const fetchData = async () => {
         try {
+          setLoading(true);
           const data = await getCategory();
+          console.log("Categories data:", data);
           setCategories(data);
         } catch (error) {
-          console.error("Error fetching banners:", error);
+          console.error("Error fetching categories:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load categories",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
         }
       };
       fetchData();
@@ -61,7 +71,6 @@ const Categories = () => {
     navigate(`/categories/${category._id}/products`);
   };
 
-  console.log(categories,"categoriescategoriescategories");
   
 
   return (
@@ -97,9 +106,28 @@ const Categories = () => {
         </Card>
 
         {/* Categories Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
-            <Card key={category.id} className="hover:shadow-lg transition-shadow">
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading categories...</p>
+          </div>
+        ) : categories.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <FolderOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">No categories yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Get started by creating your first category
+              </p>
+              <Button onClick={() => setAddDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Category
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {categories.map((category) => (
+            <Card key={category._id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   {category.image || category.image_url ? (
@@ -154,7 +182,8 @@ const Categories = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Dialogs */}
         <AddCategoryDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} setCategories={setCategories}/>

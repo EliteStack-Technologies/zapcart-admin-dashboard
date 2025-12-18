@@ -305,6 +305,7 @@ export default function Orders() {
             <thead>
               <tr>
                 <th>Product</th>
+                <th>Product Code</th>
                 <th class="right">Price</th>
                 <th class="center">Quantity</th>
                 <th class="right">Total</th>
@@ -314,6 +315,7 @@ export default function Orders() {
               ${selectedOrder.items.map(item => `
                 <tr>
                   <td>${item.title}</td>
+                  <td>${item.product_code || '-'}</td>
                   <td class="right">${currency?.symbol || '₹'} ${item.price.toFixed(2)}</td>
                   <td class="center">${item.quantity}</td>
                   <td class="right">${currency?.symbol || '₹'} ${(item.price * item.quantity).toFixed(2)}</td>
@@ -450,21 +452,7 @@ export default function Orders() {
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
-                              <Select
-                                value={order.order_status}
-                                onValueChange={(value) => handleStatusChange(order._id, value)}
-                              >
-                                <SelectTrigger className="w-[130px] h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ORDER_STATUSES.map((status) => (
-                                    <SelectItem key={status.value} value={status.value}>
-                                      {status.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                            
                             </div>
                           </TableCell>
                         </TableRow>
@@ -663,6 +651,7 @@ export default function Orders() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Product</TableHead>
+                        <TableHead>Product Code</TableHead>
                         <TableHead className="text-right">Price</TableHead>
                         <TableHead className="text-center">Quantity</TableHead>
                         <TableHead className="text-right">Total</TableHead>
@@ -680,6 +669,9 @@ export default function Orders() {
                                 </p>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.product_code || '-'}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {currency?.symbol || '₹'} {item.price}
