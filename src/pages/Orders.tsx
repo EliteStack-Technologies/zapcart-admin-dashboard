@@ -79,6 +79,27 @@ export default function Orders() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [timeTracking, setTimeTracking] = useState<any>(null);
   const [loadingTimeTracking, setLoadingTimeTracking] = useState(false);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+
+  const fetchStatusCounts = async () => {
+    try {
+      // Fetch counts for all statuses
+      const allData = await getOrders(1, 1);
+      const counts: Record<string, number> = { all: allData.total };
+      
+      // Fetch counts for each status
+      await Promise.all(
+        ORDER_STATUSES.map(async (status) => {
+          const data = await getOrders(1, 1, status.value);
+          counts[status.value] = data.total;
+        })
+      );
+      
+      setStatusCounts(counts);
+    } catch (error) {
+      console.error("Error fetching status counts:", error);
+    }
+  };
 
   const fetchOrders = async (page = 1, status?: string) => {
     setLoading(true);
@@ -103,6 +124,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders(1, activeTab);
+    fetchStatusCounts();
   }, [activeTab, limit]);
 
   const handleSearchProducts = async (search: string) => {
@@ -498,10 +520,22 @@ export default function Orders() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="all">All Orders</TabsTrigger>
+          <TabsTrigger value="all" className="relative gap-2">
+            All Orders
+            {statusCounts.all !== undefined && (
+              <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-black text-primary-foreground rounded-md">
+                {statusCounts.all}
+              </span>
+            )}
+          </TabsTrigger>
           {ORDER_STATUSES.map((status) => (
-            <TabsTrigger key={status.value} value={status.value}>
+            <TabsTrigger key={status.value} value={status.value} className="relative gap-2">
               {status.label}
+              {statusCounts[status.value] !== undefined && (
+                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-black text-primary-foreground rounded-md">
+                  {statusCounts[status.value]}
+                </span>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
