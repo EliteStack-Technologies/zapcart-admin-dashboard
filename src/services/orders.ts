@@ -10,6 +10,7 @@ export interface OrderItem {
   };
   title: string;
   price: number;
+  offer_price?: number;
   quantity: number;
   product_code?: string;
 }
@@ -60,5 +61,15 @@ export const updateOrderStatus = async (orderId: string, status: string) => {
 
 export const deleteOrder = async (orderId: string) => {
   const response = await axiosInstance.delete(`/api/v1/orders/${orderId}`);
+  return response.data;
+};
+
+export const updateOrderItems = async (orderId: string, items: { product_id: string; title: string; price: number; quantity: number; product_code?: string }[]) => {
+  const response = await axiosInstance.put(`/api/v1/orders/${orderId}`, { items });
+  return response.data;
+};
+
+export const getOrderTimeTracking = async (orderId: string) => {
+  const response = await axiosInstance.get(`/api/v1/orders/${orderId}/time-tracking`);
   return response.data;
 };
