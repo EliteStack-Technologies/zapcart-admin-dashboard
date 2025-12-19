@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +22,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navItems = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/orders", icon: ShoppingCart, label: "Orders" },
+    { to: "/customers", icon: Users, label: "Customers" },
     { to: "/products", icon: Package, label: "Products" },
     { to: "/categories", icon: FolderOpen, label: "Categories" },
     { to: "/rows", icon: Columns3, label: "Sections" },

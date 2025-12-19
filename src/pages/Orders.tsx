@@ -35,8 +35,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Loader2, Trash2, Printer } from "lucide-react";
-import { getOrders, getOrderById, updateOrderStatus, deleteOrder, Order } from "@/services/orders";
+import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock } from "lucide-react";
+import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, Order, OrderItem } from "@/services/orders";
+import { getProduct } from "@/services/product";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -69,6 +70,36 @@ export default function Orders() {
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
   const fetchingRef = useRef(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editedItems, setEditedItems] = useState<OrderItem[]>([]);
+  const [updating, setUpdating] = useState(false);
+  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
+  const [searchProducts, setSearchProducts] = useState<any[]>([]);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [timeTracking, setTimeTracking] = useState<any>(null);
+  const [loadingTimeTracking, setLoadingTimeTracking] = useState(false);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+
+  const fetchStatusCounts = async () => {
+    try {
+      // Fetch counts for all statuses
+      const allData = await getOrders(1, 1);
+      const counts: Record<string, number> = { all: allData.total };
+      
+      // Fetch counts for each status
+      await Promise.all(
+        ORDER_STATUSES.map(async (status) => {
+          const data = await getOrders(1, 1, status.value);
+          counts[status.value] = data.total;
+        })
+      );
+      
+      setStatusCounts(counts);
+    } catch (error) {
+      console.error("Error fetching status counts:", error);
+    }
+  };
 
   const fetchOrders = async (page = 1, status?: string) => {
     setLoading(true);
@@ -93,7 +124,109 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders(1, activeTab);
+    fetchStatusCounts();
   }, [activeTab, limit]);
+
+  const handleSearchProducts = async (search: string) => {
+    if (!search || search.length < 2) {
+      setSearchProducts([]);
+      return;
+    }
+    setLoadingProducts(true);
+    try {
+      const data = await getProduct(1, 50);
+      const filtered = data.products.filter((p: any) => 
+        p.title.toLowerCase().includes(search.toLowerCase()) ||
+        p.product_code?.toLowerCase().includes(search.toLowerCase())
+      );
+      setSearchProducts(filtered);
+    } catch (error) {
+      console.error("Error searching products:", error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const handleAddProductToOrder = (product: any) => {
+    const newItem: OrderItem = {
+      _id: `temp_${Date.now()}`,
+      product_id: {
+        _id: product._id,
+        title: product.title,
+        actual_price: product.actual_price,
+        image: product.image
+      },
+      title: product.title,
+      price: product.price,
+      offer_price: product.offer_price || product.price,
+      quantity: 1,
+      product_code: product.product_code
+    };
+    setEditedItems(prev => [...prev, newItem]);
+    setAddItemDialogOpen(false);
+    setProductSearchTerm("");
+    setSearchProducts([]);
+    toast({
+      title: "Product added",
+      description: `${product.title} has been added to the order`,
+    });
+  };
+
+  const handleFetchTimeTracking = async (orderId: string) => {
+    setLoadingTimeTracking(true);
+    try {
+      const data = await getOrderTimeTracking(orderId);
+      setTimeTracking(data);
+    } catch (error) {
+      console.error("Error fetching time tracking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch time tracking data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingTimeTracking(false);
+    }
+  };
+
+  const handleUpdateOrderItems = async () => {
+    if (!selectedOrder) return;
+    
+    setUpdating(true);
+    try {
+      const itemsToUpdate = editedItems.map(item => ({
+        product_id: typeof item.product_id === 'string' ? item.product_id : item.product_id?._id,
+        title: item.title,
+        price: item.offer_price || item.price,
+        quantity: item.quantity,
+        product_code: item.product_code
+      }));
+      
+      await updateOrderItems(selectedOrder._id, itemsToUpdate);
+      
+      toast({
+        title: "Success",
+        description: "Order items updated successfully",
+      });
+      
+      setEditMode(false);
+      fetchOrders(currentPage, activeTab);
+      
+      // Refresh the selected order data
+      const updatedOrder = await getOrderById(selectedOrder._id);
+      setSelectedOrder(updatedOrder);
+      setEditedItems(updatedOrder.items);
+    } catch (error) {
+      console.error("Error updating order items:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update order items",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const handleViewOrder = useCallback(async (orderId: string) => {
     // Prevent multiple simultaneous calls
@@ -103,7 +236,10 @@ export default function Orders() {
     const existingOrder = orders.find(order => order._id === orderId);
     if (existingOrder) {
       setSelectedOrder(existingOrder);
+      setEditedItems(existingOrder.items);
+      setEditMode(false);
       setViewDialogOpen(true);
+      handleFetchTimeTracking(orderId);
       return;
     }
 
@@ -113,7 +249,10 @@ export default function Orders() {
     try {
       const orderData = await getOrderById(orderId);
       setSelectedOrder(orderData);
+      setEditedItems(orderData.items);
+      setEditMode(false);
       setViewDialogOpen(true);
+      handleFetchTimeTracking(orderId);
     } catch (error) {
       console.error("Error fetching order details:", error);
       toast({
@@ -138,6 +277,8 @@ export default function Orders() {
       fetchOrders(currentPage, activeTab);
       if (selectedOrder && selectedOrder._id === orderId) {
         setSelectedOrder({ ...selectedOrder, order_status: newStatus as any });
+        // Refresh time tracking data after status change
+        handleFetchTimeTracking(orderId);
       }
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -379,10 +520,22 @@ export default function Orders() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="all">All Orders</TabsTrigger>
+          <TabsTrigger value="all" className="relative gap-2">
+            All Orders
+            {statusCounts.all !== undefined && (
+              <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-black text-primary-foreground rounded-md">
+                {statusCounts.all}
+              </span>
+            )}
+          </TabsTrigger>
           {ORDER_STATUSES.map((status) => (
-            <TabsTrigger key={status.value} value={status.value}>
+            <TabsTrigger key={status.value} value={status.value} className="relative gap-2">
               {status.label}
+              {statusCounts[status.value] !== undefined && (
+                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-black text-primary-foreground rounded-md">
+                  {statusCounts[status.value]}
+                </span>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -562,6 +715,9 @@ export default function Orders() {
             setSelectedOrder(null);
             setDetailsLoading(false);
             fetchingRef.current = false;
+            setEditMode(false);
+            setEditedItems([]);
+            setTimeTracking(null);
           }
         }}
       >
@@ -573,15 +729,60 @@ export default function Orders() {
                 <DialogDescription>View complete order information</DialogDescription>
               </div>
               {selectedOrder && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrintOrder}
-                  className="gap-2"
-                >
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
+                <div className="flex gap-2">
+                  {editMode ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditMode(false);
+                          setEditedItems(selectedOrder.items);
+                        }}
+                        disabled={updating}
+                        className="gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleUpdateOrderItems}
+                        disabled={updating}
+                        className="gap-2"
+                      >
+                        {updating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                        Save
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditMode(true)}
+                        className="gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit Order
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrintOrder}
+                        className="gap-2"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Print
+                      </Button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </DialogHeader>
@@ -643,9 +844,94 @@ export default function Orders() {
                 </div>
               )}
 
+              {/* Status Timeline */}
+              {timeTracking && timeTracking.status_timeline && (
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label className="text-lg font-semibold flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Status Timeline
+                    </Label>
+                    {/* {timeTracking.total_time && (
+                      <Badge variant="outline">
+                        Total: {timeTracking.total_time.hours}h ({timeTracking.total_time.days}d)
+                      </Badge>
+                    )} */}
+                  </div>
+                  
+                  {loadingTimeTracking ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {timeTracking.status_timeline.map((timeline: any, index: number) => (
+                        <div
+                          key={index}
+                          className={`rounded border p-2.5 transition-all ${
+                            timeline.is_active 
+                              ? 'bg-blue-50 border-blue-200' 
+                              : 'bg-white border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                timeline.is_active ? 'bg-blue-500' : 'bg-gray-300'
+                              }`}
+                            />
+                            
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Badge
+                                className={`${
+                                  ORDER_STATUSES.find((s) => s.value === timeline.status)?.color ||
+                                  'bg-gray-500'
+                                } text-white text-xs`}
+                              >
+                                {ORDER_STATUSES.find((s) => s.value === timeline.status)?.label ||
+                                  timeline.status}
+                              </Badge>
+                              
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(timeline.started_at)}
+                              </span>
+                              
+                              {timeline.is_active && (
+                                <Badge variant="secondary" className="text-xs ml-auto">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {timeline.note && (
+                            <p className="mt-1 ml-4 text-xs text-gray-600 italic">
+                              {timeline.note}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Order Items */}
               <div>
-                <Label className="text-lg font-semibold mb-3 block">Order Items</Label>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-lg font-semibold">Order Items</Label>
+                  {editMode && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAddItemDialogOpen(true)}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                  )}
+                </div>
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -655,15 +941,16 @@ export default function Orders() {
                         <TableHead className="text-right">Price</TableHead>
                         <TableHead className="text-center">Quantity</TableHead>
                         <TableHead className="text-right">Total</TableHead>
+                        {editMode && <TableHead className="text-center">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedOrder.items.map((item, index) => (
+                      {(editMode ? editedItems : selectedOrder.items).map((item, index) => (
                         <TableRow key={item._id}>
                           <TableCell>
                             <div className="space-y-1">
                               <p className="font-medium">{item.title}</p>
-                              {item.product_id.actual_price && (
+                              {item.product_id?.actual_price && (
                                 <p className="text-xs text-muted-foreground">
                                   Actual Price: {currency?.symbol || '₹'} {item.product_id.actual_price}
                                 </p>
@@ -674,14 +961,83 @@ export default function Orders() {
                             {item.product_code || '-'}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {currency?.symbol || '₹'} {item.price}
+                            {currency?.symbol || '₹'} {item.offer_price || item.price}
                           </TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="outline">{item.quantity}</Badge>
+                            {editMode ? (
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty or any positive number during typing
+                                  if (value === '') {
+                                    setEditedItems(prev => 
+                                      prev.map((i, idx) => 
+                                        idx === index ? { ...i, quantity: '' as any } : i
+                                      )
+                                    );
+                                  } else {
+                                    const newQuantity = parseInt(value);
+                                    if (!isNaN(newQuantity) && newQuantity >= 0) {
+                                      setEditedItems(prev => 
+                                        prev.map((i, idx) => 
+                                          idx === index ? { ...i, quantity: newQuantity } : i
+                                        )
+                                      );
+                                    }
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const value = e.target.value;
+                                  const quantity = value === '' ? 1 : parseInt(value);
+                                  if (isNaN(quantity) || quantity < 1) {
+                                    setEditedItems(prev => 
+                                      prev.map((i, idx) => 
+                                        idx === index ? { ...i, quantity: 1 } : i
+                                      )
+                                    );
+                                  } else {
+                                    setEditedItems(prev => 
+                                      prev.map((i, idx) => 
+                                        idx === index ? { ...i, quantity: quantity } : i
+                                      )
+                                    );
+                                  }
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="w-20 h-8 text-center"
+                              />
+                            ) : (
+                              <Badge variant="outline">{item.quantity}</Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
-                            {currency?.symbol || '₹'} {item.price * item.quantity}
+                            {currency?.symbol || '₹'} {(item.offer_price || item.price) * item.quantity}
                           </TableCell>
+                          {editMode && (
+                            <TableCell className="text-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (editedItems.length <= 1) {
+                                    toast({
+                                      title: "Cannot remove item",
+                                      description: "Order must have at least one item",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  setEditedItems(prev => prev.filter((_, idx) => idx !== index));
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -754,6 +1110,83 @@ export default function Orders() {
                 "Delete"
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Item Dialog */}
+      <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Product to Order</DialogTitle>
+            <DialogDescription>
+              Search and select a product to add to this order
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Search Products</Label>
+              <Input
+                placeholder="Search by product name or code..."
+                value={productSearchTerm}
+                onChange={(e) => {
+                  setProductSearchTerm(e.target.value);
+                  handleSearchProducts(e.target.value);
+                }}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="max-h-96 overflow-y-auto border rounded-lg">
+              {loadingProducts ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : searchProducts.length > 0 ? (
+                <div className="divide-y">
+                  {searchProducts.map((product) => (
+                    <div
+                      key={product._id}
+                      className="p-4 hover:bg-muted cursor-pointer flex items-center justify-between"
+                      onClick={() => handleAddProductToOrder(product)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {product.image && (
+                          <img
+                            src={product.image}
+                            alt={product.title}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium">{product.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Code: {product.product_code || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{currency?.symbol || '₹'} {product.price}</p>
+                        {product.actual_price && (
+                          <p className="text-xs text-muted-foreground">
+                            MRP: {currency?.symbol || '₹'} {product.actual_price}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : productSearchTerm.length >= 2 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  No products found
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  Type at least 2 characters to search
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
