@@ -407,12 +407,12 @@ const AddProductDialog = ({
       return;
     }
 
-    // Validate file size (5MB)
-    const maxSize = 5 * 1024 * 1024;
+    // Validate file size (2MB)
+    const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         title: "File too large",
-        description: "Please select an image smaller than 5MB",
+        description: "Please select an image smaller than 2MB",
         variant: "destructive",
       });
       return;
@@ -782,9 +782,14 @@ const AddProductDialog = ({
                     <Upload className="w-4 h-4" />
                     Upload New Image
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    JPG, PNG or WEBP (max 5MB)
-                  </span>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                      JPG, PNG or WEBP (max 2MB)
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recommended size: 180×180 pixels
+                    </p>
+                  </div>
                 </div>
               )}
               <input
