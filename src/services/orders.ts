@@ -23,9 +23,12 @@ export interface Order {
   customer_phone: string;
   items: OrderItem[];
   subtotal: number;
+  shipping_charge?: number;
+  discount?: number;
   total_amount: number;
   order_status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
   notes?: string;
+  cancellation_reason?: string;
   product_code?: string;
   createdAt: string;
   updatedAt: string;
@@ -54,8 +57,12 @@ export const getOrderById = async (orderId: string) => {
   return response.data;
 };
 
-export const updateOrderStatus = async (orderId: string, status: string) => {
-  const response = await axiosInstance.patch(`/api/v1/orders/${orderId}/status`, { order_status: status });
+export const updateOrderStatus = async (orderId: string, status: string, cancellation_reason?: string) => {
+  const payload: any = { order_status: status };
+  if (cancellation_reason) {
+    payload.cancellation_reason = cancellation_reason;
+  }
+  const response = await axiosInstance.patch(`/api/v1/orders/${orderId}/status`, payload);
   return response.data;
 };
 
@@ -64,8 +71,12 @@ export const deleteOrder = async (orderId: string) => {
   return response.data;
 };
 
-export const updateOrderItems = async (orderId: string, items: { product_id: string; title: string; price: number; quantity: number; product_code?: string }[]) => {
-  const response = await axiosInstance.put(`/api/v1/orders/${orderId}`, { items });
+export const updateOrderItems = async (orderId: string, items: { product_id: string; title: string; price: number; quantity: number; product_code?: string }[], notes?: string, shipping_charge?: number, discount?: number) => {
+  const payload: any = { items };
+  if (notes !== undefined) payload.notes = notes;
+  if (shipping_charge !== undefined) payload.shipping_charge = shipping_charge;
+  if (discount !== undefined) payload.discount = discount;
+  const response = await axiosInstance.put(`/api/v1/orders/${orderId}`, payload);
   return response.data;
 };
 
