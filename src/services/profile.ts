@@ -2,7 +2,7 @@ import axiosInstance from "./axiosInstance";
 
 export interface ClientProfile {
   _id: string;
-  customer_name: string;
+  client_name: string;
   email: string;
   phone_number?: string;
   business_name?: string;

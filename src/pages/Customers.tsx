@@ -272,7 +272,10 @@ export default function Customers() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Customer Management</h1>
-          <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+          <Button onClick={() => {
+            setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "" });
+            setAddDialogOpen(true);
+          }} className="gap-2">
             <UserPlus className="h-4 w-4" />
             Add Customer
           </Button>
@@ -455,123 +458,138 @@ export default function Customers() {
 
         {/* Add Customer Dialog */}
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Add New Customer</DialogTitle>
-              <DialogDescription>Create a new customer manually</DialogDescription>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <UserPlus className="h-5 w-5" />
+                Add New Customer
+              </DialogTitle>
+              <DialogDescription>Fill in the details to create a new customer profile</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div>
-                <Label htmlFor="name">
-                  Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter customer name"
-                />
-              </div>
+            <div className="max-h-[65vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium">
+                    Customer Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="John Doe"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="phone">
-                  Phone <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Enter phone number"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium">
+                    Phone Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1234567890"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Enter email address"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="john@example.com"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="contact-person">Contact Person</Label>
-                <Input
-                  id="contact-person"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  placeholder="Enter contact person name"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-person" className="text-sm font-medium">Contact Person</Label>
+                  <Input
+                    id="contact-person"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                    placeholder="Jane Smith"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="contact-mobile">Contact Mobile</Label>
-                <Input
-                  id="contact-mobile"
-                  value={formData.contact_mobile}
-                  onChange={(e) => setFormData({ ...formData, contact_mobile: e.target.value })}
-                  placeholder="Enter contact mobile number"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-mobile" className="text-sm font-medium">Contact Mobile</Label>
+                  <Input
+                    id="contact-mobile"
+                    value={formData.contact_mobile}
+                    onChange={(e) => setFormData({ ...formData, contact_mobile: e.target.value })}
+                    placeholder="+1987654321"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="street-address">Street Address</Label>
-                <Textarea
-                  id="street-address"
-                  value={formData.street_address}
-                  onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
-                  placeholder="Enter street address"
-                  rows={2}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="region" className="text-sm font-medium">Region/State</Label>
+                  <Input
+                    id="region"
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                    placeholder="California"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="region">Region/State</Label>
-                <Input
-                  id="region"
-                  value={formData.region}
-                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                  placeholder="Enter region or state"
-                />
-              </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="street-address" className="text-sm font-medium">Street Address</Label>
+                  <Textarea
+                    id="street-address"
+                    value={formData.street_address}
+                    onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+                    placeholder="123 Main Street, Apartment 4B"
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  placeholder="Enter country"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="text-sm font-medium">Country</Label>
+                  <Input
+                    id="country"
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    placeholder="United States"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="address">Additional Notes</Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Enter additional address notes"
-                  rows={2}
-                />
+                <div className="space-y-2">
+                  <div className="h-[22px]"></div>
+                  {/* Spacer to align with country field */}
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="address" className="text-sm font-medium">Additional Notes</Label>
+                  <Textarea
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Any special delivery instructions or additional information..."
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-2 mt-4">
               <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={handleAddCustomer} disabled={saving}>
+              <Button onClick={handleAddCustomer} disabled={saving} className="gap-2">
                 {saving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
-                  "Create Customer"
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Create Customer
+                  </>
                 )}
               </Button>
             </DialogFooter>
@@ -580,112 +598,124 @@ export default function Customers() {
 
         {/* Edit Customer Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Edit Customer</DialogTitle>
-              <DialogDescription>Update customer information</DialogDescription>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Edit className="h-5 w-5" />
+                Edit Customer
+              </DialogTitle>
+              <DialogDescription>Update customer information and details</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div>
-                <Label htmlFor="edit-name">
-                  Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter customer name"
-                />
-              </div>
+            <div className="max-h-[65vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name" className="text-sm font-medium">
+                    Customer Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="John Doe"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-phone">
-                  Phone <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="edit-phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Enter phone number"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone" className="text-sm font-medium">
+                    Phone Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1234567890"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-email">Email</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Enter email address"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email" className="text-sm font-medium">Email Address</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="john@example.com"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-contact-person">Contact Person</Label>
-                <Input
-                  id="edit-contact-person"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  placeholder="Enter contact person name"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-contact-person" className="text-sm font-medium">Contact Person</Label>
+                  <Input
+                    id="edit-contact-person"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                    placeholder="Jane Smith"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-contact-mobile">Contact Mobile</Label>
-                <Input
-                  id="edit-contact-mobile"
-                  value={formData.contact_mobile}
-                  onChange={(e) => setFormData({ ...formData, contact_mobile: e.target.value })}
-                  placeholder="Enter contact mobile number"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-contact-mobile" className="text-sm font-medium">Contact Mobile</Label>
+                  <Input
+                    id="edit-contact-mobile"
+                    value={formData.contact_mobile}
+                    onChange={(e) => setFormData({ ...formData, contact_mobile: e.target.value })}
+                    placeholder="+1987654321"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-street-address">Street Address</Label>
-                <Textarea
-                  id="edit-street-address"
-                  value={formData.street_address}
-                  onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
-                  placeholder="Enter street address"
-                  rows={2}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-region" className="text-sm font-medium">Region/State</Label>
+                  <Input
+                    id="edit-region"
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                    placeholder="California"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-region">Region/State</Label>
-                <Input
-                  id="edit-region"
-                  value={formData.region}
-                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                  placeholder="Enter region or state"
-                />
-              </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="edit-street-address" className="text-sm font-medium">Street Address</Label>
+                  <Textarea
+                    id="edit-street-address"
+                    value={formData.street_address}
+                    onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+                    placeholder="123 Main Street, Apartment 4B"
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-country">Country</Label>
-                <Input
-                  id="edit-country"
-                  value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  placeholder="Enter country"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-country" className="text-sm font-medium">Country</Label>
+                  <Input
+                    id="edit-country"
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    placeholder="United States"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="edit-address">Additional Notes</Label>
-                <Textarea
-                  id="edit-address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Enter additional address notes"
-                  rows={2}
-                />
+                <div className="space-y-2">
+                  <div className="h-[22px]"></div>
+                  {/* Spacer to align with country field */}
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="edit-address" className="text-sm font-medium">Additional Notes</Label>
+                  <Textarea
+                    id="edit-address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Any special delivery instructions or additional information..."
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-2 mt-4">
               <Button
                 variant="outline"
                 onClick={() => setEditDialogOpen(false)}
@@ -693,14 +723,17 @@ export default function Customers() {
               >
                 Cancel
               </Button>
-              <Button onClick={handleEditCustomer} disabled={saving}>
+              <Button onClick={handleEditCustomer} disabled={saving} className="gap-2">
                 {saving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Updating...
                   </>
                 ) : (
-                  "Update Customer"
+                  <>
+                    <Edit className="h-4 w-4" />
+                    Update Customer
+                  </>
                 )}
               </Button>
             </DialogFooter>
