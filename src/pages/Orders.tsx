@@ -72,6 +72,9 @@ export default function Orders() {
   const fetchingRef = useRef(false);
   const [editMode, setEditMode] = useState(false);
   const [editedItems, setEditedItems] = useState<OrderItem[]>([]);
+  const [editedNotes, setEditedNotes] = useState("");
+  const [editedShippingCharge, setEditedShippingCharge] = useState<number>(0);
+  const [editedDiscount, setEditedDiscount] = useState<number>(0);
   const [updating, setUpdating] = useState(false);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [searchProducts, setSearchProducts] = useState<any[]>([]);
@@ -80,6 +83,9 @@ export default function Orders() {
   const [timeTracking, setTimeTracking] = useState<any>(null);
   const [loadingTimeTracking, setLoadingTimeTracking] = useState(false);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [pendingCancellationOrderId, setPendingCancellationOrderId] = useState<string | null>(null);
 
   const fetchStatusCounts = async () => {
     try {
@@ -202,11 +208,11 @@ export default function Orders() {
         product_code: item.product_code
       }));
       
-      await updateOrderItems(selectedOrder._id, itemsToUpdate);
+      await updateOrderItems(selectedOrder._id, itemsToUpdate, editedNotes, editedShippingCharge, editedDiscount);
       
       toast({
         title: "Success",
-        description: "Order items updated successfully",
+        description: "Order updated successfully",
       });
       
       setEditMode(false);
@@ -216,11 +222,14 @@ export default function Orders() {
       const updatedOrder = await getOrderById(selectedOrder._id);
       setSelectedOrder(updatedOrder);
       setEditedItems(updatedOrder.items);
+      setEditedNotes(updatedOrder.notes || "");
+      setEditedShippingCharge(updatedOrder.shipping_charge || 0);
+      setEditedDiscount(updatedOrder.discount || 0);
     } catch (error) {
       console.error("Error updating order items:", error);
       toast({
         title: "Error",
-        description: "Failed to update order items",
+        description: "Failed to update order",
         variant: "destructive",
       });
     } finally {
@@ -237,6 +246,9 @@ export default function Orders() {
     if (existingOrder) {
       setSelectedOrder(existingOrder);
       setEditedItems(existingOrder.items);
+      setEditedNotes(existingOrder.notes || "");
+      setEditedShippingCharge(existingOrder.shipping_charge || 0);
+      setEditedDiscount(existingOrder.discount || 0);
       setEditMode(false);
       setViewDialogOpen(true);
       handleFetchTimeTracking(orderId);
@@ -250,6 +262,9 @@ export default function Orders() {
       const orderData = await getOrderById(orderId);
       setSelectedOrder(orderData);
       setEditedItems(orderData.items);
+      setEditedNotes(orderData.notes || "");
+      setEditedShippingCharge(orderData.shipping_charge || 0);
+      setEditedDiscount(orderData.discount || 0);
       setEditMode(false);
       setViewDialogOpen(true);
       handleFetchTimeTracking(orderId);
@@ -267,6 +282,13 @@ export default function Orders() {
   }, [orders, toast]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
+    // If changing to cancelled, show cancellation dialog
+    if (newStatus === "cancelled") {
+      setPendingCancellationOrderId(orderId);
+      setCancellationDialogOpen(true);
+      return;
+    }
+
     setStatusUpdating(true);
     try {
       await updateOrderStatus(orderId, newStatus);
@@ -275,6 +297,7 @@ export default function Orders() {
         description: "Order status updated successfully",
       });
       fetchOrders(currentPage, activeTab);
+      fetchStatusCounts();
       if (selectedOrder && selectedOrder._id === orderId) {
         setSelectedOrder({ ...selectedOrder, order_status: newStatus as any });
         // Refresh time tracking data after status change
@@ -285,6 +308,46 @@ export default function Orders() {
       toast({
         title: "Error",
         description: "Failed to update order status",
+        variant: "destructive",
+      });
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const handleConfirmCancellation = async () => {
+    if (!pendingCancellationOrderId) return;
+
+    if (!cancellationReason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a cancellation reason",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setStatusUpdating(true);
+    try {
+      await updateOrderStatus(pendingCancellationOrderId, "cancelled", cancellationReason);
+      toast({
+        title: "Success",
+        description: "Order cancelled successfully",
+      });
+      setCancellationDialogOpen(false);
+      setCancellationReason("");
+      setPendingCancellationOrderId(null);
+      fetchOrders(currentPage, activeTab);
+      fetchStatusCounts();
+      if (selectedOrder && selectedOrder._id === pendingCancellationOrderId) {
+        setSelectedOrder({ ...selectedOrder, order_status: "cancelled" as any });
+        handleFetchTimeTracking(pendingCancellationOrderId);
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel order",
         variant: "destructive",
       });
     } finally {
@@ -470,6 +533,14 @@ export default function Orders() {
           <div class="total-row">
             <div class="total-label">Subtotal:</div>
             <div>${currency?.symbol || '₹'} ${selectedOrder.subtotal.toFixed(2)}</div>
+          </div>
+          <div class="total-row">
+            <div class="total-label">Shipping Charge:</div>
+            <div>${currency?.symbol || '₹'} ${(selectedOrder.shipping_charge || 0).toFixed(2)}</div>
+          </div>
+          <div class="total-row">
+            <div class="total-label">Discount:</div>
+            <div>${currency?.symbol || '₹'} ${(selectedOrder.discount || 0).toFixed(2)}</div>
           </div>
           <div class="total-row total-amount">
             <div class="total-label">Total Amount:</div>
@@ -717,6 +788,9 @@ export default function Orders() {
             fetchingRef.current = false;
             setEditMode(false);
             setEditedItems([]);
+            setEditedNotes("");
+            setEditedShippingCharge(0);
+            setEditedDiscount(0);
             setTimeTracking(null);
           }
         }}
@@ -728,60 +802,26 @@ export default function Orders() {
                 <DialogTitle>Order Details</DialogTitle>
                 <DialogDescription>View complete order information</DialogDescription>
               </div>
-              {selectedOrder && (
+              {selectedOrder && !editMode && (
                 <div className="flex gap-2">
-                  {editMode ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditMode(false);
-                          setEditedItems(selectedOrder.items);
-                        }}
-                        disabled={updating}
-                        className="gap-2"
-                      >
-                        <X className="h-4 w-4" />
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleUpdateOrderItems}
-                        disabled={updating}
-                        className="gap-2"
-                      >
-                        {updating ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                        Save
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditMode(true)}
-                        className="gap-2"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit Order
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePrintOrder}
-                        className="gap-2"
-                      >
-                        <Printer className="h-4 w-4" />
-                        Print
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditMode(true)}
+                    className="gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit Order
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintOrder}
+                    className="gap-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print
+                  </Button>
                 </div>
               )}
             </div>
@@ -836,16 +876,32 @@ export default function Orders() {
                 </div>
               </div>
 
-              {/* Notes Section */}
-              {selectedOrder.notes && (
-                <div className="border rounded-lg p-4 bg-muted/50">
-                  <Label className="text-muted-foreground">Order Notes</Label>
-                  <p className="mt-2 text-sm">{selectedOrder.notes}</p>
+              {/* Cancellation Reason Section */}
+              {selectedOrder.order_status === "cancelled" && selectedOrder.cancellation_reason ? (
+                <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                  <Label className="text-red-700 font-semibold">Cancellation Reason</Label>
+                  <p className="mt-2 text-sm text-red-900">{selectedOrder.cancellation_reason}</p>
                 </div>
-              )}
+              ) : null}
+
+              {/* Notes Section */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <Label className="text-muted-foreground">Order Notes</Label>
+                {editMode ? (
+                  <textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    placeholder="Add order notes..."
+                    className="mt-2 w-full min-h-[80px] p-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    rows={3}
+                  />
+                ) : (
+                  <p className="mt-2 text-sm">{selectedOrder.notes || "No notes"}</p>
+                )}
+              </div>
 
               {/* Status Timeline */}
-              {timeTracking && timeTracking.status_timeline && (
+              {!editMode && timeTracking && timeTracking.status_timeline && (
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
                     <Label className="text-lg font-semibold flex items-center gap-2">
@@ -936,8 +992,8 @@ export default function Orders() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Product</TableHead>
                         <TableHead>Product Code</TableHead>
+                        <TableHead>Product</TableHead>
                         <TableHead className="text-right">Price</TableHead>
                         <TableHead className="text-center">Quantity</TableHead>
                         <TableHead className="text-right">Total</TableHead>
@@ -947,6 +1003,9 @@ export default function Orders() {
                     <TableBody>
                       {(editMode ? editedItems : selectedOrder.items).map((item, index) => (
                         <TableRow key={item._id}>
+                             <TableCell className="text-muted-foreground">
+                            {item.product_code || '-'}
+                          </TableCell>
                           <TableCell>
                             <div className="space-y-1">
                               <p className="font-medium">{item.title}</p>
@@ -957,9 +1016,7 @@ export default function Orders() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {item.product_code || '-'}
-                          </TableCell>
+                       
                           <TableCell className="text-right font-medium">
                             {currency?.symbol || '₹'} {item.offer_price || item.price}
                           </TableCell>
@@ -1049,16 +1106,106 @@ export default function Orders() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between">
                   <Label className="text-muted-foreground">Subtotal</Label>
-                  <p className="font-semibold">{currency?.symbol || '₹'} {selectedOrder.subtotal}</p>
+                  <p className="font-semibold">{currency?.symbol || '₹'} {editMode ? (editedItems.reduce((sum, item) => sum + ((item.offer_price || item.price) * item.quantity), 0).toFixed(2)) : selectedOrder.subtotal.toFixed(2)}</p>
                 </div>
-                <div className="flex justify-between text-lg">
+                <div className="flex justify-between items-center">
+                  <Label className="text-muted-foreground">Shipping Charge</Label>
+                  {editMode ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editedShippingCharge === 0 ? '' : editedShippingCharge}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEditedShippingCharge(value === '' ? 0 : Number(value));
+                      }}
+                      onFocus={(e) => {
+                        if (editedShippingCharge === 0) {
+                          e.target.value = '';
+                        }
+                        e.target.select();
+                      }}
+                      placeholder="0.00"
+                      className="w-32 h-8 text-right"
+                    />
+                  ) : (
+                    <p className="font-semibold">{currency?.symbol || '₹'} {(selectedOrder.shipping_charge || 0).toFixed(2)}</p>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <Label className="text-muted-foreground">Discount</Label>
+                  {editMode ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editedDiscount === 0 ? '' : editedDiscount}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEditedDiscount(value === '' ? 0 : Number(value));
+                      }}
+                      onFocus={(e) => {
+                        if (editedDiscount === 0) {
+                          e.target.value = '';
+                        }
+                        e.target.select();
+                      }}
+                      placeholder="0.00"
+                      className="w-32 h-8 text-right"
+                    />
+                  ) : (
+                    <p className="font-semibold">{currency?.symbol || '₹'} {(selectedOrder.discount || 0).toFixed(2)}</p>
+                  )}
+                </div>
+                <div className="flex justify-between text-lg border-t pt-2">
                   <Label className="font-bold">Total Amount</Label>
-                  <p className="font-bold">{currency?.symbol || '₹'} {Number(selectedOrder.total_amount).toFixed(2)}</p>
+                  <p className="font-bold">
+                    {currency?.symbol || '₹'} 
+                    {editMode 
+                      ? (editedItems.reduce((sum, item) => sum + ((item.offer_price || item.price) * item.quantity), 0) + editedShippingCharge - editedDiscount).toFixed(2)
+                      : Number(selectedOrder.total_amount).toFixed(2)
+                    }
+                  </p>
                 </div>
               </div>
 
+              {/* Action Buttons */}
+              {editMode && (
+                <div className="flex justify-end gap-3 border-t pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditMode(false);
+                      setEditedItems(selectedOrder.items);
+                      setEditedNotes(selectedOrder.notes || "");
+                      setEditedShippingCharge(selectedOrder.shipping_charge || 0);
+                      setEditedDiscount(selectedOrder.discount || 0);
+                    }}
+                    disabled={updating}
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={handleUpdateOrderItems}
+                    disabled={updating}
+                    className="gap-2"
+                  >
+                    {updating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save Changes
+                  </Button>
+                </div>
+              )}
+
               {/* Delete Button */}
-              <div className="border-t pt-4">
+              {/* <div className="border-t pt-4">
                 <Button
                   variant="destructive"
                   className="w-full"
@@ -1070,7 +1217,7 @@ export default function Orders() {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Order
                 </Button>
-              </div>
+              </div> */}
             </div>
           ) : null}
         </DialogContent>
@@ -1108,6 +1255,66 @@ export default function Orders() {
                 </>
               ) : (
                 "Delete"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancellation Confirmation Dialog */}
+      <Dialog open={cancellationDialogOpen} onOpenChange={(open) => {
+        setCancellationDialogOpen(open);
+        if (!open) {
+          setCancellationReason("");
+          setPendingCancellationOrderId(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Order</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for cancelling this order
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cancellation-reason">
+                Cancellation Reason <span className="text-red-500">*</span>
+              </Label>
+              <textarea
+                id="cancellation-reason"
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Enter the reason for cancellation..."
+                className="mt-2 w-full min-h-[100px] p-3 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                rows={4}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCancellationDialogOpen(false);
+                setCancellationReason("");
+                setPendingCancellationOrderId(null);
+              }}
+              disabled={statusUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancellation}
+              disabled={statusUpdating || !cancellationReason.trim()}
+            >
+              {statusUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                "Confirm Cancellation"
               )}
             </Button>
           </div>
