@@ -26,7 +26,11 @@ import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCategoryProducts } from "@/services/category";
-import { deleteProduct, changeStatus } from "@/services/product";
+import {
+  deleteProduct,
+  changeStatus,
+  updatePriceVisibility,
+} from "@/services/product";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 const CategoryProducts = () => {
@@ -54,18 +58,21 @@ const CategoryProducts = () => {
   const totalPages = Math.ceil((filteredProducts?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProducts = Array.isArray(filteredProducts) ? filteredProducts.slice(startIndex, endIndex) : [];
+  const currentProducts = Array.isArray(filteredProducts)
+    ? filteredProducts.slice(startIndex, endIndex)
+    : [];
 
   useEffect(() => {
     const fetchData = async () => {
       if (!categoryId) return;
-      
+
       setLoading(true);
       try {
         const data = await getCategoryProducts(categoryId);
-        const productsList = data?.products || data?.data || (Array.isArray(data) ? data : []);
+        const productsList =
+          data?.products || data?.data || (Array.isArray(data) ? data : []);
         setProducts(productsList);
-        
+
         // Get category name from first product if available
         if (productsList.length > 0 && productsList[0].category_id) {
           setCategoryName(productsList[0].category_id.name || "Category");
@@ -90,10 +97,12 @@ const CategoryProducts = () => {
 
     try {
       await deleteProduct(String(selectedProduct._id));
-      
+
       // Update state by filtering out the deleted product
-      setProducts((prev) => prev.filter((p: any) => p._id !== selectedProduct._id));
-      
+      setProducts((prev) =>
+        prev.filter((p: any) => p._id !== selectedProduct._id)
+      );
+
       toast({
         title: "Product deleted",
         description: "The product has been successfully removed.",
@@ -115,7 +124,8 @@ const CategoryProducts = () => {
     try {
       await changeStatus(String(product._id));
       const data = await getCategoryProducts(categoryId!);
-      const productsList = data?.products || data?.data || (Array.isArray(data) ? data : []);
+      const productsList =
+        data?.products || data?.data || (Array.isArray(data) ? data : []);
       setProducts(productsList);
 
       toast({
@@ -131,15 +141,37 @@ const CategoryProducts = () => {
       console.error("Error updating status:", error);
     }
   };
+  const handlePriceVisibilityToggle = async (product: any) => {
+    try {
+      await updatePriceVisibility(String(product._id));
 
+      // Refresh category products
+      const data = await getCategoryProducts(categoryId!);
+      const productsList =
+        data?.products || data?.data || (Array.isArray(data) ? data : []);
+      setProducts(productsList);
+
+      toast({
+        title: "Price visibility updated",
+        description: "Product price visibility has been changed",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update price visibility",
+        variant: "destructive",
+      });
+      console.error("Error updating price visibility:", error);
+    }
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="icon"
               onClick={() => navigate("/categories")}
             >
@@ -192,6 +224,7 @@ const CategoryProducts = () => {
                       <TableHead>Actual Price</TableHead>
                       <TableHead>Offer Price</TableHead>
                       <TableHead>Offer Tag</TableHead>
+                      <TableHead>Price Visibility</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -202,8 +235,10 @@ const CategoryProducts = () => {
                         <TableCell>{startIndex + index + 1}</TableCell>
                         <TableCell>
                           {product.image || product.image_url ? (
-                            <img 
-                      src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${product.image}`} 
+                            <img
+                              src={`${
+                                import.meta.env.VITE_API_BASE_URL
+                              }/uploads/${product.image}`}
                               alt={product.title}
                               className="w-12 h-12 object-cover rounded"
                             />
@@ -213,18 +248,20 @@ const CategoryProducts = () => {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="font-medium">{product.title}</TableCell>
+                        <TableCell className="font-medium">
+                          {product.title}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {product.product_code || "-"}
                         </TableCell>
-                      
+
                         <TableCell className="font-medium">
-                          {currency?.symbol || '$'} {product.actual_price}
+                          {currency?.symbol || "$"} {product.actual_price}
                         </TableCell>
                         <TableCell>
                           {product.offer_price ? (
                             <span className="text-primary font-medium">
-                              {currency?.symbol || '$'} {product.offer_price}
+                              {currency?.symbol || "$"} {product.offer_price}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
@@ -234,7 +271,9 @@ const CategoryProducts = () => {
                           {product.offer_id ? (
                             <span
                               className="px-2 py-1 text-black rounded-md text-xs font-medium"
-                              style={{ backgroundColor: product.offer_id?.color_code }}
+                              style={{
+                                backgroundColor: product.offer_id?.color_code,
+                              }}
                             >
                               {product.offer_id?.name}
                             </span>
@@ -245,15 +284,27 @@ const CategoryProducts = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Switch
+                              checked={product.is_price_visible === true}
+                              onCheckedChange={() =>
+                                handlePriceVisibilityToggle(product)
+                              }
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
                               checked={product.status === "active"}
-                              onCheckedChange={() => handleStatusToggle(product)}
+                              onCheckedChange={() =>
+                                handleStatusToggle(product)
+                              }
                             />
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => {
                                 setSelectedProduct(product);
@@ -262,8 +313,8 @@ const CategoryProducts = () => {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => {
                                 setSelectedProduct(product);
@@ -278,18 +329,26 @@ const CategoryProducts = () => {
                     ))}
                   </TableBody>
                 </Table>
-                
+
                 {/* Pagination */}
                 <div className="flex items-center justify-between px-6 py-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} products
+                    Showing {startIndex + 1} to{" "}
+                    {Math.min(endIndex, filteredProducts.length)} of{" "}
+                    {filteredProducts.length} products
                   </p>
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        <PaginationPrevious
+                          onClick={() =>
+                            setCurrentPage((p) => Math.max(1, p - 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                       {[...Array(totalPages)].map((_, i) => (
@@ -304,9 +363,15 @@ const CategoryProducts = () => {
                         </PaginationItem>
                       ))}
                       <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        <PaginationNext
+                          onClick={() =>
+                            setCurrentPage((p) => Math.min(totalPages, p + 1))
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -315,15 +380,17 @@ const CategoryProducts = () => {
               </>
             ) : (
               <div className="flex justify-center items-center py-8">
-                <p className="text-muted-foreground">No products found in this category</p>
+                <p className="text-muted-foreground">
+                  No products found in this category
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Dialogs */}
-        <AddProductDialog 
-          open={editDialogOpen} 
+        <AddProductDialog
+          open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           editingProduct={selectedProduct || undefined}
           setProducts={setProducts}

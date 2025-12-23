@@ -40,7 +40,7 @@ import { Label } from "@/components/ui/label";
 import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, deleteProduct, changeStatus, updateProduct } from "@/services/product";
+import { getProduct, deleteProduct, changeStatus, updateProduct, updatePriceVisibility } from "@/services/product";
 import { getCategory } from "@/services/category";
 import { getOfferTags } from "@/services/offersTags";
 
@@ -185,6 +185,33 @@ const Products = () => {
         variant: "destructive",
       });
       console.error("Error updating status:", error);
+    }
+  };
+
+  const handlePriceVisibilityToggle = async (product: any) => {
+    try {
+      await updatePriceVisibility(String(product._id));
+      
+      // Refresh products
+      const filters = {
+        category_id: categoryFilter,
+        offer_id: offerFilter,
+        status: statusFilter
+      };
+      const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
+      setProducts(Array.isArray(data?.products) ? data?.products : []);
+
+      toast({
+        title: "Price visibility updated",
+        description: "Product price visibility has been changed",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update price visibility",
+        variant: "destructive",
+      });
+      console.error("Error updating price visibility:", error);
     }
   };
 
@@ -390,6 +417,7 @@ const Products = () => {
                   <TableHead>Actual Price</TableHead>
                   <TableHead>Offer Price</TableHead>
                   <TableHead>Offer Tag</TableHead>
+                  <TableHead>Price Visibility</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -398,7 +426,7 @@ const Products = () => {
                 {filteredAndSortedProducts.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={11}
+                      colSpan={12}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No products found
@@ -541,6 +569,15 @@ const Products = () => {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={product.is_price_visible === true}
+                            onCheckedChange={() => handlePriceVisibilityToggle(product)}
+                          />
+                        </div>
+                      </TableCell>
+                
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Switch

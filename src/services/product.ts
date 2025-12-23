@@ -182,3 +182,20 @@ export const changeStatus = async (productId: string, ) => {
     throw new Error(errorMessage);
   }
 };
+
+export const updatePriceVisibility = async (productId: string) => {
+  try {
+    const response = await axiosInstance.patch(
+      `/api/v1/products/${productId}/price-visibility`
+    );
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while updating price visibility";
+
+    console.error("Error updating price visibility:", errorMessage);
+    throw new Error(errorMessage);
+  }
+};
