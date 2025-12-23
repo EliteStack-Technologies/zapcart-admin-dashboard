@@ -10,17 +10,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText } from "lucide-react";
+import { Upload, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { flyerService } from "@/services/flyers";
 
 interface AddFlyerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onFlyerAdded?: () => void;
 }
 
-const AddFlyerDialog = ({ open, onOpenChange }: AddFlyerDialogProps) => {
+const AddFlyerDialog = ({ open, onOpenChange, onFlyerAdded }: AddFlyerDialogProps) => {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [validFrom, setValidFrom] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,14 +41,60 @@ const AddFlyerDialog = ({ open, onOpenChange }: AddFlyerDialogProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Flyer uploaded",
-      description: "Your PDF flyer has been successfully uploaded.",
-    });
-    onOpenChange(false);
-    setSelectedFile(null);
+    
+    if (!selectedFile || !title.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both a title and a PDF file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("pdf", selectedFile);
+      formData.append("status", "active");
+      
+      // Add valid dates if provided
+      if (validFrom) {
+        formData.append("valid_from", validFrom);
+      }
+      if (validUntil) {
+        formData.append("valid_until", validUntil);
+      }
+
+      await flyerService.createFlyer(formData);
+      
+      toast({
+        title: "Flyer uploaded",
+        description: "Your PDF flyer has been successfully uploaded.",
+      });
+      
+      // Reset form
+      setTitle("");
+      setSelectedFile(null);
+      setValidFrom("");
+      setValidUntil("");
+      onOpenChange(false);
+      
+      // Notify parent to refresh
+      if (onFlyerAdded) {
+        onFlyerAdded();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.response?.data?.message || "Failed to upload flyer. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -69,8 +121,35 @@ const AddFlyerDialog = ({ open, onOpenChange }: AddFlyerDialogProps) => {
               <Input
                 id="flyerName"
                 placeholder="November Weekly Deals"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 required
+                disabled={loading}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="validFrom">Valid From (Optional)</Label>
+                <Input
+                  id="validFrom"
+                  type="date"
+                  value={validFrom}
+                  onChange={(e) => setValidFrom(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="validUntil">Valid Until (Optional)</Label>
+                <Input
+                  id="validUntil"
+                  type="date"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                  disabled={loading}
+                  min={validFrom || undefined}
+                />
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -92,6 +171,7 @@ const AddFlyerDialog = ({ open, onOpenChange }: AddFlyerDialogProps) => {
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedFile(null)}
+                    disabled={loading}
                   >
                     Change
                   </Button>
@@ -115,6 +195,7 @@ const AddFlyerDialog = ({ open, onOpenChange }: AddFlyerDialogProps) => {
                     accept="application/pdf"
                     onChange={handleFileChange}
                     required
+                    disabled={loading}
                   />
                 </label>
               )}
@@ -131,12 +212,30 @@ const AddFlyerDialog = ({ open, onOpenChange }: AddFlyerDialogProps) => {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={!selectedFile} className="gap-2">
-              <Upload className="w-4 h-4" />
-              Upload Flyer
+            <Button 
+              type="submit" 
+              disabled={!selectedFile || !title.trim() || loading} 
+              className="gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  Upload Flyer
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

@@ -94,3 +94,21 @@ export const getCategoryProducts = async (categoryId: string) => {
   }
 };
 
+export const updateCategoryOrder = async (categories: Array<{ id: string; display_order: number }>) => {
+  try {
+    const response = await axiosInstance.patch(`/api/v1/categories/reorder`, {
+      categories
+    });
+
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while updating category order";
+
+    console.error("Error updating category order:", errorMessage);
+
+    throw new Error(errorMessage);
+  }
+};

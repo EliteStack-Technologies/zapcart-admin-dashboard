@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, FolderOpen, Eye } from "lucide-react";
+import { Plus, Search, Edit, Trash2, FolderOpen, Eye, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import AddCategoryDialog from "@/components/AddCategoryDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { getCategory, deleteCategory } from "@/services/category";
+import { getCategory, deleteCategory, updateCategoryOrder } from "@/services/category";
 
 const Categories = () => {
   const { toast } = useToast();
@@ -19,6 +19,8 @@ const Categories = () => {
   const [selectedCategory, setSelectedCategory] = useState<{ _id: number; name: string; productCount: number } | null>(null);
   const [categories,setCategories]=useState([])
   const [loading, setLoading] = useState(true);
+  const [draggedItem, setDraggedItem] = useState<number | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
     useEffect(() => {
       const fetchData = async () => {
         try {
@@ -71,6 +73,57 @@ const Categories = () => {
     navigate(`/categories/${category._id}/products`);
   };
 
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedItem(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    
+    if (draggedItem === null || draggedItem === index) return;
+    
+    const newCategories = [...categories];
+    const draggedCategory = newCategories[draggedItem];
+    
+    newCategories.splice(draggedItem, 1);
+    newCategories.splice(index, 0, draggedCategory);
+    
+    setCategories(newCategories);
+    setDraggedItem(index);
+  };
+
+  const handleDragEnd = async () => {
+    if (draggedItem === null) return;
+    
+    setIsReordering(true);
+    try {
+      // Update display_order for all categories based on new position
+      const updates = categories.map((category, index) => ({
+        id: category._id,
+        display_order: index
+      }));
+      
+      // Send update to backend
+      await updateCategoryOrder(updates);
+      
+      toast({
+        title: "Order updated",
+        description: "Category order has been saved.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update category order",
+        variant: "destructive",
+      });
+      console.error("Error updating category order:", error);
+    } finally {
+      setDraggedItem(null);
+      setIsReordering(false);
+    }
+  };
+
   
 
   return (
@@ -81,7 +134,7 @@ const Categories = () => {
           <div>
             <h1 className="text-4xl font-bold text-foreground">Categories</h1>
             <p className="text-muted-foreground mt-2">
-              Organize products into categories
+              Organize products into categories • Drag to reorder
             </p>
           </div>
           <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
@@ -106,6 +159,11 @@ const Categories = () => {
         </Card>
 
         {/* Categories Grid */}
+        {isReordering && (
+          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 text-center">
+            <p className="text-sm font-medium text-primary">Saving new order...</p>
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading categories...</p>
@@ -126,9 +184,23 @@ const Categories = () => {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category) => (
-            <Card key={category._id} className="hover:shadow-lg transition-shadow">
+            {categories.map((category, index) => (
+            <Card 
+              key={category._id} 
+              className={`hover:shadow-lg transition-shadow relative ${
+                draggedItem === index ? 'opacity-50' : ''
+              }`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+            >
               <CardContent className="p-6">
+                {/* Drag Handle */}
+                <div className="absolute top-2 right-2 cursor-move text-muted-foreground hover:text-foreground">
+                  <GripVertical className="w-5 h-5" />
+                </div>
+                
                 <div className="flex items-start justify-between mb-4">
                   {category.image || category.image_url ? (
                     <img 
