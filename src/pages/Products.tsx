@@ -86,7 +86,12 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getProduct(currentPage, limit);
+        const filters = {
+          category_id: categoryFilter,
+          offer_id: offerFilter,
+          status: statusFilter
+        };
+        const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
 
         // Set products and pagination data from API response
         setProducts(Array.isArray(data?.products) ? data?.products : []);
@@ -98,7 +103,7 @@ const Products = () => {
       }
     };
     fetchData();
-  }, [currentPage, limit]);
+  }, [currentPage, limit, searchTerm, categoryFilter, offerFilter, statusFilter, sortBy]);
 
   // Fetch categories and offers for filters
   useEffect(() => {
@@ -118,52 +123,18 @@ const Products = () => {
     fetchFilters();
   }, []);
 
-  // Filter and sort products
+  // Filter products (only client-side filters remain)
   const filteredAndSortedProducts = products
     .filter((product: any) => {
-      // Search filter
-      const matchesSearch =
-        searchTerm === "" ||
-        product.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.product_code?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      // Category filter
-      const matchesCategory =
-        categoryFilter === "all" || product.category_id?._id === categoryFilter;
-
-      // Offer filter
-      const matchesOffer =
-        offerFilter === "all" || product.offer_id?._id === offerFilter;
-
-      // Status filter
-      const matchesStatus =
-        statusFilter === "all" || product.status === statusFilter;
-
-      // Price range filter
+      // Price range filter (client-side only)
       const price = product.actual_price;
       const matchesMinPrice = minPrice === "" || price >= parseFloat(minPrice);
       const matchesMaxPrice = maxPrice === "" || price <= parseFloat(maxPrice);
 
       return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesOffer &&
-        matchesStatus &&
         matchesMinPrice &&
         matchesMaxPrice
       );
-    })
-    .sort((a: any, b: any) => {
-      if (sortBy === "name-asc") {
-        return (a.title || "").localeCompare(b.title || "");
-      } else if (sortBy === "name-desc") {
-        return (b.title || "").localeCompare(a.title || "");
-      } else if (sortBy === "price-asc") {
-        return (a.actual_price || 0) - (b.actual_price || 0);
-      } else if (sortBy === "price-desc") {
-        return (b.actual_price || 0) - (a.actual_price || 0);
-      }
-      return 0;
     });
 
   const handleDelete = async () => {

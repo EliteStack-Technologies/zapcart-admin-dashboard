@@ -86,6 +86,9 @@ export default function Orders() {
   const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
   const [pendingCancellationOrderId, setPendingCancellationOrderId] = useState<string | null>(null);
+  const [orderItemSearchTerm, setOrderItemSearchTerm] = useState("");
+  const [orderItemSearchResults, setOrderItemSearchResults] = useState<any[]>([]);
+  const [loadingOrderItemsSearch, setLoadingOrderItemsSearch] = useState(false);
 
   const fetchStatusCounts = async () => {
     try {
@@ -134,22 +137,37 @@ export default function Orders() {
   }, [activeTab, limit]);
 
   const handleSearchProducts = async (search: string) => {
-    if (!search || search.length < 2) {
+    if (!search || search.length < 1) {
       setSearchProducts([]);
       return;
     }
     setLoadingProducts(true);
     try {
-      const data = await getProduct(1, 50);
-      const filtered = data.products.filter((p: any) => 
-        p.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.product_code?.toLowerCase().includes(search.toLowerCase())
-      );
-      setSearchProducts(filtered);
+      const data = await getProduct(1, 50, search);
+      setSearchProducts(data.products || []);
     } catch (error) {
       console.error("Error searching products:", error);
+      setSearchProducts([]);
     } finally {
       setLoadingProducts(false);
+    }
+  };
+
+  const handleSearchOrderItems = async (search: string) => {
+    if (!search || search.length < 1) {
+      setOrderItemSearchResults([]);
+      return;
+    }
+    
+    setLoadingOrderItemsSearch(true);
+    try {
+      const data = await getProduct(1, 50, search);
+      setOrderItemSearchResults(data.products || []);
+    } catch (error) {
+      console.error("Error searching order items:", error);
+      setOrderItemSearchResults([]);
+    } finally {
+      setLoadingOrderItemsSearch(false);
     }
   };
 
@@ -666,13 +684,26 @@ export default function Orders() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleViewOrder(order._id)}
+                                title="View Order"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  handleViewOrder(order._id);
+                                  setTimeout(() => setEditMode(true), 300);
+                                }}
+                                title="Edit Order"
+                              >
+                                <Edit className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => openDeleteDialog(order._id)}
+                                title="Delete Order"
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
@@ -792,6 +823,9 @@ export default function Orders() {
             setEditedShippingCharge(0);
             setEditedDiscount(0);
             setTimeTracking(null);
+            setOrderItemSearchTerm("");
+            setOrderItemSearchResults([]);
+            setLoadingOrderItemsSearch(false);
           }
         }}
       >
@@ -988,6 +1022,75 @@ export default function Orders() {
                     </Button>
                   )}
                 </div>
+                
+                {/* Search order items */}
+                <div className="mb-3">
+                  <div className="relative max-w-md">
+                    <Input
+                      placeholder="Search products to check prices..."
+                      value={orderItemSearchTerm}
+                      onChange={(e) => {
+                        setOrderItemSearchTerm(e.target.value);
+                        handleSearchOrderItems(e.target.value);
+                      }}
+                    />
+                    {loadingOrderItemsSearch && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    
+                    {/* Dropdown with search results */}
+                    {orderItemSearchTerm && orderItemSearchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                        {orderItemSearchResults.map((product) => (
+                          <div
+                            key={product._id}
+                            className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                          >
+                            <div className="flex items-center gap-3">
+                              {product.image && (
+                                <img
+                                  src={product.image}
+                                  alt={product.title}
+                                  className="w-10 h-10 object-cover rounded"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{product.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Code: {product.product_code || 'N/A'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-green-600">
+                                  {currency?.symbol || '₹'} {product.offer_price}
+                                </p>
+                                {product.actual_price !== product.offer_price && (
+                                  <p className="text-xs text-muted-foreground line-through">
+                                    {currency?.symbol || '₹'} {product.actual_price}
+                                  </p>
+                                )}
+                                {product.stock_quantity !== undefined && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Stock: {product.stock_quantity}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {orderItemSearchTerm && !loadingOrderItemsSearch && orderItemSearchResults.length === 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-sm text-muted-foreground">
+                        No products found
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -1009,16 +1112,66 @@ export default function Orders() {
                           <TableCell>
                             <div className="space-y-1">
                               <p className="font-medium">{item.title}</p>
-                              {item.product_id?.actual_price && (
-                                <p className="text-xs text-muted-foreground">
-                                  Actual Price: {currency?.symbol || '₹'} {item.product_id.actual_price}
-                                </p>
-                              )}
+                           
                             </div>
                           </TableCell>
                        
                           <TableCell className="text-right font-medium">
-                            {currency?.symbol || '₹'} {item.offer_price || item.price}
+                            {editMode ? (
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.offer_price || item.price || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty during typing
+                                  if (value === '') {
+                                    setEditedItems(prev => 
+                                      prev.map((i, idx) => 
+                                        idx === index ? { 
+                                          ...i, 
+                                          offer_price: '' as any,
+                                          price: '' as any 
+                                        } : i
+                                      )
+                                    );
+                                  } else {
+                                    const newPrice = parseFloat(value);
+                                    if (!isNaN(newPrice) && newPrice >= 0) {
+                                      setEditedItems(prev => 
+                                        prev.map((i, idx) => 
+                                          idx === index ? { 
+                                            ...i, 
+                                            offer_price: newPrice,
+                                            price: newPrice 
+                                          } : i
+                                        )
+                                      );
+                                    }
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const value = e.target.value;
+                                  const price = value === '' ? 0 : parseFloat(value);
+                                  if (isNaN(price) || price < 0) {
+                                    setEditedItems(prev => 
+                                      prev.map((i, idx) => 
+                                        idx === index ? { 
+                                          ...i, 
+                                          offer_price: 0,
+                                          price: 0 
+                                        } : i
+                                      )
+                                    );
+                                  }
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="w-24 h-8 text-right"
+                              />
+                            ) : (
+                              <>{currency?.symbol || '₹'} {item.offer_price || item.price}</>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             {editMode ? (
@@ -1374,23 +1527,19 @@ export default function Orders() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">{currency?.symbol || '₹'} {product.price}</p>
-                        {product.actual_price && (
-                          <p className="text-xs text-muted-foreground">
-                            MRP: {currency?.symbol || '₹'} {product.actual_price}
-                          </p>
-                        )}
+                        <p className="font-semibold">{currency?.symbol || '₹'} {product.offer_price}</p>
+                      
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : productSearchTerm.length >= 2 ? (
+              ) : productSearchTerm.length >= 1 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   No products found
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
-                  Type at least 2 characters to search
+                  Type at least 1 character to search
                 </div>
               )}
             </div>

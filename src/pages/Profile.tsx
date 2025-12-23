@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, User, DollarSign, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -23,6 +24,7 @@ import {
   updateCurrency,
   changePassword,
   getCurrencies,
+  updateClientProfile,
   ClientProfile,
   Currency,
 } from "@/services/profile";
@@ -34,6 +36,7 @@ export default function Profile() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingCurrency, setUpdatingCurrency] = useState(false);
+  const [updatingPriceVisibility, setUpdatingPriceVisibility] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [selectedCurrencyId, setSelectedCurrencyId] = useState("");
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -120,6 +123,37 @@ export default function Profile() {
       });
     } finally {
       setUpdatingCurrency(false);
+    }
+  };
+
+  const handlePriceVisibilityToggle = async (checked: boolean) => {
+    if (!profile?._id) return;
+
+    setUpdatingPriceVisibility(true);
+    try {
+      await updateClientProfile(profile._id, {
+        price_visibility: checked,
+      });
+      
+      // Update local state
+      setProfile(prev => prev ? { ...prev, price_visibility: checked } : null);
+      
+      toast({
+        title: "Success",
+        description: `Price visibility ${checked ? 'enabled' : 'disabled'} successfully`,
+      });
+      
+      clearProfileCache(); // Clear cache
+      fetchProfileData(true); // Force refresh
+    } catch (error: any) {
+      console.error("Error updating price visibility:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update price visibility",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingPriceVisibility(false);
     }
   };
 
@@ -272,6 +306,28 @@ export default function Profile() {
                           : "Not set"
                       }
                       disabled
+                    />
+                  </div>
+                </div>
+
+                {/* Price Visibility Toggle */}
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5 flex-1">
+                      <Label htmlFor="price-visibility" className="text-base font-medium cursor-pointer">
+                        Price Visibility
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        {profile?.price_visibility !== false
+                          ? "Prices are visible to customers"
+                          : "Prices are hidden from customers"}
+                      </p>
+                    </div>
+                    <Switch
+                      id="price-visibility"
+                      checked={profile?.price_visibility !== false}
+                      onCheckedChange={handlePriceVisibilityToggle}
+                      disabled={updatingPriceVisibility}
                     />
                   </div>
                 </div>
