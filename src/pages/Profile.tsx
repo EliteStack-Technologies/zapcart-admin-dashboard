@@ -216,8 +216,8 @@ export default function Profile() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Customer Name</Label>
-                    <Input value={profile?.customer_name || "N/A"} disabled />
+                    <Label>Name</Label>
+                    <Input value={profile?.client_name || "N/A"} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label>Email</Label>

@@ -2,10 +2,16 @@ import axiosInstance from "./axiosInstance";
 
 export interface Customer {
   _id: string;
+  customer_id?: number;
   client_id: string;
   name: string;
   phone: string;
   email?: string | null;
+  street_address?: string | null;
+  region?: string | null;
+  country?: string | null;
+  contact_person?: string | null;
+  contact_mobile?: string | null;
   address?: string | null;
   total_orders: number;
   total_spent: number;
@@ -28,12 +34,18 @@ export interface CustomersResponse {
 export interface CustomerOrdersResponse {
   customer: {
     id: string;
+    customer_id?: number;
     name: string;
     phone: string;
     email?: string | null;
+    street_address?: string | null;
+    region?: string | null;
+    country?: string | null;
+    contact_person?: string | null;
+    contact_mobile?: string | null;
+    address?: string | null;
     total_orders: number;
     total_spent: number;
-    address?: string | null;
     last_order_date?: string | null;
   };
   orders: {
@@ -49,6 +61,11 @@ export interface CreateCustomerData {
   name: string;
   phone: string;
   email?: string;
+  street_address?: string;
+  region?: string;
+  country?: string;
+  contact_person?: string;
+  contact_mobile?: string;
   address?: string;
 }
 
@@ -56,6 +73,11 @@ export interface UpdateCustomerData {
   name?: string;
   phone?: string;
   email?: string;
+  street_address?: string;
+  region?: string;
+  country?: string;
+  contact_person?: string;
+  contact_mobile?: string;
   address?: string;
   notes?: string;
 }

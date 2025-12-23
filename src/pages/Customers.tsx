@@ -72,6 +72,11 @@ export default function Customers() {
     name: "",
     phone: "",
     email: "",
+    street_address: "",
+    region: "",
+    country: "",
+    contact_person: "",
+    contact_mobile: "",
     address: "",
   });
 
@@ -141,7 +146,7 @@ export default function Customers() {
         description: "Customer created successfully",
       });
       setAddDialogOpen(false);
-      setFormData({ name: "", phone: "", email: "", address: "" });
+      setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "" });
       fetchCustomers(currentPage, searchTerm);
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -176,7 +181,7 @@ export default function Customers() {
       });
       setEditDialogOpen(false);
       setSelectedCustomer(null);
-      setFormData({ name: "", phone: "", email: "", address: "" });
+      setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "" });
       fetchCustomers(currentPage, searchTerm);
     } catch (error) {
       console.error("Error updating customer:", error);
@@ -214,6 +219,11 @@ export default function Customers() {
       name: customer.name,
       phone: customer.phone,
       email: customer.email || "",
+      street_address: customer.street_address || "",
+      region: customer.region || "",
+      country: customer.country || "",
+      contact_person: customer.contact_person || "",
+      contact_mobile: customer.contact_mobile || "",
       address: customer.address || "",
     });
     setEditDialogOpen(true);
@@ -288,6 +298,7 @@ export default function Customers() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>SI No</TableHead>
+                    <TableHead>Customer ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
@@ -301,7 +312,7 @@ export default function Customers() {
                 <TableBody>
                   {filteredCustomers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center">
+                      <TableCell colSpan={10} className="text-center">
                         No customers found
                       </TableCell>
                     </TableRow>
@@ -309,6 +320,7 @@ export default function Customers() {
                     filteredCustomers.map((customer, index) => (
                       <TableRow key={customer._id}>
                         <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
+                        <TableCell className="font-mono text-sm">{customer.customer_id || "-"}</TableCell>
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.phone}</TableCell>
                         <TableCell>{customer.email || "-"}</TableCell>
@@ -449,7 +461,7 @@ export default function Customers() {
               <DialogDescription>Create a new customer manually</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               <div>
                 <Label htmlFor="name">
                   Name <span className="text-red-500">*</span>
@@ -486,13 +498,64 @@ export default function Customers() {
               </div>
 
               <div>
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="contact-person">Contact Person</Label>
+                <Input
+                  id="contact-person"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  placeholder="Enter contact person name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="contact-mobile">Contact Mobile</Label>
+                <Input
+                  id="contact-mobile"
+                  value={formData.contact_mobile}
+                  onChange={(e) => setFormData({ ...formData, contact_mobile: e.target.value })}
+                  placeholder="Enter contact mobile number"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="street-address">Street Address</Label>
+                <Textarea
+                  id="street-address"
+                  value={formData.street_address}
+                  onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+                  placeholder="Enter street address"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="region">Region/State</Label>
+                <Input
+                  id="region"
+                  value={formData.region}
+                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                  placeholder="Enter region or state"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  placeholder="Enter country"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="address">Additional Notes</Label>
                 <Textarea
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Enter address"
-                  rows={3}
+                  placeholder="Enter additional address notes"
+                  rows={2}
                 />
               </div>
             </div>
@@ -523,7 +586,7 @@ export default function Customers() {
               <DialogDescription>Update customer information</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               <div>
                 <Label htmlFor="edit-name">
                   Name <span className="text-red-500">*</span>
@@ -560,13 +623,64 @@ export default function Customers() {
               </div>
 
               <div>
-                <Label htmlFor="edit-address">Address</Label>
+                <Label htmlFor="edit-contact-person">Contact Person</Label>
+                <Input
+                  id="edit-contact-person"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  placeholder="Enter contact person name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-contact-mobile">Contact Mobile</Label>
+                <Input
+                  id="edit-contact-mobile"
+                  value={formData.contact_mobile}
+                  onChange={(e) => setFormData({ ...formData, contact_mobile: e.target.value })}
+                  placeholder="Enter contact mobile number"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-street-address">Street Address</Label>
+                <Textarea
+                  id="edit-street-address"
+                  value={formData.street_address}
+                  onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+                  placeholder="Enter street address"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-region">Region/State</Label>
+                <Input
+                  id="edit-region"
+                  value={formData.region}
+                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                  placeholder="Enter region or state"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-country">Country</Label>
+                <Input
+                  id="edit-country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  placeholder="Enter country"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-address">Additional Notes</Label>
                 <Textarea
                   id="edit-address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Enter address"
-                  rows={3}
+                  placeholder="Enter additional address notes"
+                  rows={2}
                 />
               </div>
             </div>
@@ -609,6 +723,10 @@ export default function Customers() {
               <div className="space-y-6">
                 {/* Customer Info */}
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Customer ID</Label>
+                    <p className="font-mono text-sm">{customerDetails.customer.customer_id || "-"}</p>
+                  </div>
                   <div>
                     <Label className="text-muted-foreground">Name</Label>
                     <p className="font-semibold">{customerDetails.customer.name}</p>
@@ -639,10 +757,48 @@ export default function Customers() {
                   </div>
                 </div>
 
-                {customerDetails.customer.address && (
-                  <div>
-                    <Label className="text-muted-foreground">Address</Label>
-                    <p className="font-semibold">{customerDetails.customer.address}</p>
+                {/* Address Information */}
+                {(customerDetails.customer.contact_person || customerDetails.customer.contact_mobile || customerDetails.customer.street_address || customerDetails.customer.region || customerDetails.customer.country || customerDetails.customer.address) && (
+                  <div className="border-t pt-4">
+                    <Label className="text-lg font-semibold mb-3 block">Address Information</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {customerDetails.customer.contact_person && (
+                        <div>
+                          <Label className="text-muted-foreground">Contact Person</Label>
+                          <p className="font-semibold">{customerDetails.customer.contact_person}</p>
+                        </div>
+                      )}
+                      {customerDetails.customer.contact_mobile && (
+                        <div>
+                          <Label className="text-muted-foreground">Contact Mobile</Label>
+                          <p className="font-semibold">{customerDetails.customer.contact_mobile}</p>
+                        </div>
+                      )}
+                      {customerDetails.customer.street_address && (
+                        <div className="col-span-2">
+                          <Label className="text-muted-foreground">Street Address</Label>
+                          <p className="font-semibold">{customerDetails.customer.street_address}</p>
+                        </div>
+                      )}
+                      {customerDetails.customer.region && (
+                        <div>
+                          <Label className="text-muted-foreground">Region/State</Label>
+                          <p className="font-semibold">{customerDetails.customer.region}</p>
+                        </div>
+                      )}
+                      {customerDetails.customer.country && (
+                        <div>
+                          <Label className="text-muted-foreground">Country</Label>
+                          <p className="font-semibold">{customerDetails.customer.country}</p>
+                        </div>
+                      )}
+                      {customerDetails.customer.address && (
+                        <div className="col-span-2">
+                          <Label className="text-muted-foreground">Additional Notes</Label>
+                          <p className="font-semibold">{customerDetails.customer.address}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 

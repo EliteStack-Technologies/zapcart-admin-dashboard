@@ -108,7 +108,8 @@ const Login = () => {
       } else if (err.response?.status === 500) {
         setError("Server error. Please try again later");
       } else if (err.message) {
-        setError(err.message);
+        
+        setError(err.response?.data?.message);
       } else {
         setError(
           err.response?.data?.message || "Login failed. Please try again"

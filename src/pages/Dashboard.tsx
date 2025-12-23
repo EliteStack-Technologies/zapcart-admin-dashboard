@@ -90,9 +90,9 @@ const Dashboard = () => {
           />
           <StatCard
             title="Total Revenue"
-            value={`${currency?.symbol || analytics.overview.currency.symbol}${analytics.overview.total_revenue.toFixed(2)}`}
+            value={`${currency?.symbol || analytics?.overview?.currency?.symbol || '$'}${analytics.overview.total_revenue.toFixed(2)}`}
             icon={DollarSign}
-            trend={`Avg: ${currency?.symbol || analytics.overview.currency.symbol}${analytics.overview.average_order_value.toFixed(2)}`}
+            trend={`Avg: ${currency?.symbol || analytics?.overview?.currency?.symbol || '$'}${analytics.overview.average_order_value.toFixed(2)}`}
             trendUp={true}
           />
           <StatCard
@@ -129,7 +129,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <span className="font-semibold text-foreground">
-                      {currency?.symbol || analytics.overview.currency.symbol}{status.total_amount.toFixed(2)}
+                      {currency?.symbol || analytics?.overview?.currency?.symbol || '$'}{status.total_amount.toFixed(2)}
                     </span>
                   </div>
                 ))}
