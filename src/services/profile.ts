@@ -11,6 +11,7 @@ export interface ClientProfile {
   start_date?: string;
   end_date?: string;
   status?: string;
+  price_visibility?: boolean;
   currency_id?: {
     _id: string;
     name: string;
@@ -86,5 +87,10 @@ export const changePassword = async (oldPassword: string, newPassword: string) =
 
 export const getCurrencies = async () => {
   const response = await axiosInstance.get<Currency[]>("/api/v1/currencies");
+  return response.data;
+};
+
+export const updateClientProfile = async (clientId: string, data: Partial<ClientProfile>) => {
+  const response = await axiosInstance.patch(`/api/v1/clients/${clientId}`, data);
   return response.data;
 };

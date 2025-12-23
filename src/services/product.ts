@@ -2,9 +2,25 @@ import { getSubdomain } from "@/utils/getSubdomain";
 import axiosInstance from "./axiosInstance";
 const sub_domain= getSubdomain()
 
-export const getProduct = async (page = 1, limit = 10) => {
+export const getProduct = async (page = 1, limit = 10, search?: string, filters?: { category_id?: string; offer_id?: string; status?: string }, sortBy?: string) => {
   try {
-    const response = await axiosInstance.get(`/api/v1/products?sub_domain_name=${sub_domain}&page=${page}&limit=${limit}`);
+    let url = `/api/v1/products?sub_domain_name=${sub_domain}&page=${page}&limit=${limit}`;
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
+    if (filters?.category_id && filters.category_id !== 'all') {
+      url += `&category_id=${encodeURIComponent(filters.category_id)}`;
+    }
+    if (filters?.offer_id && filters.offer_id !== 'all') {
+      url += `&offer_id=${encodeURIComponent(filters.offer_id)}`;
+    }
+    if (filters?.status && filters.status !== 'all') {
+      url += `&status=${encodeURIComponent(filters.status)}`;
+    }
+    if (sortBy && sortBy !== 'none') {
+      url += `&sortBy=${encodeURIComponent(sortBy)}`;
+    }
+    const response = await axiosInstance.get(url);
     return response.data;
   } catch (error: any) {
     const errorMessage =
@@ -163,6 +179,23 @@ export const changeStatus = async (productId: string, ) => {
       "An error occurred while changing the product ";
     console.error("Error changing product :", errorMessage);
 
+    throw new Error(errorMessage);
+  }
+};
+
+export const updatePriceVisibility = async (productId: string) => {
+  try {
+    const response = await axiosInstance.patch(
+      `/api/v1/products/${productId}/price-visibility`
+    );
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while updating price visibility";
+
+    console.error("Error updating price visibility:", errorMessage);
     throw new Error(errorMessage);
   }
 };

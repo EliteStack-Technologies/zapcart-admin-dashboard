@@ -40,7 +40,7 @@ import { Label } from "@/components/ui/label";
 import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, deleteProduct, changeStatus, updateProduct } from "@/services/product";
+import { getProduct, deleteProduct, changeStatus, updateProduct, updatePriceVisibility } from "@/services/product";
 import { getCategory } from "@/services/category";
 import { getOfferTags } from "@/services/offersTags";
 
@@ -86,7 +86,12 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getProduct(currentPage, limit);
+        const filters = {
+          category_id: categoryFilter,
+          offer_id: offerFilter,
+          status: statusFilter
+        };
+        const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
 
         // Set products and pagination data from API response
         setProducts(Array.isArray(data?.products) ? data?.products : []);
@@ -98,7 +103,7 @@ const Products = () => {
       }
     };
     fetchData();
-  }, [currentPage, limit]);
+  }, [currentPage, limit, searchTerm, categoryFilter, offerFilter, statusFilter, sortBy]);
 
   // Fetch categories and offers for filters
   useEffect(() => {
@@ -118,52 +123,18 @@ const Products = () => {
     fetchFilters();
   }, []);
 
-  // Filter and sort products
+  // Filter products (only client-side filters remain)
   const filteredAndSortedProducts = products
     .filter((product: any) => {
-      // Search filter
-      const matchesSearch =
-        searchTerm === "" ||
-        product.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.product_code?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      // Category filter
-      const matchesCategory =
-        categoryFilter === "all" || product.category_id?._id === categoryFilter;
-
-      // Offer filter
-      const matchesOffer =
-        offerFilter === "all" || product.offer_id?._id === offerFilter;
-
-      // Status filter
-      const matchesStatus =
-        statusFilter === "all" || product.status === statusFilter;
-
-      // Price range filter
+      // Price range filter (client-side only)
       const price = product.actual_price;
       const matchesMinPrice = minPrice === "" || price >= parseFloat(minPrice);
       const matchesMaxPrice = maxPrice === "" || price <= parseFloat(maxPrice);
 
       return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesOffer &&
-        matchesStatus &&
         matchesMinPrice &&
         matchesMaxPrice
       );
-    })
-    .sort((a: any, b: any) => {
-      if (sortBy === "name-asc") {
-        return (a.title || "").localeCompare(b.title || "");
-      } else if (sortBy === "name-desc") {
-        return (b.title || "").localeCompare(a.title || "");
-      } else if (sortBy === "price-asc") {
-        return (a.actual_price || 0) - (b.actual_price || 0);
-      } else if (sortBy === "price-desc") {
-        return (b.actual_price || 0) - (a.actual_price || 0);
-      }
-      return 0;
     });
 
   const handleDelete = async () => {
@@ -214,6 +185,33 @@ const Products = () => {
         variant: "destructive",
       });
       console.error("Error updating status:", error);
+    }
+  };
+
+  const handlePriceVisibilityToggle = async (product: any) => {
+    try {
+      await updatePriceVisibility(String(product._id));
+      
+      // Refresh products
+      const filters = {
+        category_id: categoryFilter,
+        offer_id: offerFilter,
+        status: statusFilter
+      };
+      const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
+      setProducts(Array.isArray(data?.products) ? data?.products : []);
+
+      toast({
+        title: "Price visibility updated",
+        description: "Product price visibility has been changed",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update price visibility",
+        variant: "destructive",
+      });
+      console.error("Error updating price visibility:", error);
     }
   };
 
@@ -419,6 +417,7 @@ const Products = () => {
                   <TableHead>Actual Price</TableHead>
                   <TableHead>Offer Price</TableHead>
                   <TableHead>Offer Tag</TableHead>
+                  <TableHead>Price Visibility</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -427,7 +426,7 @@ const Products = () => {
                 {filteredAndSortedProducts.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={11}
+                      colSpan={12}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No products found
@@ -570,6 +569,15 @@ const Products = () => {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={product.is_price_visible === true}
+                            onCheckedChange={() => handlePriceVisibilityToggle(product)}
+                          />
+                        </div>
+                      </TableCell>
+                
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Switch
