@@ -27,6 +27,7 @@ export interface Order {
   discount?: number;
   total_amount: number;
   order_status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+  priority?: "low" | "medium" | "high";
   notes?: string;
   cancellation_reason?: string;
   product_code?: string;
@@ -43,10 +44,13 @@ export interface OrdersResponse {
   orders: Order[];
 }
 
-export const getOrders = async (page: number = 1, limit: number = 10, status?: string) => {
+export const getOrders = async (page: number = 1, limit: number = 10, status?: string, priority?: string) => {
   const params: any = { page, limit };
   if (status) {
     params.order_status = status;
+  }
+  if (priority) {
+    params.priority = priority;
   }
   const response = await axiosInstance.get<OrdersResponse>("/api/v1/orders", { params });
   return response.data;
@@ -82,5 +86,10 @@ export const updateOrderItems = async (orderId: string, items: { product_id: str
 
 export const getOrderTimeTracking = async (orderId: string) => {
   const response = await axiosInstance.get(`/api/v1/orders/${orderId}/time-tracking`);
+  return response.data;
+};
+
+export const updateOrderPriority = async (orderId: string, priority: "low" | "medium" | "high") => {
+  const response = await axiosInstance.patch(`/api/v1/orders/${orderId}/priority`, { priority });
   return response.data;
 };

@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock } from "lucide-react";
-import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, Order, OrderItem } from "@/services/orders";
+import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +49,12 @@ const ORDER_STATUSES = [
   { value: "shipped", label: "Shipped", color: "bg-indigo-500" },
   { value: "delivered", label: "Delivered", color: "bg-green-500" },
   { value: "cancelled", label: "Cancelled", color: "bg-red-500" },
+];
+
+const PRIORITY_LEVELS = [
+  { value: "low", label: "Low", color: "bg-gray-500" },
+  { value: "medium", label: "Medium", color: "bg-orange-500" },
+  { value: "high", label: "High", color: "bg-red-600" },
 ];
 
 export default function Orders() {
@@ -89,6 +95,7 @@ export default function Orders() {
   const [orderItemSearchTerm, setOrderItemSearchTerm] = useState("");
   const [orderItemSearchResults, setOrderItemSearchResults] = useState<any[]>([]);
   const [loadingOrderItemsSearch, setLoadingOrderItemsSearch] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
   const fetchStatusCounts = async () => {
     try {
@@ -110,11 +117,12 @@ export default function Orders() {
     }
   };
 
-  const fetchOrders = async (page = 1, status?: string) => {
+  const fetchOrders = async (page = 1, status?: string, priority?: string) => {
     setLoading(true);
     try {
       const statusFilter = status && status !== "all" ? status : undefined;
-      const data = await getOrders(page, limit, statusFilter);
+      const priorityFilterValue = priority && priority !== "all" ? priority : undefined;
+      const data = await getOrders(page, limit, statusFilter, priorityFilterValue);
       setOrders(data.orders || []);
       setTotalPages(data.totalPages || 1);
       setTotalOrders(data.total || 0);
@@ -132,9 +140,13 @@ export default function Orders() {
   };
 
   useEffect(() => {
-    fetchOrders(1, activeTab);
+    fetchOrders(1, activeTab, priorityFilter);
+  }, [activeTab, limit, priorityFilter]);
+
+  useEffect(() => {
+    // Fetch status counts only on initial load
     fetchStatusCounts();
-  }, [activeTab, limit]);
+  }, []);
 
   const handleSearchProducts = async (search: string) => {
     if (!search || search.length < 1) {
@@ -234,7 +246,7 @@ export default function Orders() {
       });
       
       setEditMode(false);
-      fetchOrders(currentPage, activeTab);
+      fetchOrders(currentPage, activeTab, priorityFilter);
       
       // Refresh the selected order data
       const updatedOrder = await getOrderById(selectedOrder._id);
@@ -314,7 +326,7 @@ export default function Orders() {
         title: "Success",
         description: "Order status updated successfully",
       });
-      fetchOrders(currentPage, activeTab);
+      fetchOrders(currentPage, activeTab, priorityFilter);
       fetchStatusCounts();
       if (selectedOrder && selectedOrder._id === orderId) {
         setSelectedOrder({ ...selectedOrder, order_status: newStatus as any });
@@ -355,7 +367,7 @@ export default function Orders() {
       setCancellationDialogOpen(false);
       setCancellationReason("");
       setPendingCancellationOrderId(null);
-      fetchOrders(currentPage, activeTab);
+      fetchOrders(currentPage, activeTab, priorityFilter);
       fetchStatusCounts();
       if (selectedOrder && selectedOrder._id === pendingCancellationOrderId) {
         setSelectedOrder({ ...selectedOrder, order_status: "cancelled" as any });
@@ -373,6 +385,27 @@ export default function Orders() {
     }
   };
 
+  const handlePriorityChange = async (orderId: string, newPriority: "low" | "medium" | "high") => {
+    try {
+      await updateOrderPriority(orderId, newPriority);
+      toast({
+        title: "Success",
+        description: "Order priority updated successfully",
+      });
+      fetchOrders(currentPage, activeTab, priorityFilter);
+      if (selectedOrder && selectedOrder._id === orderId) {
+        setSelectedOrder({ ...selectedOrder, priority: newPriority });
+      }
+    } catch (error) {
+      console.error("Error updating order priority:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update order priority",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
     
@@ -385,7 +418,7 @@ export default function Orders() {
       });
       setDeleteDialogOpen(false);
       setOrderToDelete(null);
-      fetchOrders(currentPage, activeTab);
+      fetchOrders(currentPage, activeTab, priorityFilter);
       
       // Close view dialog if the deleted order was being viewed
       if (selectedOrder && selectedOrder._id === orderToDelete) {
@@ -593,6 +626,20 @@ export default function Orders() {
     );
   };
 
+  const getPriorityBadge = (priority?: string) => {
+    if (!priority) {
+      return (
+   <p>--</p>
+      );
+    }
+    const priorityConfig = PRIORITY_LEVELS.find((p) => p.value === priority);
+    return (
+      <Badge className={priorityConfig?.color || "bg-gray-500"}>
+        {priorityConfig?.label || priority}
+      </Badge>
+    );
+  };
+
   const filteredOrders = orders.filter(
     (order) =>
       order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -637,6 +684,25 @@ export default function Orders() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
             />
+            <Select
+              value={priorityFilter}
+              onValueChange={(value) => {
+                setPriorityFilter(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                {PRIORITY_LEVELS.map((priority) => (
+                  <SelectItem key={priority.value} value={priority.value}>
+                    {priority.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {loading ? (
@@ -655,6 +721,7 @@ export default function Orders() {
                       <TableHead>Phone</TableHead>
                       <TableHead>Items</TableHead>
                       <TableHead>Total Amount</TableHead>
+                      <TableHead>Priority</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Order Date</TableHead>
                       <TableHead>Actions</TableHead>
@@ -663,7 +730,7 @@ export default function Orders() {
                   <TableBody>
                     {filteredOrders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center">
+                        <TableCell colSpan={10} className="text-center">
                           No orders found
                         </TableCell>
                       </TableRow>
@@ -676,6 +743,7 @@ export default function Orders() {
                           <TableCell>{order.customer_phone}</TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
                           <TableCell>{currency?.symbol || '₹'} {Number(order.total_amount).toFixed(2)}</TableCell>
+                          <TableCell>{getPriorityBadge(order.priority)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
                           <TableCell>
@@ -758,7 +826,7 @@ export default function Orders() {
                       {/* Previous button */}
                       <PaginationItem>
                         <PaginationPrevious 
-                          onClick={() => fetchOrders(currentPage - 1, activeTab)}
+                          onClick={() => fetchOrders(currentPage - 1, activeTab, priorityFilter)}
                           className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
@@ -778,7 +846,7 @@ export default function Orders() {
                           pages.push(
                             <PaginationItem key={i}>
                               <PaginationLink
-                                onClick={() => fetchOrders(i, activeTab)}
+                                onClick={() => fetchOrders(i, activeTab, priorityFilter)}
                                 isActive={currentPage === i}
                                 className="cursor-pointer"
                               >
@@ -794,7 +862,7 @@ export default function Orders() {
                       {/* Next button */}
                       <PaginationItem>
                         <PaginationNext 
-                          onClick={() => fetchOrders(currentPage + 1, activeTab)}
+                          onClick={() => fetchOrders(currentPage + 1, activeTab, priorityFilter)}
                           className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
@@ -903,6 +971,28 @@ export default function Orders() {
                       {ORDER_STATUSES.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
                           {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Priority</Label>
+                  <div className="mt-1">{getPriorityBadge(selectedOrder.priority)}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Change Priority</Label>
+                  <Select
+                    value={selectedOrder.priority || ""}
+                    onValueChange={(value) => handlePriorityChange(selectedOrder._id, value as "low" | "medium" | "high")}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Set priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITY_LEVELS.map((priority) => (
+                        <SelectItem key={priority.value} value={priority.value}>
+                          {priority.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
