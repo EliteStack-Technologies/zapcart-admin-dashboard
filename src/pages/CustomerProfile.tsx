@@ -33,8 +33,8 @@ export default function CustomerProfilePage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [current_password, setcurrent_password] = useState("");
+  const [new_password, setnew_password] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -128,7 +128,7 @@ export default function CustomerProfilePage() {
   };
 
   const handleUpdatePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!current_password || !new_password || !confirmPassword) {
       toast({
         title: "Validation Error",
         description: "Please fill in all fields",
@@ -137,7 +137,7 @@ export default function CustomerProfilePage() {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
+    if (new_password !== confirmPassword) {
       toast({
         title: "Validation Error",
         description: "New passwords do not match",
@@ -146,7 +146,7 @@ export default function CustomerProfilePage() {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (new_password.length < 6) {
       toast({
         title: "Validation Error",
         description: "Password must be at least 6 characters",
@@ -157,13 +157,13 @@ export default function CustomerProfilePage() {
 
     setUpdatingPassword(true);
     try {
-      await updateCustomerPassword(currentPassword, newPassword);
+      await updateCustomerPassword(current_password, new_password);
       toast({
         title: "Success",
         description: "Password updated successfully",
       });
-      setCurrentPassword("");
-      setNewPassword("");
+      setcurrent_password("");
+      setnew_password("");
       setConfirmPassword("");
     } catch (error: any) {
       console.error("Error updating password:", error);
@@ -226,24 +226,24 @@ export default function CustomerProfilePage() {
           <CardContent>
             <div className="space-y-4 max-w-md">
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Current Password</Label>
+                <Label htmlFor="current_password">Current Password</Label>
                 <Input
-                  id="currentPassword"
+                  id="current_password"
                   type="password"
                   placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  value={current_password}
+                  onChange={(e) => setcurrent_password(e.target.value)}
                   disabled={updatingPassword}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="new_password">New Password</Label>
                 <Input
-                  id="newPassword"
+                  id="new_password"
                   type="password"
                   placeholder="Enter new password (min 6 characters)"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  value={new_password}
+                  onChange={(e) => setnew_password(e.target.value)}
                   disabled={updatingPassword}
                 />
               </div>

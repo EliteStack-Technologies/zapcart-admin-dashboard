@@ -56,10 +56,10 @@ export const getCustomerProfile = async () => {
   return response.data;
 };
 
-export const updateCustomerPassword = async (currentPassword: string, newPassword: string) => {
+export const updateCustomerPassword = async (current_password: string, new_password : string) => {
   const response = await axiosInstance.patch("/api/v1/customer-auth/password", {
-    currentPassword,
-    newPassword,
+    current_password,
+    new_password,
   });
   return response.data;
 };
