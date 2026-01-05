@@ -17,6 +17,8 @@ export interface Customer {
   total_spent: number;
   last_order_date?: string | null;
   notes?: string | null;
+  customer_login_enabled: boolean;
+  password_changed?: boolean;
   created_source: "manual" | "order";
   createdAt: string;
   updatedAt: string;

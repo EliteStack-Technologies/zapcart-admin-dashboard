@@ -21,6 +21,9 @@ import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import CustomerLogin from "@/pages/CustomerLogin";
+import CustomerProfile from "@/pages/CustomerProfile";
+import CustomerOrders from "@/pages/CustomerOrders";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +36,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
+            {/* Admin Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
@@ -47,6 +51,12 @@ const App = () => (
             <Route path="/upload-images" element={<ProtectedRoute><UploadImages /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            
+            {/* Customer Routes */}
+            <Route path="/customer/login" element={<CustomerLogin />} />
+            <Route path="/customer/profile" element={<CustomerProfile />} />
+            <Route path="/customer/orders" element={<CustomerOrders />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

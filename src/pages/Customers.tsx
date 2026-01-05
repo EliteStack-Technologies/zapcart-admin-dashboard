@@ -36,7 +36,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, Loader2, Trash2, Edit, Plus, UserPlus, ShoppingBag } from "lucide-react";
+import { Eye, Loader2, Trash2, Edit, Plus, UserPlus, ShoppingBag, Lock, LogIn, LogOut } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   getCustomers,
   getCustomerById,
@@ -48,6 +49,7 @@ import {
   CreateCustomerData,
   UpdateCustomerData,
 } from "@/services/customer";
+import { adminSetCustomerPassword, adminToggleCustomerLogin } from "@/services/customerAuth";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -93,6 +95,15 @@ export default function Customers() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Password Management Dialog
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordCustomerId, setPasswordCustomerId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
+
+  // Login Toggle
+  const [togglingLogin, setTogglingLogin] = useState(false);
 
   const fetchCustomers = async (page = 1, search?: string) => {
     setLoading(true);
@@ -254,6 +265,67 @@ export default function Customers() {
     }
   };
 
+  const openPasswordDialog = (customerId: string) => {
+    setPasswordCustomerId(customerId);
+    setNewPassword("");
+    setPasswordDialogOpen(true);
+  };
+
+  const handleSetPassword = async () => {
+    if (!passwordCustomerId) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSettingPassword(true);
+    try {
+      await adminSetCustomerPassword(passwordCustomerId, newPassword);
+      toast({
+        title: "Success",
+        description: "Password set successfully",
+      });
+      setPasswordDialogOpen(false);
+      setPasswordCustomerId(null);
+      setNewPassword("");
+    } catch (error) {
+      console.error("Error setting password:", error);
+      toast({
+        title: "Error",
+        description: "Failed to set password",
+        variant: "destructive",
+      });
+    } finally {
+      setSettingPassword(false);
+    }
+  };
+
+  const handleToggleLogin = async (customerId: string, currentStatus: boolean) => {
+    setTogglingLogin(true);
+    try {
+      await adminToggleCustomerLogin(customerId, !currentStatus);
+      toast({
+        title: "Success",
+        description: `Customer login ${!currentStatus ? "enabled" : "disabled"} successfully`,
+      });
+      fetchCustomers(currentPage, searchTerm);
+    } catch (error: any) {
+      console.error("Error toggling login:", error);
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to update login status",
+        variant: "destructive",
+      });
+    } finally {
+      setTogglingLogin(false);
+    }
+  };
+
   const openDeleteDialog = (customerId: string) => {
     setCustomerToDelete(customerId);
     setDeleteDialogOpen(true);
@@ -308,6 +380,7 @@ export default function Customers() {
                     <TableHead>Total Orders</TableHead>
                     <TableHead>Total Spent</TableHead>
                     <TableHead>Last Order</TableHead>
+                    <TableHead>Login Status</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -315,7 +388,7 @@ export default function Customers() {
                 <TableBody>
                   {filteredCustomers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center">
+                      <TableCell colSpan={11} className="text-center">
                         No customers found
                       </TableCell>
                     </TableRow>
@@ -333,16 +406,29 @@ export default function Customers() {
                         </TableCell>
                         <TableCell>{formatDate(customer.last_order_date)}</TableCell>
                         <TableCell>
+                                   <div className="flex items-center px-2">
+                              <Switch
+                                checked={customer.customer_login_enabled}
+                                onCheckedChange={(checked) => {
+                                  handleToggleLogin(customer._id, customer.customer_login_enabled);
+                                }}
+                                disabled={togglingLogin}
+                                title={customer.customer_login_enabled ? "Disable Login" : "Enable Login"}
+                              />
+                            </div>
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={customer.created_source === "manual" ? "secondary" : "default"}>
                             {customer.created_source}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewCustomer(customer._id)}
+                              title="View Details"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -350,13 +436,16 @@ export default function Customers() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditDialog(customer)}
+                              title="Edit Customer"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
+                
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => openDeleteDialog(customer._id)}
+                              title="Delete Customer"
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -992,6 +1081,54 @@ export default function Customers() {
                 )}
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Password Management Dialog */}
+        <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Set Customer Password</DialogTitle>
+              <DialogDescription>
+                Set a new password for this customer to enable login access
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password (min 6 characters)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={settingPassword}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPasswordDialogOpen(false);
+                  setPasswordCustomerId(null);
+                  setNewPassword("");
+                }}
+                disabled={settingPassword}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSetPassword} disabled={settingPassword}>
+                {settingPassword ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting...
+                  </>
+                ) : (
+                  "Set Password"
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
