@@ -84,9 +84,32 @@ const Login = () => {
       // Store token in localStorage
       localStorage.setItem("accessToken", response.data.accessToken);
 
-      // Store user data if available
-      if (response.data.user) {
+      // Store user/client data if available
+      if (response.data.client) {
+        const userData = {
+          id: response.data.client.id,
+          email: response.data.client.email,
+          name: response.data.client.client_name || response.data.client.business_name,
+          business_name: response.data.client.business_name,
+          enquiry_mode: response.data.client.enquiry_mode || false,
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("enquiry_mode", String(response.data.client.enquiry_mode || false));
+      } else if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+
+      // Store currency information if available
+      if (response.data.client?.currency_id) {
+        const currencyData = {
+          _id: response.data.client.currency_id._id,
+          name: response.data.client.currency_id.name,
+          symbol: response.data.client.currency_id.symbol,
+          code: response.data.client.currency_id.code,
+        };
+        localStorage.setItem("currency", JSON.stringify(currencyData));
+        // Dispatch custom event to notify CurrencyContext
+        window.dispatchEvent(new Event("currencyUpdated"));
       }
 
       // Call login function to update AuthContext state
