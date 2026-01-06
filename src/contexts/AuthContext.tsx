@@ -5,6 +5,7 @@ interface User {
   email: string;
   name: string;
   role?: string;
+  enquiry_mode?: boolean;
 }
 
 interface AuthContextType {
@@ -14,6 +15,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   token: string | null;
+  enquiryMode: boolean;
+  setEnquiryMode: (mode: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,22 +25,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [enquiryMode, setEnquiryModeState] = useState<boolean>(() => {
+    const stored = localStorage.getItem("enquiry_mode");
+    return stored === "true";
+  });
 
   // Initialize from localStorage on mount
   useEffect(() => {
     // Check both old and new token keys for backwards compatibility
     const storedToken = localStorage.getItem("accessToken") || localStorage.getItem("authToken");
     const storedUser = localStorage.getItem("user");
+    const storedEnquiryMode = localStorage.getItem("enquiry_mode");
 
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        
+        // Sync enquiry_mode from localStorage or user object
+        if (storedEnquiryMode !== null) {
+          setEnquiryModeState(storedEnquiryMode === "true");
+        } else if (parsedUser.enquiry_mode !== undefined) {
+          setEnquiryModeState(parsedUser.enquiry_mode);
+          localStorage.setItem("enquiry_mode", String(parsedUser.enquiry_mode));
+        }
       } catch (error) {
         console.error("Failed to restore auth state:", error);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
+        localStorage.removeItem("enquiry_mode");
       }
     }
     setIsLoading(false);
@@ -59,14 +77,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          // Sync enquiry_mode from user object if available
+          if (parsedUser.enquiry_mode !== undefined) {
+            setEnquiryModeState(parsedUser.enquiry_mode);
+            localStorage.setItem("enquiry_mode", String(parsedUser.enquiry_mode));
+          }
         } catch (e) {
           // If user data is invalid, create a basic user object
           const basicUser: User = {
             id: `user_${Date.now()}`,
             email,
             name: email.split("@")[0],
-            role: "admin",
+            enquiry_mode: enquiryMode
           };
           setUser(basicUser);
           localStorage.setItem("user", JSON.stringify(basicUser));
@@ -77,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           id: `user_${Date.now()}`,
           email,
           name: email.split("@")[0],
-          role: "admin",
+          enquiry_mode: enquiryMode
         };
         setUser(basicUser);
         localStorage.setItem("user", JSON.stringify(basicUser));
@@ -92,11 +116,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const setEnquiryMode = (mode: boolean) => {
+    setEnquiryModeState(mode);
+    localStorage.setItem("enquiry_mode", String(mode));
+    
+    // Update user object with enquiry_mode
+    if (user) {
+      const updatedUser = { ...user, enquiry_mode: mode };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
+    setEnquiryModeState(false);
     localStorage.removeItem("authToken");
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
+    localStorage.removeItem("currency");
+    localStorage.removeItem("enquiry_mode");
   };
 
   return (
@@ -108,6 +148,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         logout,
         token,
+        enquiryMode,
+        setEnquiryMode,
       }}
     >
       {children}

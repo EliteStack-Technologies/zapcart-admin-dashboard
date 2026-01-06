@@ -12,6 +12,7 @@ import CategoryProducts from "@/pages/CategoryProducts";
 import Rows from "@/pages/Rows";
 import Orders from "@/pages/Orders";
 import Customers from "@/pages/Customers";
+import Enquiries from "@/pages/Enquiries";
 import Offers from "@/pages/Offers";
 import Banners from "@/pages/Banners";
 import Flyers from "@/pages/Flyers";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/rows" element={<ProtectedRoute><Rows /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+            <Route path="/enquiries" element={<ProtectedRoute><Enquiries /></ProtectedRoute>} />
             <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
             <Route path="/banners" element={<ProtectedRoute><Banners /></ProtectedRoute>} />
             <Route path="/flyers" element={<ProtectedRoute><Flyers /></ProtectedRoute>} />

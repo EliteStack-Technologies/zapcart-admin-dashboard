@@ -210,7 +210,7 @@ export default function CustomerOrdersPage() {
                           <div className="flex items-center gap-2">
                             <CreditCard className="h-5 w-5 text-green-600" />
                             <p className="text-2xl font-bold text-green-600">
-                              {currency?.symbol || '₹'} {Number(order.total_amount).toFixed(2)}
+                              {currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -297,7 +297,7 @@ export default function CustomerOrdersPage() {
                 <div>
                   <Label className="text-xs text-gray-500 font-medium">Total Amount</Label>
                   <p className="font-bold text-xl text-green-600">
-                    {currency?.symbol || '₹'} {Number(selectedOrder.total_amount).toFixed(2)}
+                    {currency?.symbol || ''} {Number(selectedOrder.total_amount).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -324,11 +324,11 @@ export default function CustomerOrdersPage() {
                           <p className="text-xs text-gray-500">Code: {item.product_code}</p>
                         )}
                         <p className="text-sm text-gray-600 mt-1">
-                          {currency?.symbol || '₹'} {item.price.toFixed(2)} × {item.quantity}
+                          {currency?.symbol || ''} {item.price.toFixed(2)} × {item.quantity}
                         </p>
                       </div>
                       <p className="font-bold text-lg">
-                        {currency?.symbol || '₹'} {(item.price * item.quantity).toFixed(2)}
+                        {currency?.symbol || ''} {(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   ))}
@@ -348,7 +348,7 @@ export default function CustomerOrdersPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Shipping Charge:</span>
                       <span className="font-semibold">
-                        {currency?.symbol || '₹'} {selectedOrder.shipping_charge.toFixed(2)}
+                        {currency?.symbol || ''} {selectedOrder.shipping_charge.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
@@ -356,14 +356,14 @@ export default function CustomerOrdersPage() {
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount:</span>
                       <span className="font-semibold">
-                        - {currency?.symbol || '₹'} {selectedOrder.discount.toFixed(2)}
+                        - {currency?.symbol || ''} {selectedOrder.discount.toFixed(2)}
                       </span>
                     </div>
                   ) : null}
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
                     <span>Total Amount:</span>
                     <span className="text-green-600">
-                      {currency?.symbol || '₹'} {Number(selectedOrder.total_amount).toFixed(2)}
+                      {currency?.symbol || ''} {Number(selectedOrder.total_amount).toFixed(2)}
                     </span>
                   </div>
                 </div>

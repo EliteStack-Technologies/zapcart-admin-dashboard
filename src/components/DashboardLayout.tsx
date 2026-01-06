@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +11,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { logout, user } = useAuth();
+  const { logout, user, enquiryMode } = useAuth();
   const navigate = useNavigate();
   
   const handleLogout = () => {
@@ -19,10 +19,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate("/login");
   };
   
-  const navItems = [
+  const allNavItems = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/orders", icon: ShoppingCart, label: "Orders" },
     { to: "/customers", icon: Users, label: "Customers" },
+    { to: "/enquiries", icon: MessageSquare, label: "Enquiries", requireEnquiryMode: true },
     { to: "/products", icon: Package, label: "Products" },
     { to: "/categories", icon: FolderOpen, label: "Categories" },
     { to: "/rows", icon: Columns3, label: "Sections" },
@@ -33,6 +34,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
+  
+  // Filter nav items based on enquiry mode
+  const navItems = allNavItems.filter(item => {
+    if (item.requireEnquiryMode) {
+      return enquiryMode === true;
+    }
+    return true;
+  });
 
   return (
     <div className="flex h-screen bg-background">

@@ -571,9 +571,9 @@ export default function Orders() {
                 <tr>
                   <td>${item.title}</td>
                   <td>${item.product_code || '-'}</td>
-                  <td class="right">${currency?.symbol || '₹'} ${item.price.toFixed(2)}</td>
+                  <td class="right">${currency?.symbol || ''} ${item.price.toFixed(2)}</td>
                   <td class="center">${item.quantity}</td>
-                  <td class="right">${currency?.symbol || '₹'} ${(item.price * item.quantity).toFixed(2)}</td>
+                  <td class="right">${currency?.symbol || ''} ${(item.price * item.quantity).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -583,19 +583,19 @@ export default function Orders() {
         <div class="total-section">
           <div class="total-row">
             <div class="total-label">Subtotal:</div>
-            <div>${currency?.symbol || '₹'} ${selectedOrder.subtotal.toFixed(2)}</div>
+            <div>${currency?.symbol || ''} ${selectedOrder.subtotal.toFixed(2)}</div>
           </div>
           <div class="total-row">
             <div class="total-label">Shipping Charge:</div>
-            <div>${currency?.symbol || '₹'} ${(selectedOrder.shipping_charge || 0).toFixed(2)}</div>
+            <div>${currency?.symbol || ''} ${(selectedOrder.shipping_charge || 0).toFixed(2)}</div>
           </div>
           <div class="total-row">
             <div class="total-label">Discount:</div>
-            <div>${currency?.symbol || '₹'} ${(selectedOrder.discount || 0).toFixed(2)}</div>
+            <div>${currency?.symbol || ''} ${(selectedOrder.discount || 0).toFixed(2)}</div>
           </div>
           <div class="total-row total-amount">
             <div class="total-label">Total Amount:</div>
-            <div>${currency?.symbol || '₹'} ${Number(selectedOrder.total_amount).toFixed(2)}</div>
+            <div>${currency?.symbol || ''} ${Number(selectedOrder.total_amount).toFixed(2)}</div>
           </div>
         </div>
 
@@ -742,7 +742,7 @@ export default function Orders() {
                           <TableCell>{order.customer_name}</TableCell>
                           <TableCell>{order.customer_phone}</TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
-                          <TableCell>{currency?.symbol || '₹'} {Number(order.total_amount).toFixed(2)}</TableCell>
+                          <TableCell>{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</TableCell>
                           <TableCell>{getPriorityBadge(order.priority)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
@@ -767,14 +767,7 @@ export default function Orders() {
                               >
                                 <Edit className="h-4 w-4 text-blue-500" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openDeleteDialog(order._id)}
-                                title="Delete Order"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
+                        
                             
                             </div>
                           </TableCell>
@@ -1154,11 +1147,11 @@ export default function Orders() {
                               </div>
                               <div className="text-right">
                                 <p className="font-semibold text-green-600">
-                                  {currency?.symbol || '₹'} {product.offer_price}
+                                  {currency?.symbol || ''} {product.offer_price}
                                 </p>
                                 {product.actual_price !== product.offer_price && (
                                   <p className="text-xs text-muted-foreground line-through">
-                                    {currency?.symbol || '₹'} {product.actual_price}
+                                    {currency?.symbol || ''} {product.actual_price}
                                   </p>
                                 )}
                                 {product.stock_quantity !== undefined && (
@@ -1260,7 +1253,7 @@ export default function Orders() {
                                 className="w-24 h-8 text-right"
                               />
                             ) : (
-                              <>{currency?.symbol || '₹'} {item.offer_price || item.price}</>
+                              <>{currency?.symbol || ''} {item.offer_price || item.price}</>
                             )}
                           </TableCell>
                           <TableCell className="text-center">
@@ -1314,7 +1307,7 @@ export default function Orders() {
                             )}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
-                            {currency?.symbol || '₹'} {(item.offer_price || item.price) * item.quantity}
+                            {currency?.symbol || ''} {(item.offer_price || item.price) * item.quantity}
                           </TableCell>
                           {editMode && (
                             <TableCell className="text-center">
@@ -1349,7 +1342,7 @@ export default function Orders() {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between">
                   <Label className="text-muted-foreground">Subtotal</Label>
-                  <p className="font-semibold">{currency?.symbol || '₹'} {editMode ? (editedItems.reduce((sum, item) => sum + ((item.offer_price || item.price) * item.quantity), 0).toFixed(2)) : selectedOrder.subtotal.toFixed(2)}</p>
+                  <p className="font-semibold">{currency?.symbol || ''} {editMode ? (editedItems.reduce((sum, item) => sum + ((item.offer_price || item.price) * item.quantity), 0).toFixed(2)) : selectedOrder.subtotal.toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between items-center">
                   <Label className="text-muted-foreground">Shipping Charge</Label>
@@ -1373,7 +1366,7 @@ export default function Orders() {
                       className="w-32 h-8 text-right"
                     />
                   ) : (
-                    <p className="font-semibold">{currency?.symbol || '₹'} {(selectedOrder.shipping_charge || 0).toFixed(2)}</p>
+                    <p className="font-semibold">{currency?.symbol || ''} {(selectedOrder.shipping_charge || 0).toFixed(2)}</p>
                   )}
                 </div>
                 <div className="flex justify-between items-center">
@@ -1398,13 +1391,13 @@ export default function Orders() {
                       className="w-32 h-8 text-right"
                     />
                   ) : (
-                    <p className="font-semibold">{currency?.symbol || '₹'} {(selectedOrder.discount || 0).toFixed(2)}</p>
+                    <p className="font-semibold">{currency?.symbol || ''} {(selectedOrder.discount || 0).toFixed(2)}</p>
                   )}
                 </div>
                 <div className="flex justify-between text-lg border-t pt-2">
                   <Label className="font-bold">Total Amount</Label>
                   <p className="font-bold">
-                    {currency?.symbol || '₹'} 
+                    {currency?.symbol || ''} 
                     {editMode 
                       ? (editedItems.reduce((sum, item) => sum + ((item.offer_price || item.price) * item.quantity), 0) + editedShippingCharge - editedDiscount).toFixed(2)
                       : Number(selectedOrder.total_amount).toFixed(2)
@@ -1617,7 +1610,7 @@ export default function Orders() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">{currency?.symbol || '₹'} {product.offer_price}</p>
+                        <p className="font-semibold">{currency?.symbol || ''} {product.offer_price}</p>
                       
                       </div>
                     </div>

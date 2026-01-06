@@ -63,6 +63,36 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - run only once on mount
 
+  // Listen for currency changes in localStorage (e.g., from login)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem("currency");
+      if (stored) {
+        try {
+          const parsedCurrency = JSON.parse(stored);
+          setCurrencyState(parsedCurrency);
+        } catch (error) {
+          console.error("Error parsing currency from localStorage:", error);
+        }
+      }
+    };
+
+    // Listen for custom event triggered when currency is set during login
+    window.addEventListener("currencyUpdated", handleStorageChange);
+    
+    // Also listen for storage events (for cross-tab updates)
+    window.addEventListener("storage", (e) => {
+      if (e.key === "currency") {
+        handleStorageChange();
+      }
+    });
+
+    return () => {
+      window.removeEventListener("currencyUpdated", handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency, refreshCurrency }}>
       {children}

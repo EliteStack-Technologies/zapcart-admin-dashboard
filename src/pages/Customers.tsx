@@ -402,7 +402,7 @@ export default function Customers() {
                         <TableCell>{customer.email || "-"}</TableCell>
                         <TableCell>{customer.total_orders}</TableCell>
                         <TableCell>
-                          {currency?.symbol || "₹"} {customer.total_spent.toFixed(2)}
+                          {currency?.symbol || ""} {customer.total_spent.toFixed(2)}
                         </TableCell>
                         <TableCell>{formatDate(customer.last_order_date)}</TableCell>
                         <TableCell>
@@ -868,7 +868,7 @@ export default function Customers() {
                   <div>
                     <Label className="text-muted-foreground">Total Spent</Label>
                     <p className="font-semibold">
-                      {currency?.symbol || "₹"} {customerDetails.customer.total_spent.toFixed(2)}
+                      {currency?.symbol || ""} {customerDetails.customer.total_spent.toFixed(2)}
                     </p>
                   </div>
                   <div>
@@ -952,7 +952,7 @@ export default function Customers() {
                               <TableCell className="font-medium">{order.order_number}</TableCell>
                               <TableCell>{order.items.length} item(s)</TableCell>
                               <TableCell>
-                                {currency?.symbol || "₹"} {order.total_amount.toFixed(2)}
+                                {currency?.symbol || ""} {order.total_amount.toFixed(2)}
                               </TableCell>
                               <TableCell>
                                 <Badge>{order.order_status}</Badge>
@@ -1035,7 +1035,7 @@ export default function Customers() {
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Total Amount</p>
                     <p className="text-xl font-bold">
-                      {currency?.symbol || "₹"} {selectedOrder.total_amount.toFixed(2)}
+                      {currency?.symbol || ""} {selectedOrder.total_amount.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -1054,10 +1054,10 @@ export default function Customers() {
                           </div>
                           <div className="text-right">
                             <p className="font-semibold">
-                              {currency?.symbol || "₹"} {(item.price * item.quantity).toFixed(2)}
+                              {currency?.symbol || ""} {(item.price * item.quantity).toFixed(2)}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {currency?.symbol || "₹"} {item.price.toFixed(2)} × {item.quantity}
+                              {currency?.symbol || ""} {item.price.toFixed(2)} × {item.quantity}
                             </p>
                           </div>
                         </div>
@@ -1069,7 +1069,7 @@ export default function Customers() {
                 <div className="border-t pt-3 flex justify-between items-center">
                   <span className="font-semibold">Subtotal ({selectedOrder.items.length} items)</span>
                   <span className="text-xl font-bold">
-                    {currency?.symbol || "₹"} {selectedOrder.subtotal.toFixed(2)}
+                    {currency?.symbol || ""} {selectedOrder.subtotal.toFixed(2)}
                   </span>
                 </div>
 
