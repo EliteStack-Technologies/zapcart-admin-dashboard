@@ -6,6 +6,8 @@ interface User {
   name: string;
   role?: string;
   enquiry_mode?: boolean;
+  business_type?: string;
+  business_name?: string;
 }
 
 interface AuthContextType {
@@ -17,6 +19,7 @@ interface AuthContextType {
   token: string | null;
   enquiryMode: boolean;
   setEnquiryMode: (mode: boolean) => void;
+  isRestaurant: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,7 +65,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
     try {
       // Check for token in localStorage (set by Login.tsx)
       const storedAccessToken = localStorage.getItem("accessToken");
@@ -76,43 +78,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setToken(storedAccessToken);
 
       if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          // Sync enquiry_mode from user object if available
-          if (parsedUser.enquiry_mode !== undefined) {
-            setEnquiryModeState(parsedUser.enquiry_mode);
-            localStorage.setItem("enquiry_mode", String(parsedUser.enquiry_mode));
-          }
-        } catch (e) {
-          // If user data is invalid, create a basic user object
-          const basicUser: User = {
-            id: `user_${Date.now()}`,
-            email,
-            name: email.split("@")[0],
-            enquiry_mode: enquiryMode
-          };
-          setUser(basicUser);
-          localStorage.setItem("user", JSON.stringify(basicUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        // Sync enquiry_mode from user object if available
+        if (parsedUser.enquiry_mode !== undefined) {
+          setEnquiryModeState(parsedUser.enquiry_mode);
         }
-      } else {
-        // Create a basic user object if not provided
-        const basicUser: User = {
-          id: `user_${Date.now()}`,
-          email,
-          name: email.split("@")[0],
-          enquiry_mode: enquiryMode
-        };
-        setUser(basicUser);
-        localStorage.setItem("user", JSON.stringify(basicUser));
       }
 
       return true;
     } catch (error) {
       console.error("Login sync error:", error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -139,6 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("enquiry_mode");
   };
 
+  const isRestaurant = user?.business_type?.toLowerCase() === "restaurant";
+
   return (
     <AuthContext.Provider
       value={{
@@ -150,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         token,
         enquiryMode,
         setEnquiryMode,
+        isRestaurant,
       }}
     >
       {children}

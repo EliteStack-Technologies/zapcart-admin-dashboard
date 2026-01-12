@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -248,18 +249,34 @@ const CategoryProducts = () => {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="font-medium">
-                          {product.title}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="font-medium">{product.title}</div>
+                            {product.variants && product.variants.length > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                Has Variants ({product.variants.length})
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {product.product_code || "-"}
                         </TableCell>
 
                         <TableCell className="font-medium">
-                          {currency?.symbol || "$"} {product.actual_price}
+                          {product.variants && product.variants.length > 0 ? (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">From </span>
+                              <span>{currency?.symbol || "$"}{Math.min(...product.variants.map((v: any) => v.variant_price))}</span>
+                            </div>
+                          ) : (
+                            <span>{currency?.symbol || "$"} {product.actual_price}</span>
+                          )}
                         </TableCell>
                         <TableCell>
-                          {product.offer_price ? (
+                          {product.variants && product.variants.length > 0 ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : product.offer_price ? (
                             <span className="text-primary font-medium">
                               {currency?.symbol || "$"} {product.offer_price}
                             </span>

@@ -61,6 +61,8 @@ const Login = () => {
   // };
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    
     setError("");
     setIsSubmitting(true);
 
@@ -91,6 +93,7 @@ const Login = () => {
           email: response.data.client.email,
           name: response.data.client.client_name || response.data.client.business_name,
           business_name: response.data.client.business_name,
+          business_type: response.data.client.business_type,
           enquiry_mode: response.data.client.enquiry_mode || false,
         };
         localStorage.setItem("user", JSON.stringify(userData));
@@ -113,14 +116,10 @@ const Login = () => {
       }
 
       // Call login function to update AuthContext state
-      const isLoginSuccessful = await login(data.email, data.password);
-
-      if (isLoginSuccessful) {
-        // Navigation happens after AuthContext is updated
-        navigate("/");
-      } else {
-        throw new Error("Failed to authenticate. Please try again.");
-      }
+      await login(data.email, data.password);
+      
+      // Navigate after successful login
+      navigate("/");
       
     } catch (err: any) {
       // Handle different error types
@@ -130,13 +129,8 @@ const Login = () => {
         setError("User not found");
       } else if (err.response?.status === 500) {
         setError("Server error. Please try again later");
-      } else if (err.message) {
-        
-        setError(err.response?.data?.message);
       } else {
-        setError(
-          err.response?.data?.message || "Login failed. Please try again"
-        );
+        setError(err.response?.data?.message || err.message || "Login failed. Please try again");
       }
       console.error("Login error:", err);
     } finally {
