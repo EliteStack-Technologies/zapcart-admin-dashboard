@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import AddProductDialog from "@/components/AddProductDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -453,16 +454,27 @@ const Products = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {product.title}
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{product.title}</div>
+                          {product.variants && product.variants.length > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              Has Variants ({product.variants.length})
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {product.product_code || "-"}
+                      <TableCell className="text-muted-foreground">{product.product_code || "-"}
                       </TableCell>
                       <TableCell>{product.category_id?.name || "--"}</TableCell>
 
                       <TableCell className="font-medium text-primary">
-                        {editingPrice?.productId === product._id && editingPrice?.field === 'actual' ? (
+                        {product.variants && product.variants.length > 0 ? (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">From </span>
+                            <span>{currency?.symbol || "$"}{Math.min(...product.variants.map((v: any) => v.variant_price))}</span>
+                          </div>
+                        ) : editingPrice?.productId === product._id && editingPrice?.field === 'actual' ? (
                           <div className="flex items-center gap-1">
                             <Input
                               type="number"
@@ -504,7 +516,9 @@ const Products = () => {
                       </TableCell>
 
                       <TableCell>
-                        {editingPrice?.productId === product._id && editingPrice?.field === 'offer' ? (
+                        {product.variants && product.variants.length > 0 ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : editingPrice?.productId === product._id && editingPrice?.field === 'offer' ? (
                           <div className="flex items-center gap-1">
                             <Input
                               type="number"
@@ -788,6 +802,9 @@ const Products = () => {
                   <div>
                     <h3 className="font-semibold text-base leading-tight">{selectedProduct.title}</h3>
                     <p className="text-xs text-muted-foreground">SKU: {selectedProduct.product_code || "N/A"}</p>
+                    {selectedProduct.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{selectedProduct.description}</p>
+                    )}
                   </div>
 
                   {/* Info Grid - 4 columns */}
@@ -815,6 +832,24 @@ const Products = () => {
                   </div>
 
                   {/* Pricing - 4 columns */}
+                  {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
+                    <div className="pt-1.5 border-t space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Product Variants</p>
+                      <div className="grid gap-2">
+                        {selectedProduct.variants.map((variant: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded border text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{variant.variant_name}</span>
+                              {!variant.is_available && (
+                                <Badge variant="destructive" className="text-xs">Unavailable</Badge>
+                              )}
+                            </div>
+                            <span className="font-semibold">{currency?.symbol || "$"}{variant.variant_price}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-4 gap-x-3 gap-y-1.5 text-sm pt-1.5 border-t">
                     <div>
                       <p className="text-xs text-muted-foreground">Actual Price</p>
@@ -843,6 +878,7 @@ const Products = () => {
                       </>
                     )}
                   </div>
+                  )}
 
                   {/* Offer Period */}
                   {selectedProduct.offer_start_date && selectedProduct.offer_end_date && (

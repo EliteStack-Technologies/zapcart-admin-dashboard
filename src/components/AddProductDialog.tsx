@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -24,7 +25,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Upload, X, Loader } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { CalendarIcon, Upload, X, Loader, Plus, Trash2 } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { addProduct, updateProduct } from "@/services/product";
@@ -32,6 +35,7 @@ import { getProductImages } from "@/services/ProductImage";
 import { getOfferTags } from "@/services/offersTags";
 import { getCategory } from "@/services/category";
 import { getSections } from "@/services/rows";
+import { useAuth } from "@/contexts/AuthContext";
 interface AddProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +44,7 @@ interface AddProductDialogProps {
     _id: string;
     title: string;
     product_code?: string;
+    description?: string;
     actual_price: number;
     offer_price: number | null;
     unit_type: string;
@@ -51,6 +56,7 @@ interface AddProductDialogProps {
     category_id?: string | { _id: string; name: string };
     section_id?: string | { _id: string; name: string };
     status?: string;
+    variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean }>;
   };
 }
 
@@ -95,6 +101,15 @@ const AddProductDialog = ({
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSections, setLoadingSections] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Auth context to check business type
+  const { isRestaurant } = useAuth();
+  
+  // Variant management states
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variants, setVariants] = useState<Array<{ variant_name: string; variant_price: number; is_available: boolean }>>([
+    { variant_name: "", variant_price: 0, is_available: true }
+  ]);
 
   const {
     register,
@@ -107,6 +122,7 @@ const AddProductDialog = ({
     defaultValues: {
       title: editingProduct?.title || "",
       product_code: editingProduct?.product_code || "",
+      description: editingProduct?.description || "",
       unit_type: editingProduct?.unit_type || "",
       actual_price: editingProduct?.actual_price || "",
       offer_price: editingProduct?.offer_price || "",
@@ -120,6 +136,7 @@ const AddProductDialog = ({
       reset({
         title: editingProduct.title,
         product_code: editingProduct.product_code || "",
+        description: editingProduct.description || "",
         unit_type: editingProduct.unit_type,
         actual_price: editingProduct.actual_price,
         offer_price: editingProduct.offer_price,
@@ -144,6 +161,15 @@ const AddProductDialog = ({
       const imgUrl = editingProduct.image_url || editingProduct.image;
       if (imgUrl) {
         setImagePreview(imgUrl);
+      }
+
+      // Set variants if they exist
+      if (editingProduct.variants && editingProduct.variants.length > 0) {
+        setHasVariants(true);
+        setVariants(editingProduct.variants);
+      } else {
+        setHasVariants(false);
+        setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
       }
 
       // Parse dates
@@ -184,6 +210,8 @@ const AddProductDialog = ({
       setSelectedOfferId("");
       setSelectedCategoryId("");
       setSelectedSectionId("");
+      setHasVariants(false);
+      setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
     }
 
     // Fetch product images when dialog opens
@@ -277,7 +305,22 @@ const AddProductDialog = ({
       setLoadingSections(false);
     }
   };
+  // Variant management functions
+  const addVariant = () => {
+    setVariants([...variants, { variant_name: "", variant_price: 0, is_available: true }]);
+  };
 
+  const removeVariant = (index: number) => {
+    if (variants.length > 1) {
+      setVariants(variants.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateVariant = (index: number, field: string, value: any) => {
+    const newVariants = [...variants];
+    newVariants[index] = { ...newVariants[index], [field]: value };
+    setVariants(newVariants);
+  };
   const onSubmit = async (data: any) => {
     if (!imagePreview) {
       toast({
@@ -306,6 +349,19 @@ const AddProductDialog = ({
       return;
     }
 
+    // Validate variants if enabled
+    if (hasVariants && isRestaurant) {
+      const validVariants = variants.filter(v => v.variant_name.trim() && v.variant_price > 0);
+      if (validVariants.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please add at least one valid variant with a name and price",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -315,9 +371,22 @@ const AddProductDialog = ({
       if (data.product_code) {
         formData.append("product_code", data.product_code);
       }
+      if (data.description) {
+        formData.append("description", data.description);
+      }
  
-      formData.append("actual_price", Number(data.actual_price).toString());
-      formData.append("offer_price", Number(data.offer_price).toString());
+      // Handle variants or traditional pricing
+      if (hasVariants && isRestaurant) {
+        const validVariants = variants.filter(v => v.variant_name.trim() && v.variant_price > 0);
+        formData.append("variants", JSON.stringify(validVariants));
+        // Set default prices for backward compatibility
+        formData.append("actual_price", "0");
+        formData.append("offer_price", "0");
+      } else {
+        formData.append("actual_price", Number(data.actual_price).toString());
+        formData.append("offer_price", Number(data.offer_price).toString());
+      }
+
       formData.append("unit_type", unitType);
       if (startDate && isValid(startDate)) {
         formData.append("offer_start_date", format(startDate, "yyyy-MM-dd"));
@@ -470,6 +539,16 @@ const AddProductDialog = ({
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Enter product description"
+                rows={3}
+                {...register("description")}
+              />
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="product_code">Product Code (Optional)</Label>
@@ -604,7 +683,94 @@ const AddProductDialog = ({
               </Select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            {/* Variant Builder - Only for Restaurant Businesses */}
+            {isRestaurant && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="has-variants" className="text-base font-semibold">Size/Portion Options</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable if this product has different sizes or portions
+                    </p>
+                  </div>
+                  <Switch
+                    id="has-variants"
+                    checked={hasVariants}
+                    onCheckedChange={(checked) => {
+                      setHasVariants(checked);
+                      if (!checked) {
+                        setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
+                      }
+                    }}
+                  />
+                </div>
+
+                {hasVariants && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Variants</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addVariant}
+                        className="gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Add Variant
+                      </Button>
+                    </div>
+
+                    {variants.map((variant, index) => (
+                      <div key={index} className="flex gap-2 items-start p-3 bg-background rounded border">
+                        <div className="flex-1 space-y-2">
+                          <Input
+                            placeholder="Variant name (e.g., Small, Medium, Large)"
+                            value={variant.variant_name}
+                            onChange={(e) => updateVariant(index, "variant_name", e.target.value)}
+                          />
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="Price"
+                              value={variant.variant_price || ""}
+                              onChange={(e) => updateVariant(index, "variant_price", parseFloat(e.target.value) || 0)}
+                              className="flex-1"
+                            />
+                            <div className="flex items-center gap-2 px-3 border rounded-md bg-muted/30">
+                              <Label htmlFor={`variant-available-${index}`} className="text-sm cursor-pointer whitespace-nowrap">
+                                Available
+                              </Label>
+                              <Switch
+                                id={`variant-available-${index}`}
+                                checked={variant.is_available}
+                                onCheckedChange={(checked) => updateVariant(index, "is_available", checked)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {variants.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeVariant(index)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Traditional Pricing - Only shown when variants are disabled or not a restaurant */}
+            {(!hasVariants || !isRestaurant) && (
+              <div className="grid gap-4 md:grid-cols-2">
              
               <div className="space-y-2">
                 <Label htmlFor="actual_price">Actual Price*</Label>
@@ -613,7 +779,7 @@ const AddProductDialog = ({
                   type="number"
                   step="0.01"
                   {...register("actual_price", {
-                    required: "Actual price is required",
+                    required: !hasVariants ? "Actual price is required" : false,
                   })}
                 />
                 {errors.actual_price && (
@@ -630,8 +796,9 @@ const AddProductDialog = ({
                   type="number"
                   step="0.01"
                   {...register("offer_price", {
-                    required: "Offer price is required",
+                    required: !hasVariants ? "Offer price is required" : false,
                     validate: (value) => {
+                      if (hasVariants) return true;
                       const offerPrice = Number(value);
                       const actualPrice = Number(watch("actual_price"));
                       if (offerPrice < 0) return "Offer price cannot be negative";
@@ -649,6 +816,7 @@ const AddProductDialog = ({
                 )}
               </div>
             </div>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
