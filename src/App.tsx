@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import Dashboard from "@/pages/Dashboard";
 import Products from "@/pages/Products";
 import Categories from "@/pages/Categories";
@@ -28,42 +30,57 @@ import CustomerOrders from "@/pages/CustomerOrders";
 
 const queryClient = new QueryClient();
 
+function AppRoutes() {
+  const navigate = useNavigate();
+
+  return (
+    <NotificationProvider 
+      serverUrl={import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}
+      onNavigate={navigate}
+    >
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          {/* Admin Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+          <Route path="/categories/:categoryId/products" element={<ProtectedRoute><CategoryProducts /></ProtectedRoute>} />
+          <Route path="/rows" element={<ProtectedRoute><Rows /></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+          <Route path="/enquiries" element={<ProtectedRoute><Enquiries /></ProtectedRoute>} />
+          <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
+          <Route path="/banners" element={<ProtectedRoute><Banners /></ProtectedRoute>} />
+          <Route path="/flyers" element={<ProtectedRoute><Flyers /></ProtectedRoute>} />
+          <Route path="/upload-images" element={<ProtectedRoute><UploadImages /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          
+          {/* Customer Routes */}
+          <Route path="/customer/login" element={<CustomerLogin />} />
+          <Route path="/customer/profile" element={<CustomerProfile />} />
+          <Route path="/customer/orders" element={<CustomerOrders />} />
+          
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </NotificationProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CurrencyProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+        <ProfileProvider>
           <BrowserRouter>
-          <Routes>
-            {/* Admin Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-            <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
-            <Route path="/categories/:categoryId/products" element={<ProtectedRoute><CategoryProducts /></ProtectedRoute>} />
-            <Route path="/rows" element={<ProtectedRoute><Rows /></ProtectedRoute>} />
-            <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-            <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-            <Route path="/enquiries" element={<ProtectedRoute><Enquiries /></ProtectedRoute>} />
-            <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
-            <Route path="/banners" element={<ProtectedRoute><Banners /></ProtectedRoute>} />
-            <Route path="/flyers" element={<ProtectedRoute><Flyers /></ProtectedRoute>} />
-            <Route path="/upload-images" element={<ProtectedRoute><UploadImages /></ProtectedRoute>} />
-            <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            
-            {/* Customer Routes */}
-            <Route path="/customer/login" element={<CustomerLogin />} />
-            <Route path="/customer/profile" element={<CustomerProfile />} />
-            <Route path="/customer/orders" element={<CustomerOrders />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+            <AppRoutes />
+          </BrowserRouter>
+        </ProfileProvider>
       </CurrencyProvider>
     </AuthProvider>
   </QueryClientProvider>

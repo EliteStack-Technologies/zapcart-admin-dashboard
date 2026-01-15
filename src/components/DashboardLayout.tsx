@@ -4,6 +4,10 @@ import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { NotificationBell } from "./NotificationBell";
+import { ConnectionStatus } from "./ConnectionStatus";
+// import { NotifyButton } from "./NotifyButton";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -112,15 +116,37 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 overflow-auto h-screen">
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 bg-background border-b px-4 py-3 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">Zapcart</h1>
+        <div className="lg:hidden sticky top-0 z-30 bg-background border-b px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <h1 className="text-lg font-semibold">Zapcart</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <ConnectionStatus showReconnectButton={false} />
+            {/* <NotifyButton variant="ghost" size="sm" /> */}
+            <NotificationBell />
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:block sticky top-0 z-30 bg-background border-b px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Welcome back, {user?.name || 'Admin'}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <ConnectionStatus />
+              {/* <NotifyButton variant="outline" size="sm" /> */}
+              <NotificationBell />
+            </div>
+          </div>
         </div>
         
         <div className="p-4 sm:p-6 lg:p-8">
