@@ -29,7 +29,7 @@ interface NotificationProviderProps {
   onNavigate?: (path: string) => void;
 }
 
-export function NotificationProvider({ children, serverUrl = 'http://localhost:8000', onNavigate }: NotificationProviderProps) {
+export function NotificationProvider({ children, serverUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000', onNavigate }: NotificationProviderProps) {
   const { toast } = useToast();
   const { isRestaurant } = useAuth();
   const { profile } = useProfile();
