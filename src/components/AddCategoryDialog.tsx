@@ -221,11 +221,15 @@ const AddCategoryDialog = ({
               <Label>Category Image*</Label>
               
               {imagePreview ? (
-                <div className="relative w-full">
+                <div className="relative w-[180px] h-[180px] mx-auto">
                   <img 
-                    src={imagePreview} 
+                    src={
+                      imagePreview.startsWith('data:') 
+                        ? imagePreview 
+                        : `${import.meta.env.VITE_API_BASE_URL}/uploads/${imagePreview}`
+                    }
                     alt="Category preview" 
-                    className="w-full h-48 object-cover rounded-lg border border-border"
+                    className="w-[180px] h-[180px] object-cover rounded-lg border border-border"
                   />
                   <Button
                     type="button"
@@ -249,8 +253,11 @@ const AddCategoryDialog = ({
                     Upload Image
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    JPG, PNG or WEBP (max 5MB)
+                    JPG, PNG or WEBP (max 1MB)
                   </span>
+                     <p className="text-xs text-muted-foreground mt-1">
+                      Recommended size: 180×180 pixels
+                    </p>
                 </div>
               )}
               {imageError && (

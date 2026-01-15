@@ -869,65 +869,17 @@ const AddProductDialog = ({
             <div className="space-y-2">
               <Label>Product Image (Cover Image)*</Label>
 
-              {/* Existing Product Images Dropdown */}
-              {/* <div className="space-y-2">
-                <Label htmlFor="image-select" className="text-sm">Select from Existing Images</Label>
-                <Select value={selectedImageId} onValueChange={(value) => {
-                  setSelectedImageId(value);
-                  const selected = productImages.find((img) => {
-                    const imgId = img._id || img.id;
-                    return imgId === value;
-                  });
-                  if (selected) {
-                    const imgUrl = selected.image_url || selected.url || selected.imageUrl;
-                    setImagePreview(imgUrl);
-                    setSelectedImage(null); // Clear file upload
-                  }
-                }}>
-                  <SelectTrigger id="image-select" disabled={loadingImages}>
-                    <SelectValue placeholder={loadingImages ? "Loading images..." : "Choose an existing image"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productImages.length > 0 ? (
-                      productImages.map((image) => {
-                        const imgId = image._id || image.id;
-                        const imgUrl = image.image_url || image.url || image.imageUrl;
-                        const imgName = image.name || imgUrl?.split('/').pop() || 'Image';
-                        return (
-                          <SelectItem key={imgId} value={imgId}>
-                            {imgName}
-                          </SelectItem>
-                        );
-                      })
-                    ) : (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        {loadingImages ? "Loading images..." : "No images available"}
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {loadingImages && <span className="flex items-center gap-1"><Loader className="w-3 h-3 animate-spin" /> Loading images...</span>}
-                </p>
-              </div> */}
 
-              {/* OR Divider */}
-              {/* <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or</span>
-                </div>
-              </div> */}
-
-              {/* File Upload Section */}
               {imagePreview ? (
-                <div className="relative w-full">
+                <div className="relative w-[180px] h-[180px] mx-auto">
                   <img
-                    src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${imagePreview}`}
-                    alt="Product preview "
-                    className="w-full h-48 object-cover rounded-lg border border-border"
+                    src={
+                      imagePreview.startsWith('data:') 
+                        ? imagePreview 
+                        : `${import.meta.env.VITE_API_BASE_URL}/uploads/${imagePreview}`
+                    }
+                    alt="Product preview"
+                    className="w-[180px] h-[180px] object-cover rounded-lg border border-border"
                   />
                   <Button
                     type="button"
