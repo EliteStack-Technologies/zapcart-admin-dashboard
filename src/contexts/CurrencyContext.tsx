@@ -47,21 +47,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  useEffect(() => {
-    // Only fetch currency if user is authenticated and currency not in localStorage
-    const token = localStorage.getItem("accessToken");
-    const stored = localStorage.getItem("currency");
-    
-    if (token && !stored && !isFetchingRef.current) {
-      // Small delay to ensure token is set in axios instance
-      const timer = setTimeout(() => {
-        refreshCurrency();
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - run only once on mount
+  // Removed auto-fetch on mount. Call refreshCurrency after login is successful.
 
   // Listen for currency changes in localStorage (e.g., from login)
   useEffect(() => {
