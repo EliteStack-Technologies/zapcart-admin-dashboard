@@ -28,7 +28,12 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   useEffect(() => {
-    fetchProfile();
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      fetchProfile();
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
   const refreshProfile = async () => {
