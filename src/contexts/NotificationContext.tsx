@@ -3,6 +3,8 @@ import { NotificationData, NotificationSettings, ConnectionStatus, NotificationS
 import { NotificationStorageService } from '@/services/notificationStorage';
 import socketService from '@/services/socketService';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { RestaurantNotificationPopup } from '@/components/RestaurantNotificationPopup';
@@ -31,7 +33,7 @@ interface NotificationProviderProps {
 
 export function NotificationProvider({ children, serverUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000', onNavigate }: NotificationProviderProps) {
   const { toast } = useToast();
-  const { isRestaurant } = useAuth();
+  const { isRestaurant, isAuthenticated, isLoading } = useAuth();
   const { profile } = useProfile();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [settings, setSettings] = useState<NotificationSettings>(NotificationStorageService.getSettings());
@@ -41,25 +43,25 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
   });
   // Store multiple popups for restaurants
   const [restaurantPopupNotifications, setRestaurantPopupNotifications] = useState<NotificationData[]>([]);
-  
+
   // Track if audio has been enabled by user interaction
   const audioEnabledRef = useRef<boolean>(false);
   const audioPromptShownRef = useRef<boolean>(false);
-  
+  const [showAudioPopup, setShowAudioPopup] = useState(false);
+
   // Simple audio enablement check
   const checkAndEnableAudio = useCallback(async () => {
-    if (audioEnabledRef.current) return true;
-    
+    if (audioEnabledRef.current) {
+      return true;
+    }
     try {
       // Create a simple audio element with very short beep
       const audio = new Audio('data:audio/wav;base64,UklGRn4AAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YWoAAAC8tbNJtTm1c7SaupC1M7WTs4Cqp7pjqHCqi6h+qZqrqayiqJWrkKeGrKeroq2qraKpWa3Ir7yxrqsAAAAAAAE=');
       audio.volume = 0.01; // Very quiet
       const playPromise = audio.play();
-      
       if (playPromise instanceof Promise) {
         await playPromise;
       }
-      
       audio.pause();
       audio.currentTime = 0;
       audioEnabledRef.current = true;
@@ -68,16 +70,11 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
       // If we can't play audio and haven't shown the prompt yet
       if (!audioPromptShownRef.current) {
         audioPromptShownRef.current = true;
-        // Show toast to inform user
-        toast({
-          title: "Enable Audio",
-          description: "Click anywhere to enable notification sounds",
-          duration: 5000,
-        });
+        setShowAudioPopup(true);
       }
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Load notifications from storage on mount
   useEffect(() => {
@@ -85,28 +82,37 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
     setNotifications(storedNotifications);
   }, []);
 
-  // Set up audio enablement listeners  
+  // Set up audio enablement listeners only after login or on refresh if authenticated
   useEffect(() => {
-    // Try to enable audio immediately
+    if (!isAuthenticated || isLoading) {
+      return;
+    }
     checkAndEnableAudio();
-    
-    // Set up one-time listeners for user interactions
+
     const enableAudioOnInteraction = () => {
       checkAndEnableAudio();
     };
-
-    // Add listeners that only trigger once each
     const events = ['click', 'keydown', 'touchstart'];
     events.forEach(event => {
       document.addEventListener(event, enableAudioOnInteraction, { once: true, passive: true });
     });
-
     return () => {
       events.forEach(event => {
         document.removeEventListener(event, enableAudioOnInteraction);
       });
     };
-  }, [checkAndEnableAudio]);
+  }, [checkAndEnableAudio, isAuthenticated, isLoading]);
+
+  // Show audio popup immediately after login (when isAuthenticated transitions to true)
+  const prevAuthRef = useRef(isAuthenticated);
+  useEffect(() => {
+    if (!prevAuthRef.current && isAuthenticated && !isLoading) {
+      audioEnabledRef.current = false;
+      audioPromptShownRef.current = false;
+      setShowAudioPopup(true);
+    }
+    prevAuthRef.current = isAuthenticated;
+  }, [isAuthenticated, isLoading]);
 
   // Play notification sound
   const playNotificationSound = useCallback(async () => {
@@ -376,6 +382,31 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
   return (
     <NotificationContext.Provider value={contextValue}>
       {children}
+      {/* Audio Enablement Popup */}
+      <Dialog open={showAudioPopup} onOpenChange={setShowAudioPopup}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Enable Audio for Notifications</DialogTitle>
+            <DialogDescription>
+              To hear notification sounds, please enable audio for this site.<br />
+              Click the button below or interact with the page to allow sound playback.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={async () => {
+                setShowAudioPopup(false);
+                audioPromptShownRef.current = false;
+                await checkAndEnableAudio();
+              }}
+              autoFocus
+            >
+              Enable Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {restaurantPopupNotifications.map((notification, idx) => (
         <React.Fragment key={notification.id}>
           <RestaurantNotificationPopup

@@ -10,7 +10,7 @@ const MAX_STORED_NOTIFICATIONS = 50;
 
 const defaultSettings: NotificationSettings = {
   soundEnabled: true,
-  soundType: 'chime',
+  soundType: 'pop',
   soundDuration: 500,
   showToast: true,
   autoHideToast: true,
