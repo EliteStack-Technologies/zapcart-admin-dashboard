@@ -1,3 +1,4 @@
+import { getSubdomain } from "@/utils/getSubdomain";
 import axiosInstance from "./axiosInstance";
 
 export interface OrderItem {
@@ -43,6 +44,31 @@ export interface OrdersResponse {
   totalPages: number;
   orders: Order[];
 }
+
+export interface CreateOrderRequest {
+  customer_name: string;
+  customer_phone: string;
+  items: {
+    product_id: string;
+    title: string;
+    price: number;
+    quantity: number;
+    offer_price?: number;
+    product_code?: string;
+  }[];
+  shipping_charge?: number;
+  discount?: number;
+  notes?: string;
+  priority?: "low" | "medium" | "high";
+}
+
+const sub_domain= getSubdomain()
+
+
+export const createOrder = async (orderData: CreateOrderRequest) => {
+  const response = await axiosInstance.post(`/api/v1/orders?sub_domain_name=${sub_domain}`, orderData);
+  return response.data;
+};
 
 export const getOrders = async (page: number = 1, limit: number = 10, status?: string, priority?: string) => {
   const params: any = { page, limit };
