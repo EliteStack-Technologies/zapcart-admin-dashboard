@@ -6,6 +6,7 @@ interface User {
   name: string;
   role?: string;
   enquiry_mode?: boolean;
+  inventory_enabled?: boolean;
   business_type?: string;
   business_name?: string;
 }
@@ -19,6 +20,7 @@ interface AuthContextType {
   token: string | null;
   enquiryMode: boolean;
   setEnquiryMode: (mode: boolean) => void;
+  inventoryEnabled: boolean;
   isRestaurant: boolean;
 }
 
@@ -32,6 +34,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const stored = localStorage.getItem("enquiry_mode");
     return stored === "true";
   });
+  const [inventoryEnabled, setInventoryEnabledState] = useState<boolean>(() => {
+    const stored = localStorage.getItem("inventory_enabled");
+    return stored === "true";
+  });
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -39,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const storedToken = localStorage.getItem("accessToken") || localStorage.getItem("authToken");
     const storedUser = localStorage.getItem("user");
     const storedEnquiryMode = localStorage.getItem("enquiry_mode");
+    const storedInventoryEnabled = localStorage.getItem("inventory_enabled");   
 
     if (storedToken && storedUser) {
       try {
@@ -53,12 +60,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setEnquiryModeState(parsedUser.enquiry_mode);
           localStorage.setItem("enquiry_mode", String(parsedUser.enquiry_mode));
         }
+        
+        // Sync inventory_enabled from localStorage or user object
+        if (storedInventoryEnabled !== null) {
+          setInventoryEnabledState(storedInventoryEnabled === "true");
+        } else if (parsedUser.inventory_enabled !== undefined) {
+          setInventoryEnabledState(parsedUser.inventory_enabled);
+          localStorage.setItem("inventory_enabled", String(parsedUser.inventory_enabled));
+        }
       } catch (error) {
         console.error("Failed to restore auth state:", error);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
         localStorage.removeItem("enquiry_mode");
+        localStorage.removeItem("inventory_enabled");
       }
     }
     setIsLoading(false);
@@ -83,6 +99,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Sync enquiry_mode from user object if available
         if (parsedUser.enquiry_mode !== undefined) {
           setEnquiryModeState(parsedUser.enquiry_mode);
+        }
+        // Sync inventory_enabled from user object if available
+        if (parsedUser.inventory_enabled !== undefined) {
+          setInventoryEnabledState(parsedUser.inventory_enabled);
         }
       }
 
@@ -109,11 +129,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setToken(null);
     setEnquiryModeState(false);
+    setInventoryEnabledState(false);
     localStorage.removeItem("authToken");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     localStorage.removeItem("currency");
     localStorage.removeItem("enquiry_mode");
+    localStorage.removeItem("inventory_enabled");
   };
 
   const isRestaurant = user?.business_type?.toLowerCase() === "restaurant";
@@ -129,6 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         token,
         enquiryMode,
         setEnquiryMode,
+        inventoryEnabled,
         isRestaurant,
       }}
     >

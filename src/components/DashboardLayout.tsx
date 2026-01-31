@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,12 +20,32 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const stored = localStorage.getItem('sidebarCollapsed');
     return stored === 'true';
   });
-  const { logout, user, enquiryMode } = useAuth();
+  const [inventoryExpanded, setInventoryExpanded] = useState(() => {
+    // Auto-expand if on an inventory page
+    const stored = localStorage.getItem('inventoryExpanded');
+    return stored === 'true';
+  });
+  const { logout, user, enquiryMode, inventoryEnabled } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Auto-expand inventory menu when on inventory pages
+  useEffect(() => {
+    if (location.pathname.startsWith('/inventory')) {
+      setInventoryExpanded(true);
+      localStorage.setItem('inventoryExpanded', 'true');
+    }
+  }, [location.pathname]);
   
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const toggleInventory = () => {
+    const newState = !inventoryExpanded;
+    setInventoryExpanded(newState);
+    localStorage.setItem('inventoryExpanded', newState.toString());
   };
   
   const allNavItems = [
@@ -43,6 +63,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
+
+  const inventorySubItems = [
+    { to: "/inventory/current-stock", icon: Warehouse, label: "Current Stock" },
+    { to: "/inventory/stock-in", icon: TrendingUp, label: "Stock In" },
+    { to: "/inventory/stock-out", icon: TrendingDown, label: "Stock Out" },
+    { to: "/inventory/low-stock", icon: AlertTriangle, label: "Low Stock" },
+  ];
   
   // Filter nav items based on enquiry mode
   const navItems = allNavItems.filter(item => {
@@ -52,6 +79,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return true;
   });
 
+
+  
   return (
     <div className="flex h-screen bg-background">
       {/* Mobile Overlay */}
@@ -106,23 +135,66 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </Button>
           </div>
 
-          <nav className="space-y-1 flex-1">
+          <nav className="space-y-1 flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 scrollbar-custom scroll-smooth">
             {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
-                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
-                onClick={() => {
-                  // Only close sidebar on mobile (when sidebarOpen is true)
-                  // Do NOT change collapsed state on desktop
-                  if (sidebarOpen) setSidebarOpen(false);
-                  // No action for sidebarCollapsed here
-                }}
-              >
-                <item.icon className="w-5 h-5" />
-                {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
-              </NavLink>
+              <div key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+                  onClick={() => {
+                    // Only close sidebar on mobile (when sidebarOpen is true)
+                    // Do NOT change collapsed state on desktop
+                    if (sidebarOpen) setSidebarOpen(false);
+                    // No action for sidebarCollapsed here
+                  }}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
+                </NavLink>
+                
+                {/* Insert Inventory Management after Products */}
+                {item.to === '/products' && inventoryEnabled && (
+                  <div className="space-y-1 mt-1">
+                    <button
+                      onClick={toggleInventory}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${
+                        location.pathname.startsWith('/inventory') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
+                      } ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}
+                    >
+                      <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+                        <PackageOpen className="w-5 h-5" />
+                        {!sidebarCollapsed && <span className="font-medium">Inventory</span>}
+                      </div>
+                      {!sidebarCollapsed && (
+                        <ChevronDown 
+                          className={`w-4 h-4 transition-transform duration-200 ${inventoryExpanded ? 'rotate-180' : ''}`} 
+                        />
+                      )}
+                    </button>
+                    
+                    {/* Inventory Sub-items */}
+                    {inventoryExpanded && !sidebarCollapsed && (
+                      <div className="ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+                        {inventorySubItems.map((subItem) => (
+                          <NavLink
+                            key={subItem.to}
+                            to={subItem.to}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors text-sm"
+                            activeClassName="bg-sidebar-accent/70 text-sidebar-accent-foreground"
+                            onClick={() => {
+                              if (sidebarOpen) setSidebarOpen(false);
+                            }}
+                          >
+                            <subItem.icon className="w-4 h-4" />
+                            <span className="font-medium">{subItem.label}</span>
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
