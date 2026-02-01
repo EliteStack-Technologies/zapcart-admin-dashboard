@@ -121,3 +121,33 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Scrollbar Styles */
+@layer utilities {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-accent));
+    border-radius: 10px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-accent) / 0.8);
+  }
+
+  /* Firefox */
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-accent)) transparent;
+  }
+}
+

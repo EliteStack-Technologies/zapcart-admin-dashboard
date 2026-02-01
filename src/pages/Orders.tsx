@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock } from "lucide-react";
-import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, Order, OrderItem } from "@/services/orders";
+import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -96,6 +96,20 @@ export default function Orders() {
   const [orderItemSearchResults, setOrderItemSearchResults] = useState<any[]>([]);
   const [loadingOrderItemsSearch, setLoadingOrderItemsSearch] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [createOrderDialogOpen, setCreateOrderDialogOpen] = useState(false);
+  const [newOrderCustomerName, setNewOrderCustomerName] = useState("");
+  const [newOrderCustomerPhone, setNewOrderCustomerPhone] = useState("");
+  const [newOrderItems, setNewOrderItems] = useState<any[]>([]);
+  const [newOrderShippingCharge, setNewOrderShippingCharge] = useState<number>(0);
+  const [newOrderDiscount, setNewOrderDiscount] = useState<number>(0);
+  const [newOrderNotes, setNewOrderNotes] = useState("");
+  const [newOrderPriority, setNewOrderPriority] = useState<"low" | "medium" | "high">("medium");
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [newOrderProductSearch, setNewOrderProductSearch] = useState("");
+  const [newOrderProductResults, setNewOrderProductResults] = useState<any[]>([]);
+  const [loadingNewOrderProducts, setLoadingNewOrderProducts] = useState(false);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [loadingAllProducts, setLoadingAllProducts] = useState(false);
 
   const fetchStatusCounts = async () => {
     try {
@@ -165,21 +179,16 @@ export default function Orders() {
     }
   };
 
-  const handleSearchOrderItems = async (search: string) => {
-    if (!search || search.length < 1) {
-      setOrderItemSearchResults([]);
-      return;
-    }
-    
-    setLoadingOrderItemsSearch(true);
+  const handleSearchOrderItems = async () => {
+    setLoadingAllProducts(true);
     try {
-      const data = await getProduct(1, 50, search);
-      setOrderItemSearchResults(data.products || []);
+      const data = await getProduct(); // Fetch first 100 products
+      setAllProducts(data?.products || []);
     } catch (error) {
-      console.error("Error searching order items:", error);
-      setOrderItemSearchResults([]);
+      console.error("Error fetching products:", error);
+      setAllProducts([]);
     } finally {
-      setLoadingOrderItemsSearch(false);
+      setLoadingAllProducts(false);
     }
   };
 
@@ -437,6 +446,132 @@ export default function Orders() {
     }
   };
 
+  const handleSearchNewOrderProducts = async (search: string) => {
+    if (!search || search.length < 1) {
+      setNewOrderProductResults([]);
+      return;
+    }
+    setLoadingNewOrderProducts(true);
+    try {
+      const data = await getProduct(1, 50, search);
+      setNewOrderProductResults(data.products || []);
+    } catch (error) {
+      console.error("Error searching products:", error);
+      setNewOrderProductResults([]);
+    } finally {
+      setLoadingNewOrderProducts(false);
+    }
+  };
+
+  const handleAddProductToNewOrder = (product: any) => {
+    const existingItem = newOrderItems.find(item => item.product_id === product._id);
+    if (existingItem) {
+      toast({
+        title: "Product already added",
+        description: "This product is already in the order",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newItem = {
+      product_id: product._id,
+      title: product.title,
+      price: product.offer_price || product.price,
+      offer_price: product.offer_price,
+      quantity: 1,
+      product_code: product.product_code
+    };
+    setNewOrderItems(prev => [...prev, newItem]);
+    setNewOrderProductSearch("");
+    setNewOrderProductResults([]);
+    toast({
+      title: "Product added",
+      description: `${product.title} has been added to the order`,
+    });
+  };
+
+  const handleRemoveProductFromNewOrder = (productId: string) => {
+    setNewOrderItems(prev => prev.filter(item => item.product_id !== productId));
+  };
+
+  const handleUpdateNewOrderItemQuantity = (productId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setNewOrderItems(prev => prev.map(item =>
+      item.product_id === productId ? { ...item, quantity } : item
+    ));
+  };
+
+  const handleCreateOrder = async () => {
+    if (!newOrderCustomerName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter customer name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newOrderCustomerPhone.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter customer phone",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newOrderItems.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one product",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreatingOrder(true);
+    try {
+      await createOrder({
+        customer_name: newOrderCustomerName,
+        customer_phone: newOrderCustomerPhone,
+        items: newOrderItems,
+        shipping_charge: newOrderShippingCharge,
+        discount: newOrderDiscount,
+        notes: newOrderNotes,
+        priority: newOrderPriority,
+      });
+
+      toast({
+        title: "Success",
+        description: "Order created successfully",
+      });
+
+      // Reset form
+      setNewOrderCustomerName("");
+      setNewOrderCustomerPhone("");
+      setNewOrderItems([]);
+      setNewOrderShippingCharge(0);
+      setNewOrderDiscount(0);
+      setNewOrderNotes("");
+      setNewOrderPriority("medium");
+      setCreateOrderDialogOpen(false);
+
+      // Refresh orders list
+      fetchOrders(1, activeTab, priorityFilter);
+      fetchStatusCounts();
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create order",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingOrder(false);
+    }
+  };
+
   const openDeleteDialog = (orderId: string) => {
     setOrderToDelete(orderId);
     setDeleteDialogOpen(true);
@@ -652,7 +787,17 @@ export default function Orders() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Order Management</h1>
-      </div>
+          <Button 
+            onClick={() => {
+              setCreateOrderDialogOpen(true);
+              handleSearchOrderItems();
+            }} 
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Order
+          </Button>
+        </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
@@ -1105,71 +1250,21 @@ export default function Orders() {
                     </Button>
                   )}
                 </div>
-                
-                {/* Search order items */}
-                <div className="mb-3">
-                  <div className="relative max-w-md">
-                    <Input
-                      placeholder="Search products to check prices..."
-                      value={orderItemSearchTerm}
-                      onChange={(e) => {
-                        setOrderItemSearchTerm(e.target.value);
-                        handleSearchOrderItems(e.target.value);
-                      }}
-                    />
-                    {loadingOrderItemsSearch && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                    
-                    {/* Dropdown with search results */}
-                    {orderItemSearchTerm && orderItemSearchResults.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                        {orderItemSearchResults.map((product) => (
-                          <div
-                            key={product._id}
-                            className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                          >
-                            <div className="flex items-center gap-3">
-                              {product.image && (
-                                <img
-                                  src={product.image}
-                                  alt={product.title}
-                                  className="w-10 h-10 object-cover rounded"
-                                />
-                              )}
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{product.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Code: {product.product_code || 'N/A'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-semibold text-green-600">
-                                  {currency?.symbol || ''} {product.offer_price}
-                                </p>
-                                {product.actual_price !== product.offer_price && (
-                                  <p className="text-xs text-muted-foreground line-through">
-                                    {currency?.symbol || ''} {product.actual_price}
-                                  </p>
-                                )}
-                                {product.stock_quantity !== undefined && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Stock: {product.stock_quantity}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {orderItemSearchTerm && !loadingOrderItemsSearch && orderItemSearchResults.length === 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-sm text-muted-foreground">
-                        No products found
-                      </div>
+                {/* Product List for Price Reference */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold mb-2">Available Products (Reference)</h4>
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    {loadingAllProducts ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">Loading products...</div>
+                    ) : allProducts.length > 0 ? (
+                      allProducts.map((p) => (
+                        <div key={p._id} className="p-2 border-b last:border-b-0 text-sm flex justify-between items-center hover:bg-gray-50">
+                          <span className="font-medium">{p.title}</span>
+                          <span className="text-green-600 font-semibold">{currency?.symbol || ''} {p.offer_price || p.price}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">No products found</div>
                     )}
                   </div>
                 </div>
@@ -1440,20 +1535,7 @@ export default function Orders() {
                 </div>
               )}
 
-              {/* Delete Button */}
-              {/* <div className="border-t pt-4">
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => {
-                    openDeleteDialog(selectedOrder._id);
-                    setViewDialogOpen(false);
-                  }}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Order
-                </Button>
-              </div> */}
+
             </div>
           ) : null}
         </DialogContent>
@@ -1558,73 +1640,293 @@ export default function Orders() {
       </Dialog>
 
       {/* Add Item Dialog */}
-      <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
+      <Dialog 
+        open={addItemDialogOpen} 
+        onOpenChange={(open) => {
+          setAddItemDialogOpen(open);
+          if (open) handleSearchOrderItems(); // Fetch products when opening
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Product to Order</DialogTitle>
             <DialogDescription>
-              Search and select a product to add to this order
+              Select a product to add to this order
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div>
-              <Label>Search Products</Label>
-              <Input
-                placeholder="Search by product name or code..."
-                value={productSearchTerm}
-                onChange={(e) => {
-                  setProductSearchTerm(e.target.value);
-                  handleSearchProducts(e.target.value);
+            <div className="space-y-2">
+              <Label>Select Product</Label>
+              <Select
+                onValueChange={(productId) => {
+                  const product = allProducts.find(p => p._id === productId);
+                  if (product) handleAddProductToOrder(product);
                 }}
-                className="mt-1"
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingAllProducts ? "Loading products..." : "Select a product to add"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingAllProducts ? (
+                    <div className="p-2 text-center text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
+                      Loading products...
+                    </div>
+                  ) : allProducts.length > 0 ? (
+                    allProducts.map((product) => (
+                      <SelectItem key={product._id} value={product._id}>
+                        {product.title} - {currency?.symbol || ''} {product.offer_price || product.price}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-sm text-muted-foreground">
+                      No products found
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Order Dialog */}
+      <Dialog open={createOrderDialogOpen} onOpenChange={setCreateOrderDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Order</DialogTitle>
+            <DialogDescription>
+              Add customer details and products to create a new order
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {/* Customer Details */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Customer Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer_name">Customer Name *</Label>
+                  <Input
+                    id="customer_name"
+                    value={newOrderCustomerName}
+                    onChange={(e) => setNewOrderCustomerName(e.target.value)}
+                    placeholder="Enter customer name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customer_phone">Customer Phone *</Label>
+                  <Input
+                    id="customer_phone"
+                    value={newOrderCustomerPhone}
+                    onChange={(e) => setNewOrderCustomerPhone(e.target.value)}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="max-h-96 overflow-y-auto border rounded-lg">
-              {loadingProducts ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : searchProducts.length > 0 ? (
-                <div className="divide-y">
-                  {searchProducts.map((product) => (
-                    <div
-                      key={product._id}
-                      className="p-4 hover:bg-muted cursor-pointer flex items-center justify-between"
-                      onClick={() => handleAddProductToOrder(product)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {product.image && (
-                          <img
-                            src={product.image}
-                            alt={product.title}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        )}
-                        <div>
-                          <p className="font-medium">{product.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Code: {product.product_code || 'N/A'}
-                          </p>
-                        </div>
+            {/* Product Selection Dropdown */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Add Products</h3>
+              <div className="space-y-2">
+                <Label>Select Product</Label>
+                <Select
+                  onValueChange={(productId) => {
+                    const product = allProducts.find(p => p._id === productId);
+                    if (product) handleAddProductToNewOrder(product);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingAllProducts ? "Loading products..." : "Select a product to add"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingAllProducts ? (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
+                        Loading products...
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{currency?.symbol || ''} {product.offer_price}</p>
-                      
+                    ) : allProducts.length > 0 ? (
+                      allProducts.map((product) => (
+                        <SelectItem key={product._id} value={product._id}>
+                          {product.title} - {currency?.symbol || ''} {product.offer_price || product.price}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        No products found
                       </div>
-                    </div>
-                  ))}
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Selected Products */}
+            {newOrderItems.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Order Items ({newOrderItems.length})</h3>
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {newOrderItems.map((item) => (
+                        <TableRow key={item.product_id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{item.title}</p>
+                              {item.product_code && (
+                                <p className="text-sm text-gray-500">Code: {item.product_code}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{currency?.symbol || ''} {item.price.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateNewOrderItemQuantity(item.product_id, parseInt(e.target.value))}
+                              className="w-20"
+                            />
+                          </TableCell>
+                          <TableCell>{currency?.symbol || ''} {(item.price * item.quantity).toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveProductFromNewOrder(item.product_id)}
+                            >
+                              <X className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              ) : productSearchTerm.length >= 1 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  No products found
+              </div>
+            )}
+
+            {/* Order Details */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Order Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="shipping_charge">Shipping Charge</Label>
+                  <Input
+                    id="shipping_charge"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newOrderShippingCharge === 0 ? "" : newOrderShippingCharge}
+                    onChange={(e) => setNewOrderShippingCharge(e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0.00"
+                  />
                 </div>
-              ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  Type at least 1 character to search
+                <div className="space-y-2">
+                  <Label htmlFor="discount">Discount</Label>
+                  <Input
+                    id="discount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newOrderDiscount === 0 ? "" : newOrderDiscount}
+                    onChange={(e) => setNewOrderDiscount(e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0.00"
+                  />
                 </div>
-              )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newOrderPriority} onValueChange={(value: any) => setNewOrderPriority(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITY_LEVELS.map((priority) => (
+                      <SelectItem key={priority.value} value={priority.value}>
+                        {priority.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Input
+                  id="notes"
+                  value={newOrderNotes}
+                  onChange={(e) => setNewOrderNotes(e.target.value)}
+                  placeholder="Add any notes for this order"
+                />
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            {newOrderItems.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <h3 className="font-semibold mb-3">Order Summary</h3>
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>{currency?.symbol || ''} {newOrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Shipping Charge:</span>
+                  <span>{currency?.symbol || ''} {newOrderShippingCharge.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Discount:</span>
+                  <span>- {currency?.symbol || ''} {newOrderDiscount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                  <span>Total:</span>
+                  <span>
+                    {currency?.symbol || ''} {(
+                      newOrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) +
+                      newOrderShippingCharge -
+                      newOrderDiscount
+                    ).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setCreateOrderDialogOpen(false)}
+                className="flex-1"
+                disabled={creatingOrder}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateOrder}
+                className="flex-1"
+                disabled={creatingOrder}
+              >
+                {creatingOrder ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Order'
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
