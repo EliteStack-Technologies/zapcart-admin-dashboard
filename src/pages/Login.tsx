@@ -96,10 +96,12 @@ const Login = () => {
           business_type: response.data.client.business_type,
           enquiry_mode: response.data.client.enquiry_mode || false,
           inventory_enabled: response.data.client.inventory_enabled || false,
+          zoho_enabled: response.data.client.zoho_enabled || false,
         };
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("enquiry_mode", String(response.data.client.enquiry_mode || false));
         localStorage.setItem("inventory_enabled", String(response.data.client.inventory_enabled || false));
+        localStorage.setItem("zoho_enabled", String(response.data.client.zoho_enabled || false));
       } else if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
       }

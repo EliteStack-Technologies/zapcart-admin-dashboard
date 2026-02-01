@@ -32,6 +32,9 @@ export interface Order {
   notes?: string;
   cancellation_reason?: string;
   product_code?: string;
+  zoho_salesorder_id?: string;
+  zoho_sync_status?: "not_synced" | "synced" | "failed";
+  zoho_sync_error?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;

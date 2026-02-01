@@ -20,6 +20,7 @@ export interface Customer {
   customer_login_enabled: boolean;
   password_changed?: boolean;
   created_source: "manual" | "order";
+  zoho_customer_id?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;

@@ -31,6 +31,8 @@ import StockIn from "@/pages/StockIn";
 import StockOut from "@/pages/StockOut";
 import LowStock from "@/pages/LowStock";
 import CurrentStock from "@/pages/CurrentStock";
+import ZohoBooksIntegration from "@/pages/ZohoBooksIntegration";
+import ZohoCallback from "@/pages/ZohoCallback";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +68,8 @@ function AppRoutes() {
           <Route path="/inventory/stock-out" element={<ProtectedRoute><StockOut /></ProtectedRoute>} />
           <Route path="/inventory/low-stock" element={<ProtectedRoute><LowStock /></ProtectedRoute>} />
           <Route path="/inventory/current-stock" element={<ProtectedRoute><CurrentStock /></ProtectedRoute>} />
+          <Route path="/settings/zoho-books" element={<ProtectedRoute><ZohoBooksIntegration /></ProtectedRoute>} />
+          <Route path="/zoho/callback" element={<ProtectedRoute><ZohoCallback /></ProtectedRoute>} />
           
           {/* Customer Routes */}
           <Route path="/customer/login" element={<CustomerLogin />} />

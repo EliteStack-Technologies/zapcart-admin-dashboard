@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +25,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const stored = localStorage.getItem('inventoryExpanded');
     return stored === 'true';
   });
-  const { logout, user, enquiryMode, inventoryEnabled } = useAuth();
+  const { logout, user, enquiryMode, inventoryEnabled,zohoEnabled } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -60,6 +60,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/banners", icon: Image, label: "Banners" },
     { to: "/flyers", icon: FileText, label: "Flyers" },
     // { to: "/upload-images", icon: Upload, label: "Upload Images" },
+    { to: "/settings/zoho-books", icon: Settings, label: "Zoho Books", requireZohoEnabled: true },
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
@@ -71,10 +72,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/inventory/low-stock", icon: AlertTriangle, label: "Low Stock" },
   ];
   
-  // Filter nav items based on enquiry mode
+  // Filter nav items based on enquiry mode and zoho enabled
   const navItems = allNavItems.filter(item => {
     if (item.requireEnquiryMode) {
       return enquiryMode === true;
+    }
+    if (item.requireZohoEnabled) {
+      return zohoEnabled === true;
     }
     return true;
   });

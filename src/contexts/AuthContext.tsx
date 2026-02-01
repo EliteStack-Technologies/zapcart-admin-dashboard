@@ -5,8 +5,10 @@ interface User {
   email: string;
   name: string;
   role?: string;
+  client_id?: string;
   enquiry_mode?: boolean;
   inventory_enabled?: boolean;
+  zoho_enabled?: boolean;
   business_type?: string;
   business_name?: string;
 }
@@ -21,6 +23,8 @@ interface AuthContextType {
   enquiryMode: boolean;
   setEnquiryMode: (mode: boolean) => void;
   inventoryEnabled: boolean;
+  zohoEnabled: boolean;
+  setZohoEnabled: (enabled: boolean) => void;
   isRestaurant: boolean;
 }
 
@@ -38,6 +42,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const stored = localStorage.getItem("inventory_enabled");
     return stored === "true";
   });
+  const [zohoEnabled, setZohoEnabledState] = useState<boolean>(() => {
+    const stored = localStorage.getItem("zoho_enabled");
+    return stored === "true";
+  });
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -45,7 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const storedToken = localStorage.getItem("accessToken") || localStorage.getItem("authToken");
     const storedUser = localStorage.getItem("user");
     const storedEnquiryMode = localStorage.getItem("enquiry_mode");
-    const storedInventoryEnabled = localStorage.getItem("inventory_enabled");   
+    const storedInventoryEnabled = localStorage.getItem("inventory_enabled");
+    const storedZohoEnabled = localStorage.getItem("zoho_enabled");   
 
     if (storedToken && storedUser) {
       try {
@@ -68,6 +77,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setInventoryEnabledState(parsedUser.inventory_enabled);
           localStorage.setItem("inventory_enabled", String(parsedUser.inventory_enabled));
         }
+        
+        // Sync zoho_enabled from localStorage or user object
+        if (storedZohoEnabled !== null) {
+          setZohoEnabledState(storedZohoEnabled === "true");
+        } else if (parsedUser.zoho_enabled !== undefined) {
+          setZohoEnabledState(parsedUser.zoho_enabled);
+          localStorage.setItem("zoho_enabled", String(parsedUser.zoho_enabled));
+        }
       } catch (error) {
         console.error("Failed to restore auth state:", error);
         localStorage.removeItem("accessToken");
@@ -75,6 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem("user");
         localStorage.removeItem("enquiry_mode");
         localStorage.removeItem("inventory_enabled");
+        localStorage.removeItem("zoho_enabled");
       }
     }
     setIsLoading(false);
@@ -104,6 +122,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsedUser.inventory_enabled !== undefined) {
           setInventoryEnabledState(parsedUser.inventory_enabled);
         }
+        // Sync zoho_enabled from user object if available
+        if (parsedUser.zoho_enabled !== undefined) {
+          setZohoEnabledState(parsedUser.zoho_enabled);
+        }
       }
 
       return true;
@@ -125,17 +147,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const setZohoEnabled = (enabled: boolean) => {
+    setZohoEnabledState(enabled);
+    localStorage.setItem("zoho_enabled", String(enabled));
+    
+    // Update user object with zoho_enabled
+    if (user) {
+      const updatedUser = { ...user, zoho_enabled: enabled };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
     setEnquiryModeState(false);
     setInventoryEnabledState(false);
+    setZohoEnabledState(false);
     localStorage.removeItem("authToken");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     localStorage.removeItem("currency");
     localStorage.removeItem("enquiry_mode");
     localStorage.removeItem("inventory_enabled");
+    localStorage.removeItem("zoho_enabled");
   };
 
   const isRestaurant = user?.business_type?.toLowerCase() === "restaurant";
@@ -152,6 +188,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         enquiryMode,
         setEnquiryMode,
         inventoryEnabled,
+        zohoEnabled,
+        setZohoEnabled,
         isRestaurant,
       }}
     >
