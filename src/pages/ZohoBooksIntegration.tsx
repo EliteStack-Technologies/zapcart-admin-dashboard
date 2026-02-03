@@ -6,7 +6,6 @@ import {
   XCircle,
   Clock,
   RefreshCw,
-  Users,
   ShoppingCart,
   TrendingUp,
   TrendingDown,
@@ -46,11 +45,9 @@ import {
   getZohoSyncStats,
   syncOrderToZoho,
   syncAllOrders,
-  getCustomerSyncStats,
   type ZohoConfig,
   type OrderWithZoho,
   type ZohoSyncStats,
-  type CustomerSyncStats,
   type ZohoOrganization,
 } from "@/services/zoho";
 import OAuthConnectionDialog from "@/components/OAuthConnectionDialog";
@@ -80,8 +77,11 @@ const ZohoBooksIntegration = () => {
   const [organizations, setOrganizations] = useState<ZohoOrganization[]>([]);
   
   const [orders, setOrders] = useState<OrderWithZoho[]>([]);
-  const [syncStats, setSyncStats] = useState<ZohoSyncStats>({ total: 0, synced: 0, failed: 0, pending: 0 });
-  const [customerStats, setCustomerStats] = useState<CustomerSyncStats>({ synced: 0, total: 0 });
+  const [syncStats, setSyncStats] = useState<ZohoSyncStats>({
+    summary: { total_orders: 0, synced: 0, failed: 0, pending: 0, sync_rate: "0%" },
+    recent_syncs: [],
+    recent_failures: [],
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [syncingOrders, setSyncingOrders] = useState<Set<string>>(new Set());
@@ -99,6 +99,13 @@ const ZohoBooksIntegration = () => {
       handleTestConnection();
     }
   }, [searchParams, config]);
+
+  // Fetch orders when page changes
+  useEffect(() => {
+    if (config?.zoho_enabled && config.token_valid) {
+      fetchSyncData();
+    }
+  }, [currentPage]);
 
   const fetchConfig = async () => {
     try {
@@ -129,16 +136,18 @@ const ZohoBooksIntegration = () => {
 
   const fetchSyncData = async () => {
     try {
-      const [statsData, ordersData, customerStatsData] = await Promise.all([
-        getZohoSyncStats().catch(() => ({ total: 0, synced: 0, failed: 0, pending: 0 })),
+      const [statsData, ordersData] = await Promise.all([
+        getZohoSyncStats().catch(() => ({
+          summary: { total_orders: 0, synced: 0, failed: 0, pending: 0, sync_rate: "0%" },
+          recent_syncs: [],
+          recent_failures: [],
+        })),
         getOrdersWithZohoStatus(currentPage, 20).catch(() => ({ orders: [], totalPages: 1 })),
-        getCustomerSyncStats().catch(() => ({ synced: 0, total: 0 })),
       ]);
 
       setSyncStats(statsData);
       setOrders(ordersData.orders || []);
       setTotalPages(ordersData.totalPages || 1);
-      setCustomerStats(customerStatsData);
     } catch (error) {
       console.error("Error fetching sync data:", error);
     }
@@ -507,7 +516,7 @@ const ZohoBooksIntegration = () => {
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{syncStats.total}</div>
+                  <div className="text-2xl font-bold">{syncStats.summary.total_orders}</div>
                 </CardContent>
               </Card>
 
@@ -517,7 +526,8 @@ const ZohoBooksIntegration = () => {
                   <TrendingUp className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{syncStats.synced}</div>
+                  <div className="text-2xl font-bold text-green-600">{syncStats.summary.synced}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Sync rate: {syncStats.summary.sync_rate}</p>
                 </CardContent>
               </Card>
 
@@ -527,7 +537,7 @@ const ZohoBooksIntegration = () => {
                   <TrendingDown className="h-4 w-4 text-red-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{syncStats.failed}</div>
+                  <div className="text-2xl font-bold text-red-600">{syncStats.summary.failed}</div>
                 </CardContent>
               </Card>
 
@@ -537,35 +547,12 @@ const ZohoBooksIntegration = () => {
                   <Clock className="h-4 w-4 text-yellow-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-yellow-600">{syncStats.pending}</div>
+                  <div className="text-2xl font-bold text-yellow-600">{syncStats.summary.pending}</div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Customer Mapping Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Customer Mapping Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    Customers synced to Zoho: <span className="font-semibold text-foreground">{customerStats.synced} / {customerStats.total}</span>
-                  </div>
-                  <div className="flex-1 bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-primary h-2 rounded-full transition-all"
-                      style={{
-                        width: `${customerStats.total > 0 ? (customerStats.synced / customerStats.total) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+
 
             {/* Recent Sync Activity Table */}
             <Card>
@@ -575,25 +562,7 @@ const ZohoBooksIntegration = () => {
                     <CardTitle>Recent Sync Activity</CardTitle>
                     <CardDescription>View and manage order synchronization status</CardDescription>
                   </div>
-                  {syncStats.pending > 0 && (
-                    <Button
-                      onClick={handleSyncAll}
-                      disabled={isSyncingAll}
-                      size="sm"
-                    >
-                      {isSyncingAll ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Syncing...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Sync All Pending
-                        </>
-                      )}
-                    </Button>
-                  )}
+
                 </div>
               </CardHeader>
               <CardContent>

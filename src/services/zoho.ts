@@ -16,11 +16,36 @@ export interface ZohoOrganization {
   currency_symbol?: string;
 }
 
+export interface RecentSyncActivity {
+  order_number: string;
+  zoho_salesorder_id: string;
+  status: string;
+  synced_at: string;
+  customer_name: string;
+}
+
+export interface RecentFailure {
+  order_number: string;
+  error: string;
+  failed_at: string;
+  customer_name: string;
+}
+
 export interface ZohoSyncStats {
-  total: number;
-  synced: number;
-  failed: number;
-  pending: number;
+  summary: {
+    total_orders: number;
+    synced: number;
+    failed: number;
+    pending: number;
+    sync_rate: string;
+  };
+  recent_syncs: RecentSyncActivity[];
+  recent_failures: RecentFailure[];
+  // Legacy fields for backward compatibility
+  total?: number;
+  synced?: number;
+  failed?: number;
+  pending?: number;
 }
 
 export interface OrderWithZoho {
@@ -33,11 +58,6 @@ export interface OrderWithZoho {
   zoho_sync_status: "not_synced" | "synced" | "failed";
   zoho_salesorder_id?: string;
   zoho_sync_error?: string;
-}
-
-export interface CustomerSyncStats {
-  synced: number;
-  total: number;
 }
 
 // ============ OAuth Flow Methods ============
@@ -143,10 +163,3 @@ export const syncAllOrders = async () => {
   return response.data;
 };
 
-// Get customer sync statistics
-export const getCustomerSyncStats = async () => {
-  const response = await axiosInstance.get<CustomerSyncStats>(
-    "/api/v1/customers/zoho/stats"
-  );
-  return response.data;
-};

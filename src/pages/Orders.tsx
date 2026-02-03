@@ -35,12 +35,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus } from "lucide-react";
 import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
+import { getCustomers, createCustomer, type Customer } from "@/services/customer";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import AddCustomerSheet from "@/components/AddCustomerSheet";
 
 const ORDER_STATUSES = [
   { value: "pending", label: "Pending", color: "bg-yellow-500" },
@@ -110,6 +113,16 @@ export default function Orders() {
   const [loadingNewOrderProducts, setLoadingNewOrderProducts] = useState(false);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loadingAllProducts, setLoadingAllProducts] = useState(false);
+  
+  // Customer management states
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [addCustomerSheetOpen, setAddCustomerSheetOpen] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   const fetchStatusCounts = async () => {
     try {
@@ -153,6 +166,70 @@ export default function Orders() {
     }
   };
 
+  const fetchCustomers = async () => {
+    try {
+      setLoadingCustomers(true);
+      const data = await getCustomers(1, 100); // Get first 100 customers
+      const validCustomers = (data.customers || []).filter((c: any) => (c._id || c.id) && c.name);
+      setCustomers(validCustomers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load customers",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  const handleCreateCustomer = async () => {
+    if (!newCustomerName.trim() || !newCustomerPhone.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Customer name and phone are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCreatingCustomer(true);
+      const newCustomer = await createCustomer({
+        name: newCustomerName,
+        phone: newCustomerPhone,
+        email: newCustomerEmail || undefined,
+      });
+
+      toast({
+        title: "Success",
+        description: "Customer created successfully",
+      });
+
+      // Add to customers list and select it
+      setCustomers(prev => [newCustomer, ...prev]);
+      setSelectedCustomerId(newCustomer._id);
+      setNewOrderCustomerName(newCustomer.name);
+      setNewOrderCustomerPhone(newCustomer.phone);
+
+      // Reset form and close sheet
+      setNewCustomerName("");
+      setNewCustomerPhone("");
+      setNewCustomerEmail("");
+      setAddCustomerSheetOpen(false);
+    } catch (error: any) {
+      console.error("Error creating customer:", error);
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to create customer",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingCustomer(false);
+    }
+  };
+
   useEffect(() => {
     fetchOrders(1, activeTab, priorityFilter);
   }, [activeTab, limit, priorityFilter]);
@@ -161,6 +238,24 @@ export default function Orders() {
     // Fetch status counts only on initial load
     fetchStatusCounts();
   }, []);
+
+  useEffect(() => {
+    // Fetch customers and reset form when create order dialog opens
+    if (createOrderDialogOpen) {
+      // Reset form states
+      setSelectedCustomerId("");
+      setNewOrderCustomerName("");
+      setNewOrderCustomerPhone("");
+      setNewOrderItems([]);
+      setNewOrderShippingCharge(0);
+      setNewOrderDiscount(0);
+      setNewOrderNotes("");
+      setNewOrderPriority("medium");
+      
+      fetchCustomers();
+      handleSearchOrderItems();
+    }
+  }, [createOrderDialogOpen]);
 
   const handleSearchProducts = async (search: string) => {
     if (!search || search.length < 1) {
@@ -548,9 +643,10 @@ export default function Orders() {
       });
 
       // Reset form
-      setNewOrderCustomerName("");
-      setNewOrderCustomerPhone("");
-      setNewOrderItems([]);
+    setSelectedCustomerId("");
+    setNewOrderCustomerName("");
+    setNewOrderCustomerPhone("");
+    setNewOrderItems([]);
       setNewOrderShippingCharge(0);
       setNewOrderDiscount(0);
       setNewOrderNotes("");
@@ -1250,24 +1346,7 @@ export default function Orders() {
                     </Button>
                   )}
                 </div>
-                {/* Product List for Price Reference */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold mb-2">Available Products (Reference)</h4>
-                  <div className="border rounded-md max-h-60 overflow-y-auto">
-                    {loadingAllProducts ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">Loading products...</div>
-                    ) : allProducts.length > 0 ? (
-                      allProducts.map((p) => (
-                        <div key={p._id} className="p-2 border-b last:border-b-0 text-sm flex justify-between items-center hover:bg-gray-50">
-                          <span className="font-medium">{p.title}</span>
-                          <span className="text-green-600 font-semibold">{currency?.symbol || ''} {p.offer_price || p.price}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 text-center text-sm text-muted-foreground">No products found</div>
-                    )}
-                  </div>
-                </div>
+             
 
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
@@ -1705,25 +1784,56 @@ export default function Orders() {
             {/* Customer Details */}
             <div className="space-y-4">
               <h3 className="font-semibold">Customer Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="customer_name">Customer Name *</Label>
-                  <Input
-                    id="customer_name"
-                    value={newOrderCustomerName}
-                    onChange={(e) => setNewOrderCustomerName(e.target.value)}
-                    placeholder="Enter customer name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customer_phone">Customer Phone *</Label>
-                  <Input
-                    id="customer_phone"
-                    value={newOrderCustomerPhone}
-                    onChange={(e) => setNewOrderCustomerPhone(e.target.value)}
-                    placeholder="Enter phone number"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Select Customer *</Label>
+                <Select
+                  value={selectedCustomerId}
+                  onValueChange={(value) => {
+                    if (value === "add_new") {
+                      setAddCustomerSheetOpen(true);
+                    } else {
+                      setSelectedCustomerId(value);
+                      const customer = customers.find(c => (c._id || (c as any).id) === value);
+                      if (customer) {
+                        setNewOrderCustomerName(customer.name);
+                        setNewOrderCustomerPhone(customer.phone);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingCustomers ? "Loading customers..." : "Select a customer"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingCustomers ? (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
+                        Loading customers...
+                      </div>
+                    ) : (
+                      <>
+                        {customers.length > 0 ? (
+                          customers.map((customer) => (
+                            <SelectItem key={customer._id || (customer as any).id} value={customer._id || (customer as any).id}>
+                              {customer.name} - {customer.phone}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            No customers found
+                          </div>
+                        )}
+                        <Separator className="my-1" />
+                        <SelectItem value="add_new" className="text-primary font-medium focus:bg-blue-600 focus:text-white cursor-pointer">
+                          <div className="flex items-center gap-2 ">
+                            <UserPlus className="h-4 w-4" />
+                            Add New Customer
+                          </div>
+                        </SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -1731,7 +1841,7 @@ export default function Orders() {
             <div className="space-y-4">
               <h3 className="font-semibold">Add Products</h3>
               <div className="space-y-2">
-                <Label>Select Product</Label>
+                <Label>Select Product*</Label>
                 <Select
                   onValueChange={(productId) => {
                     const product = allProducts.find(p => p._id === productId);
@@ -1848,21 +1958,7 @@ export default function Orders() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={newOrderPriority} onValueChange={(value: any) => setNewOrderPriority(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRIORITY_LEVELS.map((priority) => (
-                      <SelectItem key={priority.value} value={priority.value}>
-                        {priority.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes (Optional)</Label>
                 <Input
@@ -1931,6 +2027,27 @@ export default function Orders() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add Customer Sheet */}
+      <AddCustomerSheet
+        open={addCustomerSheetOpen}
+        onOpenChange={setAddCustomerSheetOpen}
+        onCustomerCreated={(newCust: any) => {
+          // Robust check for nested customer object in API response
+          const customer = newCust?.customer || newCust;
+          const customerId = customer?._id || customer?.id;
+          
+          if (customer && customerId && customer.name) {
+            setCustomers(prev => [customer, ...prev.filter(c => (c._id || (c as any).id) !== customerId)]);
+            setSelectedCustomerId(customerId);
+            setNewOrderCustomerName(customer.name);
+            setNewOrderCustomerPhone(customer.phone || "");
+          } else {
+            console.error("Invalid customer object received:", newCust);
+            fetchCustomers();
+          }
+        }}
+      />
     </div>
     </DashboardLayout>
   );
