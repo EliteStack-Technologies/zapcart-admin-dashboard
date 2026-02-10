@@ -13,6 +13,8 @@ export interface Customer {
   contact_person?: string | null;
   contact_mobile?: string | null;
   address?: string | null;
+  company_name?: string | null;
+  whatsapp_number?: string | null;
   total_orders: number;
   total_spent: number;
   last_order_date?: string | null;
@@ -47,6 +49,8 @@ export interface CustomerOrdersResponse {
     contact_person?: string | null;
     contact_mobile?: string | null;
     address?: string | null;
+    company_name?: string | null;
+    whatsapp_number?: string | null;
     total_orders: number;
     total_spent: number;
     last_order_date?: string | null;
@@ -70,6 +74,8 @@ export interface CreateCustomerData {
   contact_person?: string;
   contact_mobile?: string;
   address?: string;
+  company_name?: string;
+  whatsapp_number?: string;
 }
 
 export interface UpdateCustomerData {
@@ -83,6 +89,8 @@ export interface UpdateCustomerData {
   contact_mobile?: string;
   address?: string;
   notes?: string;
+  company_name?: string;
+  whatsapp_number?: string;
 }
 
 export const getCustomers = async (page: number = 1, limit: number = 10, search?: string) => {

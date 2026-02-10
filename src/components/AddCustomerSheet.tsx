@@ -26,7 +26,9 @@ export default function AddCustomerSheet({
 }: AddCustomerSheetProps) {
   const { toast } = useToast();
   const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [email, setEmail] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -46,7 +48,9 @@ export default function AddCustomerSheet({
       setCreating(true);
       const responseData: any = await createCustomer({
         name,
+        company_name: companyName || undefined,
         phone,
+        whatsapp_number: whatsappNumber || undefined,
         email: email || undefined,
       });
 
@@ -62,8 +66,11 @@ export default function AddCustomerSheet({
 
       // Reset form
       setName("");
+      setCompanyName("");
       setPhone("");
+      setWhatsappNumber("");
       setEmail("");
+
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error creating customer:", error);
@@ -102,6 +109,16 @@ export default function AddCustomerSheet({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="companyName">Company Name (Optional)</Label>
+            <Input
+              id="companyName"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Enter company name"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="phone">
               Phone Number <span className="text-red-500">*</span>
             </Label>
@@ -111,6 +128,16 @@ export default function AddCustomerSheet({
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Enter phone number"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsappNumber">WhatsApp Number (Optional)</Label>
+            <Input
+              id="whatsappNumber"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              placeholder="Enter WhatsApp number"
             />
           </div>
 
