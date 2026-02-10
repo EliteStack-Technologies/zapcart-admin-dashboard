@@ -80,6 +80,8 @@ export default function Customers() {
     contact_person: "",
     contact_mobile: "",
     address: "",
+    company_name: "",
+    whatsapp_number: "",
   });
 
   // View Dialog
@@ -157,7 +159,7 @@ export default function Customers() {
         description: "Customer created successfully",
       });
       setAddDialogOpen(false);
-      setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "" });
+      setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "", company_name: "", whatsapp_number: "" });
       fetchCustomers(currentPage, searchTerm);
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -192,7 +194,7 @@ export default function Customers() {
       });
       setEditDialogOpen(false);
       setSelectedCustomer(null);
-      setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "" });
+      setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "", company_name: "", whatsapp_number: "" });
       fetchCustomers(currentPage, searchTerm);
     } catch (error) {
       console.error("Error updating customer:", error);
@@ -236,6 +238,8 @@ export default function Customers() {
       contact_person: customer.contact_person || "",
       contact_mobile: customer.contact_mobile || "",
       address: customer.address || "",
+      company_name: customer.company_name || "",
+      whatsapp_number: customer.whatsapp_number || "",
     });
     setEditDialogOpen(true);
   };
@@ -345,7 +349,7 @@ export default function Customers() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Customer Management</h1>
           <Button onClick={() => {
-            setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "" });
+            setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "", company_name: "", whatsapp_number: "" });
             setAddDialogOpen(true);
           }} className="gap-2">
             <UserPlus className="h-4 w-4" />
@@ -571,6 +575,18 @@ export default function Customers() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="company_name" className="text-sm font-medium">
+                    Company Name
+                  </Label>
+                  <Input
+                    id="company_name"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    placeholder="Acme Corp"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="phone" className="text-sm font-medium">
                     Phone Number <span className="text-red-500">*</span>
                   </Label>
@@ -579,6 +595,18 @@ export default function Customers() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+1234567890"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp_number" className="text-sm font-medium">
+                    WhatsApp Number
+                  </Label>
+                  <Input
+                    id="whatsapp_number"
+                    value={formData.whatsapp_number}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                    placeholder="1234567890"
                   />
                 </div>
 
@@ -711,6 +739,18 @@ export default function Customers() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="edit-company_name" className="text-sm font-medium">
+                    Company Name
+                  </Label>
+                  <Input
+                    id="edit-company_name"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    placeholder="Acme Corp"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="edit-phone" className="text-sm font-medium">
                     Phone Number <span className="text-red-500">*</span>
                   </Label>
@@ -719,6 +759,18 @@ export default function Customers() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+1234567890"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-whatsapp_number" className="text-sm font-medium">
+                    WhatsApp Number
+                  </Label>
+                  <Input
+                    id="edit-whatsapp_number"
+                    value={formData.whatsapp_number}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                    placeholder="1234567890"
                   />
                 </div>
 
