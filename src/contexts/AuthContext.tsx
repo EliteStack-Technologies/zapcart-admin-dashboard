@@ -9,7 +9,7 @@ interface User {
   enquiry_mode?: boolean;
   inventory_enabled?: boolean;
   zoho_enabled?: boolean;
-  business_type?: string;
+  business_type?: string[];
   business_name?: string;
 }
 
@@ -174,7 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("zoho_enabled");
   };
 
-  const isRestaurant = user?.business_type?.toLowerCase() === "restaurant";
+  const isRestaurant = user?.business_type?.map((t) => t.toLowerCase()).includes("restaurant") ?? false;
 
   return (
     <AuthContext.Provider
