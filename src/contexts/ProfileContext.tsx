@@ -40,7 +40,7 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
     await fetchProfile();
   };
 
-  const isRestaurant = profile?.business_type?.toLowerCase() === "restaurant";
+  const isRestaurant = profile?.business_type?.map((t) => t.toLowerCase()).includes("restaurant") ?? false;
 
   return (
     <ProfileContext.Provider

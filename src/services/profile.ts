@@ -6,7 +6,7 @@ export interface ClientProfile {
   email: string;
   phone_number?: string;
   business_name?: string;
-  business_type?: string;
+  business_type?: string[];
   sub_domain_name?: string;
   start_date?: string;
   end_date?: string;

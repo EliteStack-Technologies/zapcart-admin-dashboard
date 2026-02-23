@@ -267,7 +267,7 @@ export default function Profile() {
                   </div>
                   <div className="space-y-2">
                     <Label>Business Type</Label>
-                    <Input value={profile?.business_type || "N/A"} disabled />
+                    <Input value={Array.isArray(profile?.business_type) ? profile.business_type.join(", ") : profile?.business_type || "N/A"} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label>Sub Domain</Label>
