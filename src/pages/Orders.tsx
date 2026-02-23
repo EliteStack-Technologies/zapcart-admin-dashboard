@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus } from "lucide-react";
+import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus, MessageCircle, Copy } from "lucide-react";
 import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
 import { getCustomers, createCustomer, type Customer } from "@/services/customer";
@@ -843,6 +843,50 @@ export default function Orders() {
     printWindow.document.close();
   };
 
+  const handleShareWhatsApp = (order: Order) => {
+    const itemsList = order.items
+      .map(
+        (item) =>
+          `• ${item.title} x ${item.quantity} - ${currency?.symbol || ""}${((item.offer_price || item.price) * item.quantity).toFixed(2)}`
+      )
+      .join("\n");
+
+    const message = `*Order Details: ${order.order_number}*\n\n` +
+      `*Customer:* ${order.customer_name}\n\n` +
+      `*Items:*\n${itemsList}\n\n` +
+      `*Subtotal:* ${currency?.symbol || ""}${order.subtotal.toFixed(2)}\n` +
+      `*Shipping:* ${currency?.symbol || ""}${(order.shipping_charge || 0).toFixed(2)}\n` +
+      `*Discount:* ${currency?.symbol || ""}${(order.discount || 0).toFixed(2)}\n` +
+      `*Total:* ${currency?.symbol || ""}${Number(order.total_amount).toFixed(2)}\n\n` +
+      `*Status:* ${order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1)}\n\n` +
+      `Thank you for your order!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const phoneNumber = order.customer_phone.replace(/\+/g, "");
+    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
+  };
+
+  const handleCopyOrderDetails = (order: Order) => {
+    const itemsList = order.items
+      .map(
+        (item) =>
+          `• ${item.title} x ${item.quantity} - ${currency?.symbol || ""}${((item.offer_price || item.price) * item.quantity).toFixed(2)}`
+      )
+      .join("\n");
+
+    const text = `Order Details: ${order.order_number}\n\n` +
+      `Customer: ${order.customer_name}\n` +
+      `Total: ${currency?.symbol || ""}${Number(order.total_amount).toFixed(2)}\n\n` +
+      `Items:\n${itemsList}\n\n` +
+      `Status: ${order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1)}`;
+
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "Order details have been copied.",
+    });
+  };
+
   const formatDate = (dateString: string) => {
     const date = parseISO(dateString);
     return isValid(date) ? format(date, "MMM dd, yyyy HH:mm") : "N/A";
@@ -1011,8 +1055,14 @@ export default function Orders() {
                               >
                                 <Edit className="h-4 w-4 text-blue-500" />
                               </Button>
-                        
-                            
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleShareWhatsApp(order)}
+                                title="Share on WhatsApp"
+                              >
+                                <MessageCircle className="h-4 w-4 text-green-600" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1063,13 +1113,13 @@ export default function Orders() {
                       
                       <div className="pt-2 border-t flex justify-between items-center">
                         <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 sm:gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewOrder(order._id)}
                           >
-                            <Eye className="h-4 w-4 mr-1" /> View
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
@@ -1079,7 +1129,14 @@ export default function Orders() {
                               setTimeout(() => setEditMode(true), 300);
                             }}
                           >
-                            <Edit className="h-4 w-4 mr-1 text-blue-500" /> Edit
+                            <Edit className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleShareWhatsApp(order)}
+                          >
+                            <MessageCircle className="h-4 w-4 text-green-600" />
                           </Button>
                         </div>
                       </div>
@@ -1202,30 +1259,48 @@ export default function Orders() {
       >
         <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <DialogTitle>Order Details</DialogTitle>
+                <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
                 <DialogDescription>View complete order information</DialogDescription>
               </div>
               {selectedOrder && !editMode && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setEditMode(true)}
-                    className="gap-2"
+                    className="gap-2 flex-1 sm:flex-none"
                   >
                     <Edit className="h-4 w-4" />
-                    Edit Order
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleShareWhatsApp(selectedOrder)}
+                    className="gap-2 flex-1 sm:flex-none text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span className="hidden sm:inline">WhatsApp</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyOrderDetails(selectedOrder)}
+                    className="gap-2 flex-1 sm:flex-none"
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span className="hidden sm:inline">Copy</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handlePrintOrder}
-                    className="gap-2"
+                    className="gap-2 flex-1 sm:flex-none"
                   >
                     <Printer className="h-4 w-4" />
-                    Print
+                    <span className="hidden sm:inline">Print</span>
                   </Button>
                 </div>
               )}
@@ -1691,7 +1766,7 @@ export default function Orders() {
 
               {/* Action Buttons */}
               {editMode && (
-                <div className="flex justify-end gap-3 border-t pt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-3 border-t pt-4">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1702,7 +1777,7 @@ export default function Orders() {
                       setEditedDiscount(selectedOrder.discount || 0);
                     }}
                     disabled={updating}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto order-2 sm:order-1"
                   >
                     <X className="h-4 w-4" />
                     Cancel
@@ -1711,7 +1786,7 @@ export default function Orders() {
                     variant="default"
                     onClick={handleUpdateOrderItems}
                     disabled={updating}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto order-1 sm:order-2"
                   >
                     {updating ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1731,14 +1806,14 @@ export default function Orders() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Order</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this order? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4">
             <Button
               variant="outline"
               onClick={() => {
@@ -1746,6 +1821,7 @@ export default function Orders() {
                 setOrderToDelete(null);
               }}
               disabled={deleting}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
@@ -1753,6 +1829,7 @@ export default function Orders() {
               variant="destructive"
               onClick={handleDeleteOrder}
               disabled={deleting}
+              className="w-full sm:w-auto order-1 sm:order-2"
             >
               {deleting ? (
                 <>
@@ -1775,7 +1852,7 @@ export default function Orders() {
           setPendingCancellationOrderId(null);
         }
       }}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Cancel Order</DialogTitle>
             <DialogDescription>
@@ -1797,7 +1874,7 @@ export default function Orders() {
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4">
             <Button
               variant="outline"
               onClick={() => {
@@ -1806,6 +1883,7 @@ export default function Orders() {
                 setPendingCancellationOrderId(null);
               }}
               disabled={statusUpdating}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
@@ -1813,6 +1891,7 @@ export default function Orders() {
               variant="destructive"
               onClick={handleConfirmCancellation}
               disabled={statusUpdating || !cancellationReason.trim()}
+              className="w-full sm:w-auto order-1 sm:order-2"
             >
               {statusUpdating ? (
                 <>
@@ -1835,7 +1914,7 @@ export default function Orders() {
           if (open) handleSearchOrderItems(); // Fetch products when opening
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Add Product to Order</DialogTitle>
             <DialogDescription>
