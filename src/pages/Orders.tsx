@@ -881,14 +881,14 @@ export default function Orders() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Order Management</h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Order Management</h1>
           <Button 
             onClick={() => {
               setCreateOrderDialogOpen(true);
               handleSearchOrderItems();
             }} 
-            className="gap-2"
+            className="w-full sm:w-auto gap-2"
           >
             <Plus className="h-4 w-4" />
             Create Order
@@ -896,20 +896,20 @@ export default function Orders() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="all" className="relative gap-2">
+        <TabsList className="flex overflow-x-auto justify-start h-auto p-1 bg-muted/50 no-scrollbar">
+          <TabsTrigger value="all" className="relative gap-2 whitespace-nowrap px-4">
             All Orders
             {statusCounts.all !== undefined && (
-              <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-black text-primary-foreground rounded-md">
+              <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold bg-black text-primary-foreground rounded-md">
                 {statusCounts.all}
               </span>
             )}
           </TabsTrigger>
           {ORDER_STATUSES.map((status) => (
-            <TabsTrigger key={status.value} value={status.value} className="relative gap-2">
+            <TabsTrigger key={status.value} value={status.value} className="relative gap-2 whitespace-nowrap px-4">
               {status.label}
               {statusCounts[status.value] !== undefined && (
-                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-black text-primary-foreground rounded-md">
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold bg-black text-primary-foreground rounded-md">
                   {statusCounts[status.value]}
                 </span>
               )}
@@ -918,13 +918,15 @@ export default function Orders() {
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Input
-              placeholder="Search by order number, customer name, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="relative flex-1">
+              <Input
+                placeholder="Search orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
             <Select
               value={priorityFilter}
               onValueChange={(value) => {
@@ -932,7 +934,7 @@ export default function Orders() {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
@@ -952,7 +954,8 @@ export default function Orders() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border">
+              {/* Desktop View Table */}
+              <div className="hidden md:block rounded-md border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1017,6 +1020,72 @@ export default function Orders() {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile View Cards */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {filteredOrders.length === 0 ? (
+                  <div className="text-center py-8 border rounded-lg bg-muted/50 text-muted-foreground">
+                    No orders found
+                  </div>
+                ) : (
+                  filteredOrders.map((order, index) => (
+                    <div key={order._id} className="border rounded-lg p-4 space-y-3 bg-white shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-xs text-muted-foreground">#{(currentPage - 1) * limit + index + 1}</p>
+                          <p className="font-bold text-lg">{order.order_number}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {getStatusBadge(order.order_status)}
+                          {getPriorityBadge(order.priority)}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Customer</p>
+                          <p className="font-medium truncate">{order.customer_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Phone</p>
+                          <p className="font-medium">{order.customer_phone}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Items</p>
+                          <p className="font-medium">{order.items.length} product(s)</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total</p>
+                          <p className="font-bold text-primary">{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 border-t flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewOrder(order._id)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" /> View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              handleViewOrder(order._id);
+                              setTimeout(() => setEditMode(true), 300);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 mr-1 text-blue-500" /> Edit
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {totalOrders > 0 && (
@@ -1131,7 +1200,7 @@ export default function Orders() {
           }
         }}
       >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -1170,7 +1239,7 @@ export default function Orders() {
           ) : selectedOrder ? (
             <div className="space-y-6">
               {/* Order Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Order Number</Label>
                   <p className="font-semibold">{selectedOrder.order_number}</p>
@@ -1347,166 +1416,208 @@ export default function Orders() {
                   )}
                 </div>
                 <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product Code</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Price</TableHead>
-                        <TableHead className="text-center">Quantity</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        {editMode && <TableHead className="text-center">Actions</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(editMode ? editedItems : selectedOrder.items).map((item, index) => (
-                        <TableRow key={item._id}>
-                             <TableCell className="text-muted-foreground">
-                            {item.product_code || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <p className="font-medium">{item.title}</p>
-                           
-                            </div>
-                          </TableCell>
-                       
-                          <TableCell className="text-right font-medium">
-                            {editMode ? (
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={item.offer_price || item.price || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  // Allow empty during typing
-                                  if (value === '') {
-                                    setEditedItems(prev => 
-                                      prev.map((i, idx) => 
-                                        idx === index ? { 
-                                          ...i, 
-                                          offer_price: '' as any,
-                                          price: '' as any 
-                                        } : i
-                                      )
-                                    );
-                                  } else {
-                                    const newPrice = parseFloat(value);
-                                    if (!isNaN(newPrice) && newPrice >= 0) {
+                  {/* Desktop view for items */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product Code</TableHead>
+                          <TableHead>Product</TableHead>
+                          <TableHead className="text-right">Price</TableHead>
+                          <TableHead className="text-center">Quantity</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          {editMode && <TableHead className="text-center">Actions</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(editMode ? editedItems : selectedOrder.items).map((item, index) => (
+                          <TableRow key={item._id}>
+                               <TableCell className="text-muted-foreground text-xs">
+                              {item.product_code || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{item.title}</p>
+                              </div>
+                            </TableCell>
+                         
+                            <TableCell className="text-right font-medium">
+                              {editMode ? (
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.offer_price || item.price || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '') {
                                       setEditedItems(prev => 
                                         prev.map((i, idx) => 
                                           idx === index ? { 
                                             ...i, 
-                                            offer_price: newPrice,
-                                            price: newPrice 
+                                            offer_price: '' as any,
+                                            price: '' as any 
                                           } : i
                                         )
                                       );
+                                    } else {
+                                      const newPrice = parseFloat(value);
+                                      if (!isNaN(newPrice) && newPrice >= 0) {
+                                        setEditedItems(prev => 
+                                          prev.map((i, idx) => 
+                                            idx === index ? { 
+                                              ...i, 
+                                              offer_price: newPrice,
+                                              price: newPrice 
+                                            } : i
+                                          )
+                                        );
+                                      }
                                     }
-                                  }
-                                }}
-                                onBlur={(e) => {
-                                  const value = e.target.value;
-                                  const price = value === '' ? 0 : parseFloat(value);
-                                  if (isNaN(price) || price < 0) {
-                                    setEditedItems(prev => 
-                                      prev.map((i, idx) => 
-                                        idx === index ? { 
-                                          ...i, 
-                                          offer_price: 0,
-                                          price: 0 
-                                        } : i
-                                      )
-                                    );
-                                  }
-                                }}
-                                onFocus={(e) => e.target.select()}
-                                className="w-24 h-8 text-right"
-                              />
-                            ) : (
-                              <>{currency?.symbol || ''} {item.offer_price || item.price}</>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {editMode ? (
-                              <Input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  // Allow empty or any positive number during typing
-                                  if (value === '') {
-                                    setEditedItems(prev => 
-                                      prev.map((i, idx) => 
-                                        idx === index ? { ...i, quantity: '' as any } : i
-                                      )
-                                    );
-                                  } else {
-                                    const newQuantity = parseInt(value);
-                                    if (!isNaN(newQuantity) && newQuantity >= 0) {
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="w-24 h-8 text-right"
+                                />
+                              ) : (
+                                <span className="text-sm">{currency?.symbol || ''} {item.offer_price || item.price}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {editMode ? (
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '') {
                                       setEditedItems(prev => 
                                         prev.map((i, idx) => 
-                                          idx === index ? { ...i, quantity: newQuantity } : i
+                                          idx === index ? { ...i, quantity: '' as any } : i
                                         )
                                       );
+                                    } else {
+                                      const newQuantity = parseInt(value);
+                                      if (!isNaN(newQuantity) && newQuantity >= 0) {
+                                        setEditedItems(prev => 
+                                          prev.map((i, idx) => 
+                                            idx === index ? { ...i, quantity: newQuantity } : i
+                                          )
+                                        );
+                                      }
                                     }
-                                  }
-                                }}
-                                onBlur={(e) => {
-                                  const value = e.target.value;
-                                  const quantity = value === '' ? 1 : parseInt(value);
-                                  if (isNaN(quantity) || quantity < 1) {
-                                    setEditedItems(prev => 
-                                      prev.map((i, idx) => 
-                                        idx === index ? { ...i, quantity: 1 } : i
-                                      )
-                                    );
-                                  } else {
-                                    setEditedItems(prev => 
-                                      prev.map((i, idx) => 
-                                        idx === index ? { ...i, quantity: quantity } : i
-                                      )
-                                    );
-                                  }
-                                }}
-                                onFocus={(e) => e.target.select()}
-                                className="w-20 h-8 text-center"
-                              />
-                            ) : (
-                              <Badge variant="outline">{item.quantity}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {currency?.symbol || ''} {(item.offer_price || item.price) * item.quantity}
-                          </TableCell>
-                          {editMode && (
-                            <TableCell className="text-center">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (editedItems.length <= 1) {
-                                    toast({
-                                      title: "Cannot remove item",
-                                      description: "Order must have at least one item",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                  setEditedItems(prev => prev.filter((_, idx) => idx !== index));
-                                }}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="w-20 h-8 text-center mx-auto"
+                                />
+                              ) : (
+                                <Badge variant="outline">{item.quantity}</Badge>
+                              )}
                             </TableCell>
+                            <TableCell className="text-right font-semibold text-sm">
+                              {currency?.symbol || ''} {((item.offer_price || item.price) * item.quantity).toFixed(2)}
+                            </TableCell>
+                            {editMode && (
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (editedItems.length <= 1) {
+                                      toast({
+                                        title: "Cannot remove item",
+                                        description: "Order must have at least one item",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+                                    setEditedItems(prev => prev.filter((_, idx) => idx !== index));
+                                  }}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile view for items */}
+                  <div className="sm:hidden divide-y">
+                    {(editMode ? editedItems : selectedOrder.items).map((item, index) => (
+                      <div key={item._id} className="p-3 space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="font-medium text-sm leading-tight flex-1">{item.title}</p>
+                          {editMode && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (editedItems.length <= 1) {
+                                  toast({
+                                    title: "Cannot remove item",
+                                    description: "Order must have at least one item",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                setEditedItems(prev => prev.filter((_, idx) => idx !== index));
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
                           )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.product_code || 'No code'}</p>
+                        <div className="flex justify-between items-end gap-2">
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">Price × Qty</p>
+                            {editMode ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  value={item.offer_price || item.price || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditedItems(prev => prev.map((i, idx) => 
+                                      idx === index ? { ...i, offer_price: val === '' ? 0 : parseFloat(val), price: val === '' ? 0 : parseFloat(val) } : i
+                                    ));
+                                  }}
+                                  className="w-20 h-8 text-xs"
+                                />
+                                <span className="text-xs">×</span>
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditedItems(prev => prev.map((i, idx) => 
+                                      idx === index ? { ...i, quantity: val === '' ? 1 : parseInt(val) } : i
+                                    ));
+                                  }}
+                                  className="w-14 h-8 text-xs text-center"
+                                />
+                              </div>
+                            ) : (
+                              <p className="text-sm">
+                                {currency?.symbol || ''} {item.offer_price || item.price} × {item.quantity}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="font-bold text-sm">
+                              {currency?.symbol || ''} {((item.offer_price || item.price) * item.quantity).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1770,7 +1881,7 @@ export default function Orders() {
 
       {/* Create Order Dialog */}
       <Dialog open={createOrderDialogOpen} onOpenChange={setCreateOrderDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Create New Order</DialogTitle>
             <DialogDescription>
@@ -1875,52 +1986,92 @@ export default function Orders() {
             {newOrderItems.length > 0 && (
               <div className="space-y-4">
                 <h3 className="font-semibold">Order Items ({newOrderItems.length})</h3>
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {newOrderItems.map((item) => (
-                        <TableRow key={item.product_id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{item.title}</p>
-                              {item.product_code && (
-                                <p className="text-sm text-gray-500">Code: {item.product_code}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{currency?.symbol || ''} {item.price.toFixed(2)}</TableCell>
-                          <TableCell>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {newOrderItems.map((item) => (
+                          <TableRow key={item.product_id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{item.title}</p>
+                                {item.product_code && (
+                                  <p className="text-sm text-gray-500">Code: {item.product_code}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{currency?.symbol || ''} {item.price.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => handleUpdateNewOrderItemQuantity(item.product_id, parseInt(e.target.value))}
+                                className="w-20"
+                              />
+                            </TableCell>
+                            <TableCell>{currency?.symbol || ''} {(item.price * item.quantity).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveProductFromNewOrder(item.product_id)}
+                              >
+                                <X className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {/* Mobile Mobile for new items */}
+                  <div className="sm:hidden divide-y">
+                    {newOrderItems.map((item) => (
+                      <div key={item.product_id} className="p-3 space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <p className="font-medium text-sm">{item.title}</p>
+                            {item.product_code && <p className="text-xs text-muted-foreground">Code: {item.product_code}</p>}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveProductFromNewOrder(item.product_id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                        <div className="flex justify-between items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Qty:</span>
                             <Input
                               type="number"
                               min="1"
                               value={item.quantity}
                               onChange={(e) => handleUpdateNewOrderItemQuantity(item.product_id, parseInt(e.target.value))}
-                              className="w-20"
+                              className="w-16 h-8 text-sm"
                             />
-                          </TableCell>
-                          <TableCell>{currency?.symbol || ''} {(item.price * item.quantity).toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveProductFromNewOrder(item.product_id)}
-                            >
-                              <X className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="font-bold text-sm">{currency?.symbol || ''} {(item.price * item.quantity).toFixed(2)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -1928,7 +2079,7 @@ export default function Orders() {
             {/* Order Details */}
             <div className="space-y-4">
               <h3 className="font-semibold">Order Details</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="shipping_charge">Shipping Charge</Label>
                   <Input
@@ -1998,7 +2149,7 @@ export default function Orders() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button
                 variant="outline"
                 onClick={() => setCreateOrderDialogOpen(false)}
