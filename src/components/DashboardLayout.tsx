@@ -227,7 +227,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               onClick={() => setSidebarOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold">Zapcart</h1>
+            <h1 className="text-lg font-semibold">ZapGoCart</h1>
           </div>
           <div className="flex items-center gap-2">
             <ConnectionStatus showReconnectButton={false} />

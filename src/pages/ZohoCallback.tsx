@@ -130,7 +130,7 @@ const ZohoCallback = () => {
                   <ol className="text-sm space-y-2 list-decimal list-inside">
                     <li>Go to Zoho Accounts Security page</li>
                     <li>Click on "Connected Apps" tab</li>
-                    <li>Find "ZapCart" in the list</li>
+                    <li>Find "ZapGoCart" in the list</li>
                     <li>Click "Revoke" to remove the app</li>
                     <li>Return here and click "Connect" again</li>
                   </ol>
