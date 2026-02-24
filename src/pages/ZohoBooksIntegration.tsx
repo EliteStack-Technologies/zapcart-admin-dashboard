@@ -181,7 +181,7 @@ const ZohoBooksIntegration = () => {
           errorMessage.includes("refresh token")) {
         toast({
           title: "Authorization Issue",
-          description: "Please revoke the app access in Zoho and reconnect. Go to: Zoho Accounts → Security → Connected Apps → Find 'ZapCart' → Click Revoke → Then reconnect here.",
+          description: "Please revoke the app access in Zoho and reconnect. Go to: Zoho Accounts → Security → Connected Apps → Find 'ZapGoCart' → Click Revoke → Then reconnect here.",
           variant: "destructive",
         });
         // Also open the Zoho security page

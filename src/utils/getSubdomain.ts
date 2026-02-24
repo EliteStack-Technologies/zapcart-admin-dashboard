@@ -6,7 +6,7 @@ export function getSubdomain() {
   // Localhost fallback
   if (host.includes("localhost")) return "abc";
 
-  const parts = host.split("."); // admin.zapcart.zapelite.com
+  const parts = host.split("."); // admin.ZapGoCart.zapelite.com
 
   // Always return second subdomain
   return parts.length > 2 ? parts[1] : "abc";
