@@ -88,27 +88,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   
   return (
     <div className="flex h-screen bg-background">
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - Collapsible on desktop */}
+      {/* Sidebar - Desktop Only */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50
+        fixed inset-y-0 left-0 z-50 hidden lg:flex flex-col
         ${sidebarCollapsed ? 'w-20' : 'w-64'} h-screen bg-sidebar border-r border-sidebar-border
-        transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0
+        transition-all duration-300 ease-in-out
       `}>
         <div className={`flex flex-col h-full ${sidebarCollapsed ? 'p-2' : 'p-6'}`}>
           <div className={`flex items-center justify-between mb-8 ${sidebarCollapsed ? 'flex-col gap-2' : ''}`}>
             <div className={sidebarCollapsed ? 'flex flex-col items-center' : ''}>
               <h1 className={sidebarCollapsed ? "text-xl font-bold text-sidebar-foreground" : "text-2xl font-bold text-sidebar-foreground"}>
-             {sidebarCollapsed ? "" :"ZapGoCart"}   
+              {sidebarCollapsed ? "" :"ZapGoCart"}   
               </h1>
               {!sidebarCollapsed && (
                 <p className="text-sm text-sidebar-foreground/60 mt-1">Management Dashboard</p>
@@ -118,7 +108,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:inline-flex bg-white"
+              className="bg-white"
               onClick={() => {
                 setSidebarCollapsed((prev) => {
                   localStorage.setItem('sidebarCollapsed', (!prev).toString());
@@ -129,15 +119,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             >
               {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
             </Button>
-            {/* Mobile close button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="w-5 h-5" />
-            </Button>
           </div>
 
           <nav className="space-y-1 flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 scrollbar-custom scroll-smooth">
@@ -147,12 +128,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   to={item.to}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
                   activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
-                  onClick={() => {
-                    // Only close sidebar on mobile (when sidebarOpen is true)
-                    // Do NOT change collapsed state on desktop
-                    if (sidebarOpen) setSidebarOpen(false);
-                    // No action for sidebarCollapsed here
-                  }}
                 >
                   <item.icon className="w-5 h-5" />
                   {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
@@ -187,9 +162,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                             to={subItem.to}
                             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors text-sm"
                             activeClassName="bg-sidebar-accent/70 text-sidebar-accent-foreground"
-                            onClick={() => {
-                              if (sidebarOpen) setSidebarOpen(false);
-                            }}
                           >
                             <subItem.icon className="w-4 h-4" />
                             <span className="font-medium">{subItem.label}</span>
@@ -203,8 +175,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             ))}
           </nav>
 
-          {/* User Info and Logout */}
-          <div className={`pt-4 border-t border-sidebar-border space-y-3 ${sidebarCollapsed ? 'px-0' : 'px-3'}`}>
+          {/* Logout */}
+          <div className={`pt-4 border-t border-sidebar-border ${sidebarCollapsed ? 'px-0' : 'px-3'}`}>
             <Button
               variant="outline"
               className={`w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 ${sidebarCollapsed ? 'px-0 flex justify-center' : ''}`}
@@ -218,30 +190,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 overflow-auto h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+      <main className={`flex-1 flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300`}>
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 bg-background border-b px-4 py-3 flex items-center justify-between">
+        <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
+          <h1 className="text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">ZapGoCart</h1>
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}>
-              <Menu className="w-5 h-5" />
-            </Button>
-            <h1 className="text-lg font-semibold">ZapGoCart</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* <NotifyButton variant="ghost" size="sm" /> */}
             <NotificationBell />
           </div>
         </div>
 
         {/* Desktop Header */}
-        <div className="hidden lg:block sticky top-0 z-30 bg-background border-b px-6 py-4">
+        <div className="hidden lg:block sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome back, {user?.name || 'Admin'}</p>
+              <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground font-medium">Welcome back, {user?.name || 'Admin'}</p>
             </div>
             <div className="flex items-center gap-4">
               <NotificationBell />
@@ -249,12 +212,50 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
         
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8">
           {children}
         </div>
+
+        {/* Mobile Bottom Navigation - Floating Dock */}
+        <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-sm">
+          <div className="bg-background/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex items-center justify-around p-2 py-3 ring-1 ring-black/5">
+            <NavLink
+              to="/orders"
+              className="group flex flex-col items-center gap-1.5 p-2 px-4 rounded-xl text-muted-foreground transition-all duration-300 hover:text-primary"
+              activeClassName="text-primary bg-primary/10 shadow-[inset_0_0_0_1px_rgba(var(--primary),0.1)]"
+            >
+              <ShoppingCart className="w-6 h-6 transition-transform group-active:scale-90" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Orders</span>
+            </NavLink>
+
+            <div className="w-[1px] h-8 bg-border/50" />
+
+            <NavLink
+              to="/customers"
+              className="group flex flex-col items-center gap-1.5 p-2 px-4 rounded-xl text-muted-foreground transition-all duration-300 hover:text-primary"
+              activeClassName="text-primary bg-primary/10 shadow-[inset_0_0_0_1px_rgba(var(--primary),0.1)]"
+            >
+              <Users className="w-6 h-6 transition-transform group-active:scale-90" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Customers</span>
+            </NavLink>
+
+            <div className="w-[1px] h-8 bg-border/50" />
+
+            <button
+              onClick={handleLogout}
+              className="group flex flex-col items-center gap-1.5 p-2 px-4 rounded-xl text-red-500/80 transition-all duration-300 hover:text-red-600 active:bg-red-50"
+            >
+              <LogOut className="w-6 h-6 transition-transform group-active:scale-90" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
+            </button>
+          </div>
+        </nav>
       </main>
     </div>
   );
 };
 
+
 export default DashboardLayout;
+
+

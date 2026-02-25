@@ -149,5 +149,11 @@ All colors MUST be HSL.
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--sidebar-accent)) transparent;
   }
+
+  /* Safe Area for Mobile Home Indicators */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
+
 
