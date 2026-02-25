@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
-import { NotificationData, NotificationSettings, ConnectionStatus, NotificationState } from '@/types/notifications';
+import { NotificationData, NotificationSettings, NotificationState } from '@/types/notifications';
 import { NotificationStorageService } from '@/services/notificationStorage';
-import socketService from '@/services/socketService';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,44 +9,32 @@ import { useProfile } from '@/contexts/ProfileContext';
 import { RestaurantNotificationPopup } from '@/components/RestaurantNotificationPopup';
 
 interface NotificationContextType extends NotificationState {
-  // Actions
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   clearAllNotifications: () => void;
   updateSettings: (settings: Partial<NotificationSettings>) => void;
-  sendTestNotification: () => void;
-  
-  // WebSocket actions
-  connectWebSocket: () => void;
-  disconnectWebSocket: () => void;
-  reconnectWebSocket: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 interface NotificationProviderProps {
   children: ReactNode;
-  serverUrl?: string;
   onNavigate?: (path: string) => void;
 }
 
-export function NotificationProvider({ children, serverUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000', onNavigate }: NotificationProviderProps) {
+export function NotificationProvider({ children, onNavigate }: NotificationProviderProps) {
   const { toast } = useToast();
   const { isRestaurant, isAuthenticated, isLoading } = useAuth();
   const { profile } = useProfile();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [settings, setSettings] = useState<NotificationSettings>(NotificationStorageService.getSettings());
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
-    connected: false,
-    reconnectAttempts: 0,
-  });
+
   // Store multiple popups for restaurants
   const [restaurantPopupNotifications, setRestaurantPopupNotifications] = useState<NotificationData[]>([]);
 
   // Track if audio has been enabled by user interaction
   const audioEnabledRef = useRef<boolean>(false);
   const audioPromptShownRef = useRef<boolean>(false);
-  const [showAudioPopup, setShowAudioPopup] = useState(false);
 
   // Simple audio enablement check
   const checkAndEnableAudio = useCallback(async () => {
@@ -55,9 +42,8 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
       return true;
     }
     try {
-      // Create a simple audio element with very short beep
       const audio = new Audio('data:audio/wav;base64,UklGRn4AAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YWoAAAC8tbNJtTm1c7SaupC1M7WTs4Cqp7pjqHCqi6h+qZqrqayiqJWrkKeGrKeroq2qraKpWa3Ir7yxrqsAAAAAAAE=');
-      audio.volume = 0.01; // Very quiet
+      audio.volume = 0.01;
       const playPromise = audio.play();
       if (playPromise instanceof Promise) {
         await playPromise;
@@ -67,10 +53,8 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
       audioEnabledRef.current = true;
       return true;
     } catch (error) {
-      // If we can't play audio and haven't shown the prompt yet
       if (!audioPromptShownRef.current) {
         audioPromptShownRef.current = true;
-        setShowAudioPopup(true);
       }
       return false;
     }
@@ -103,13 +87,12 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
     };
   }, [checkAndEnableAudio, isAuthenticated, isLoading]);
 
-  // Show audio popup immediately after login (when isAuthenticated transitions to true)
+  // Show audio popup immediately after login
   const prevAuthRef = useRef(isAuthenticated);
   useEffect(() => {
     if (!prevAuthRef.current && isAuthenticated && !isLoading) {
       audioEnabledRef.current = false;
       audioPromptShownRef.current = false;
-      setShowAudioPopup(true);
     }
     prevAuthRef.current = isAuthenticated;
   }, [isAuthenticated, isLoading]);
@@ -117,29 +100,24 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
   // Play notification sound
   const playNotificationSound = useCallback(async () => {
     if (!settings.soundEnabled) return;
-    
-    // Ensure audio is enabled first
+
     const audioEnabled = await checkAndEnableAudio();
     if (!audioEnabled) return;
-    
+
     try {
-      // Create fresh audio context each time to ensure it works
       let audioContext: AudioContext;
-      
+
       try {
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        
-        // If audio context is suspended, try to resume it
+
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
-        
-        // If still suspended after resume attempt, fail gracefully
+
         if (audioContext.state === 'suspended') {
           audioContext.close().catch(() => {});
           return;
         }
-        
       } catch (error) {
         console.warn('Could not create or resume audio context:', error);
         return;
@@ -147,52 +125,23 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
 
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
-      // Different sound types with different frequencies and patterns
+
       const soundConfigs = {
-        beep: {
-          frequency: 800,
-          type: 'sine' as OscillatorType,
-          pattern: [{ freq: 800, time: 0 }]
-        },
-        chime: {
-          frequency: 800,
-          type: 'sine' as OscillatorType,
-          pattern: [
-            { freq: 800, time: 0 },
-            { freq: 1000, time: 0.1 },
-            { freq: 600, time: 0.2 }
-          ]
-        },
-        bell: {
-          frequency: 900,
-          type: 'triangle' as OscillatorType,
-          pattern: [{ freq: 900, time: 0 }]
-        },
-        ding: {
-          frequency: 1200,
-          type: 'sine' as OscillatorType,
-          pattern: [
-            { freq: 1200, time: 0 },
-            { freq: 800, time: 0.05 }
-          ]
-        },
-        pop: {
-          frequency: 600,
-          type: 'square' as OscillatorType,
-          pattern: [{ freq: 600, time: 0 }]
-        }
+        beep:  { frequency: 800,  type: 'sine'     as OscillatorType, pattern: [{ freq: 800,  time: 0 }] },
+        chime: { frequency: 800,  type: 'sine'     as OscillatorType, pattern: [{ freq: 800, time: 0 }, { freq: 1000, time: 0.1 }, { freq: 600, time: 0.2 }] },
+        bell:  { frequency: 900,  type: 'triangle' as OscillatorType, pattern: [{ freq: 900,  time: 0 }] },
+        ding:  { frequency: 1200, type: 'sine'     as OscillatorType, pattern: [{ freq: 1200, time: 0 }, { freq: 800, time: 0.05 }] },
+        pop:   { frequency: 600,  type: 'square'   as OscillatorType, pattern: [{ freq: 600,  time: 0 }] },
       };
 
       const config = soundConfigs[settings.soundType] || soundConfigs.chime;
       oscillator.type = config.type;
-      
-      const duration = settings.soundDuration / 1000; // Convert ms to seconds
-      
-      // Apply frequency pattern
+
+      const duration = settings.soundDuration / 1000;
+
       config.pattern.forEach((step, index) => {
         const time = audioContext.currentTime + step.time;
         if (index === 0) {
@@ -201,42 +150,35 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
           oscillator.frequency.exponentialRampToValueAtTime(step.freq, time);
         }
       });
-      
-      // Volume envelope
+
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
       gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-      
+
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + duration);
-      
-      // Close audio context after sound plays to clean up
+
       setTimeout(() => {
         audioContext.close().catch(() => {});
       }, (duration + 0.1) * 1000);
-      
     } catch (error) {
       console.warn('Could not play notification sound:', error);
     }
   }, [settings.soundEnabled, settings.soundType, settings.soundDuration, checkAndEnableAudio]);
 
-  // Handle new notifications
+  // Handle new notifications (called externally, e.g. from FCM foreground handler if wired up)
   const handleNewNotification = useCallback((notification: NotificationData) => {
-    // Add to storage and state
     const updatedNotifications = NotificationStorageService.addNotification(notification);
     setNotifications(updatedNotifications);
 
-    // Show restaurant popup for restaurant businesses (multiple popups)
     if (isRestaurant && (notification.type === 'NEW_ORDER' || notification.type === 'NEW_ENQUIRY')) {
       setRestaurantPopupNotifications(prev => [...prev, notification]);
     }
 
-    // Play sound
     if (settings.soundEnabled) {
       playNotificationSound();
     }
 
-    // Show toast notification
     if (settings.showToast) {
       toast({
         title: notification.data.title,
@@ -245,87 +187,6 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
       });
     }
   }, [settings, playNotificationSound, toast, isRestaurant]);
-
-  // Handle connection status changes
-  const handleConnectionStatus = useCallback(() => {
-    const isConnected = socketService.getConnectionStatus();
-    setConnectionStatus(prev => ({
-      ...prev,
-      connected: isConnected,
-      reconnectAttempts: 0, // Reset attempts since we're using simplified service
-      lastConnected: isConnected ? new Date() : prev.lastConnected,
-    }));
-  }, []);
-
-  // Setup WebSocket connection
-  const connectWebSocket = useCallback(() => {
-    socketService.onNotification('notification-context', handleNewNotification);
-    socketService.onConnectionStatusChange(handleConnectionStatus);
-    socketService.connect();
-    
-    // Authenticate with client ID after connection
-    const clientId = profile?._id;
-    if (clientId) {
-      // Add a small delay to ensure connection is established
-      setTimeout(() => {
-        socketService.authenticate(clientId);
-      }, 1000);
-    }
-    
-    handleConnectionStatus();
-  }, [handleNewNotification, handleConnectionStatus, profile?._id]);
-
-  const disconnectWebSocket = useCallback(() => {
-    socketService.offNotification('notification-context');
-    socketService.disconnect();
-    handleConnectionStatus();
-  }, [handleConnectionStatus]);
-
-  const reconnectWebSocket = useCallback(() => {
-    socketService.reconnect();
-    handleConnectionStatus();
-  }, [handleConnectionStatus]);
-
-  // Authenticate when profile becomes available or socket connects
-  useEffect(() => {
-    const clientId = profile?._id;
-    const isSocketConnected = socketService.getConnectionStatus();
-    
-    if (clientId && isSocketConnected) {
-      // Add a small delay to ensure socket is fully ready
-      setTimeout(() => {
-        socketService.authenticate(clientId);
-      }, 500);
-    }
-  }, [profile?._id, connectionStatus.connected]); // React to both profile and connection changes
-
-  // Connect on mount and cleanup on unmount
-  useEffect(() => {
-    // Always register the callbacks regardless of connection status
-    socketService.onNotification('notification-context', handleNewNotification);
-    socketService.onConnectionStatusChange(handleConnectionStatus);
-    
-    // Connect if not already connected
-    if (!socketService.getConnectionStatus()) {
-      socketService.connect();
-    }
-    
-    // Update status immediately
-    handleConnectionStatus();
-
-    // Cleanup on page unload
-    const handleBeforeUnload = () => {
-      socketService.disconnect();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      socketService.offNotification('notification-context');
-      socketService.offConnectionStatusChange();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [handleNewNotification, handleConnectionStatus]); // Remove dependencies to prevent reconnections
 
   // Actions
   const markAsRead = useCallback((notificationId: string) => {
@@ -349,11 +210,6 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
     NotificationStorageService.saveSettings(updated);
   }, [settings]);
 
-  const sendTestNotification = useCallback(() => {
-    socketService.sendTestNotification();
-  }, []);
-
-  // Remove a popup by id
   const handleCloseRestaurantPopup = useCallback((id: string) => {
     setRestaurantPopupNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
@@ -368,45 +224,17 @@ export function NotificationProvider({ children, serverUrl = import.meta.env.VIT
     notifications,
     unreadCount,
     settings,
-    connectionStatus,
     markAsRead,
     markAllAsRead,
     clearAllNotifications,
     updateSettings,
-    sendTestNotification,
-    connectWebSocket,
-    disconnectWebSocket,
-    reconnectWebSocket,
   };
 
   return (
     <NotificationContext.Provider value={contextValue}>
       {children}
       {/* Audio Enablement Popup */}
-      <Dialog open={showAudioPopup} onOpenChange={setShowAudioPopup}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Enable Audio for Notifications</DialogTitle>
-            <DialogDescription>
-              To hear notification sounds, please enable audio for this site.<br />
-              Click the button below or interact with the page to allow sound playback.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              onClick={async () => {
-                setShowAudioPopup(false);
-                audioPromptShownRef.current = false;
-                await checkAndEnableAudio();
-              }}
-              autoFocus
-            >
-              Enable Now
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+   
       {restaurantPopupNotifications.map((notification, idx) => (
         <React.Fragment key={notification.id}>
           <RestaurantNotificationPopup

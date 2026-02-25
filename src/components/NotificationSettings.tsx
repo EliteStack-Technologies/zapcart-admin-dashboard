@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { TestNotificationButton } from './TestNotificationButton';
+
 import { NotificationSoundType } from '@/types/notifications';
 
 interface NotificationSettingsProps {
@@ -228,7 +228,7 @@ export function NotificationSettings({ open, onOpenChange }: NotificationSetting
             </div>
           )}
 
-   
+
         </div>
 
         <DialogFooter>

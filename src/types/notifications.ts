@@ -31,15 +31,8 @@ export interface NotificationSettings {
   toastDuration: number;
 }
 
-export interface ConnectionStatus {
-  connected: boolean;
-  lastConnected?: Date;
-  reconnectAttempts: number;
-}
-
 export interface NotificationState {
   notifications: NotificationData[];
   unreadCount: number;
   settings: NotificationSettings;
-  connectionStatus: ConnectionStatus;
 }
