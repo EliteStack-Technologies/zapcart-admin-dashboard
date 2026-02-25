@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings } from "lucide-react";
 import { NavLink } from "./NavLink";
@@ -6,7 +6,8 @@ import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { NotificationBell } from "./NotificationBell";
-import { ConnectionStatus } from "./ConnectionStatus";
+import { useFCM, removeFCMTokenOnLogout } from "@/hooks/useFCM";
+import { FCMToastContainer } from "./FCMToastContainer";
 // import { NotifyButton } from "./NotifyButton";
 
 interface DashboardLayoutProps {
@@ -25,9 +26,27 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const stored = localStorage.getItem('inventoryExpanded');
     return stored === 'true';
   });
-  const { logout, user, enquiryMode, inventoryEnabled,zohoEnabled } = useAuth();
+  const [fcmToasts, setFcmToasts] = useState<Array<{ id: string; title: string; body: string; type: string }>>([]);
+  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // FCM foreground message handler → show beautiful toast
+  const handleFCMMessage = useCallback((payload: any) => {
+    const title = payload.notification?.title || payload.data?.title || 'New Notification';
+    const body  = payload.notification?.body  || payload.data?.body  || '';
+    const type  = payload.data?.type || '';
+    const id    = `fcm-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setFcmToasts(prev => [...prev, { id, title, body, type }]);
+  }, []);
+
+  // Dismiss a single FCM toast
+  const dismissFCMToast = useCallback((id: string) => {
+    setFcmToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Initialise FCM foreground listener (token was already registered at login time)
+  useFCM({ onMessage: handleFCMMessage });
 
   // Auto-expand inventory menu when on inventory pages
   useEffect(() => {
@@ -37,7 +56,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   }, [location.pathname]);
   
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Remove FCM token from backend before clearing auth state
+    await removeFCMTokenOnLogout();
     logout();
     navigate("/login");
   };
@@ -230,7 +251,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <h1 className="text-lg font-semibold">ZapGoCart</h1>
           </div>
           <div className="flex items-center gap-2">
-            <ConnectionStatus showReconnectButton={false} />
             {/* <NotifyButton variant="ghost" size="sm" /> */}
             <NotificationBell />
           </div>
@@ -244,7 +264,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <p className="text-sm text-muted-foreground">Welcome back, {user?.name || 'Admin'}</p>
             </div>
             <div className="flex items-center gap-4">
-              <ConnectionStatus />
               {/* <NotifyButton variant="outline" size="sm" /> */}
               <NotificationBell />
             </div>
@@ -255,6 +274,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </div>
       </main>
+
+      {/* FCM Foreground Notification Toasts */}
+      <FCMToastContainer toasts={fcmToasts} onDismiss={dismissFCMToast} />
     </div>
   );
 };

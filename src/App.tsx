@@ -40,10 +40,7 @@ function AppRoutes() {
   const navigate = useNavigate();
 
   return (
-    <NotificationProvider 
-      serverUrl={import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}
-      onNavigate={navigate}
-    >
+    <NotificationProvider onNavigate={navigate}>
       <TooltipProvider>
         <Toaster />
         <Sonner />

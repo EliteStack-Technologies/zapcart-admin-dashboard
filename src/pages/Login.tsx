@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertCircle, Loader2 } from "lucide-react";
 import axiosInstance from "@/services/axiosInstance";
+import { registerFCMOnLogin } from "@/hooks/useFCM";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -121,7 +122,19 @@ const Login = () => {
 
       // Call login function to update AuthContext state
       await login(data.email, data.password);
-      
+
+      // Register device with backend for notifications
+      const clientId =
+        response.data.client?._id ||
+        response.data.client?.id  ||
+        response.data.client?.client_id ||
+        null;
+
+      if (clientId) {
+        // Register real FCM token using the hook
+        registerFCMOnLogin(clientId);
+      }
+
       // Navigate after successful login
       navigate("/");
       
