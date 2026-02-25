@@ -4,10 +4,8 @@ import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { NotificationProvider } from "@/contexts/NotificationContext";
 import { NotificationBell } from "./NotificationBell";
-import { useFCM, removeFCMTokenOnLogout } from "@/hooks/useFCM";
-import { FCMToastContainer } from "./FCMToastContainer";
+import { removeFCMTokenOnLogout } from "@/hooks/useFCM";
 // import { NotifyButton } from "./NotifyButton";
 
 interface DashboardLayoutProps {
@@ -26,27 +24,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const stored = localStorage.getItem('inventoryExpanded');
     return stored === 'true';
   });
-  const [fcmToasts, setFcmToasts] = useState<Array<{ id: string; title: string; body: string; type: string }>>([]);
   const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // FCM foreground message handler → show beautiful toast
-  const handleFCMMessage = useCallback((payload: any) => {
-    const title = payload.notification?.title || payload.data?.title || 'New Notification';
-    const body  = payload.notification?.body  || payload.data?.body  || '';
-    const type  = payload.data?.type || '';
-    const id    = `fcm-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setFcmToasts(prev => [...prev, { id, title, body, type }]);
-  }, []);
-
-  // Dismiss a single FCM toast
-  const dismissFCMToast = useCallback((id: string) => {
-    setFcmToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
-
-  // Initialise FCM foreground listener (token was already registered at login time)
-  useFCM({ onMessage: handleFCMMessage });
 
   // Auto-expand inventory menu when on inventory pages
   useEffect(() => {
@@ -264,7 +244,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <p className="text-sm text-muted-foreground">Welcome back, {user?.name || 'Admin'}</p>
             </div>
             <div className="flex items-center gap-4">
-              {/* <NotifyButton variant="outline" size="sm" /> */}
               <NotificationBell />
             </div>
           </div>
@@ -274,9 +253,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </div>
       </main>
-
-      {/* FCM Foreground Notification Toasts */}
-      <FCMToastContainer toasts={fcmToasts} onDismiss={dismissFCMToast} />
     </div>
   );
 };

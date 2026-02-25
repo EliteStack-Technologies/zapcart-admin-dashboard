@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'admin_notifications',
   SETTINGS: 'notification_settings',
   LAST_READ: 'notifications_last_read',
+  LAST_CLEARED: 'notifications_last_cleared',
 };
 
 const MAX_STORED_NOTIFICATIONS = 50;
@@ -21,7 +22,15 @@ export class NotificationStorageService {
   static getNotifications(): NotificationData[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-      return stored ? JSON.parse(stored) : [];
+      const notifications: NotificationData[] = stored ? JSON.parse(stored) : [];
+      
+      // Filter out notifications that were received before the last "Clear All"
+      const lastCleared = this.getLastClearedAt();
+      if (lastCleared) {
+        return notifications.filter(n => new Date(n.timestamp).getTime() > lastCleared);
+      }
+      
+      return notifications;
     } catch (error) {
       console.error('Error loading notifications from storage:', error);
       return [];
@@ -39,7 +48,18 @@ export class NotificationStorageService {
   }
 
   static addNotification(notification: NotificationData): NotificationData[] {
+    const lastClearedAt = this.getLastClearedAt();
+    if (lastClearedAt && new Date(notification.timestamp).getTime() <= lastClearedAt) {
+      return this.getNotifications();
+    }
+
     const existing = this.getNotifications();
+    
+    // Deduplicate by ID
+    if (existing.some(n => n.id === notification.id)) {
+      return existing;
+    }
+
     const updated = [notification, ...existing];
     this.saveNotifications(updated);
     return updated;
@@ -64,6 +84,12 @@ export class NotificationStorageService {
 
   static clearAllNotifications(): void {
     localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+    localStorage.setItem(STORAGE_KEYS.LAST_CLEARED, new Date().toISOString());
+  }
+
+  static getLastClearedAt(): number | null {
+    const stored = localStorage.getItem(STORAGE_KEYS.LAST_CLEARED);
+    return stored ? new Date(stored).getTime() : null;
   }
 
   static getSettings(): NotificationSettings {
