@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, isSupported } from 'firebase/messaging';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,6 +13,14 @@ const firebaseConfig = {
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore with settings to help bypass some local network blocks
+export const db = getFirestore(app);
+// Optional: Some environments need this if WebSockets are blocked
+// import { initializeFirestore } from 'firebase/firestore';
+// export const db = initializeFirestore(app, {
+//   experimentalForceLongPolling: true,
+// });
 
 // Initialize Firebase Messaging (only if supported by the browser)
 let messaging = null;

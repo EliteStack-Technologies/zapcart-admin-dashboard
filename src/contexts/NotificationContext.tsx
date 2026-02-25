@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { RestaurantNotificationPopup } from '@/components/RestaurantNotificationPopup';
+import { useFCM } from '@/hooks/useFCM';
+import { useLiveNotifications } from '@/hooks/useLiveNotifications';
 
 interface NotificationContextType extends NotificationState {
+  addNotification: (notification: NotificationData) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   clearAllNotifications: () => void;
@@ -35,6 +38,7 @@ export function NotificationProvider({ children, onNavigate }: NotificationProvi
   // Track if audio has been enabled by user interaction
   const audioEnabledRef = useRef<boolean>(false);
   const audioPromptShownRef = useRef<boolean>(false);
+  const processedIdsRef = useRef(new Set<string>());
 
   // Simple audio enablement check
   const checkAndEnableAudio = useCallback(async () => {
@@ -166,12 +170,67 @@ export function NotificationProvider({ children, onNavigate }: NotificationProvi
     }
   }, [settings.soundEnabled, settings.soundType, settings.soundDuration, checkAndEnableAudio]);
 
+  // FCM / Firestore message handler → Add to global notification state
+  const handleIncomingNotification = useCallback((payload: any) => {
+    // Deduplicate at the earliest stage
+    if (payload.id && processedIdsRef.current.has(payload.id)) {
+      return;
+    }
+    if (payload.id) {
+      processedIdsRef.current.add(payload.id);
+    }
+
+    // Handle both FCM (payload.notification) and internal (payload.title/body) formats
+    const title = payload.notification?.title || payload.title || payload.data?.title || 'New Notification';
+    const body  = payload.notification?.body  || payload.body  || payload.data?.body  || '';
+    const type  = payload.data?.type || 'CUSTOM';
+    const isQuiet = payload.isQuiet === true;
+    const timestamp = payload.timestamp || new Date().toISOString();
+    const id = payload.id || `live-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    
+    handleNewNotification({
+      id,
+      type: type as any,
+      timestamp,
+      read: false,
+      quiet: isQuiet,
+      data: {
+        title,
+        message: body,
+        ...payload.data
+      },
+    });
+  }, []);
+
+  // ─── Real-Time Notifications Listeners ──────────────────────────────────────
+  
+  // 1. FCM listener (Native Push / Background fallback)
+  useFCM({ onMessage: handleIncomingNotification });
+
+  // 2. Firestore listener (Instant Live Updates - Guaranteed to work)
+  const auth = useAuth();
+  useLiveNotifications({ 
+    onMessage: handleIncomingNotification,
+    clientId: isAuthenticated ? (profile?._id || auth.user?.id) : undefined
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   // Handle new notifications (called externally, e.g. from FCM foreground handler if wired up)
   const handleNewNotification = useCallback((notification: NotificationData) => {
     const updatedNotifications = NotificationStorageService.addNotification(notification);
-    setNotifications(updatedNotifications);
+    
+    // Check if the notification was actually added (it might have been filtered out if older than lastCleared)
+    const wasAdded = updatedNotifications.some(n => n.id === notification.id);
+    if (wasAdded) {
+      setNotifications(updatedNotifications);
+    }
+
+    // Only skip if quiet is explicitly true OR it was filtered out by storage
+    if (notification.quiet || !wasAdded) return;
 
     if (isRestaurant && (notification.type === 'NEW_ORDER' || notification.type === 'NEW_ENQUIRY')) {
+      // For restaurants, show the dedicated big popup
       setRestaurantPopupNotifications(prev => [...prev, notification]);
     }
 
@@ -182,11 +241,11 @@ export function NotificationProvider({ children, onNavigate }: NotificationProvi
     if (settings.showToast) {
       toast({
         title: notification.data.title,
-        description: notification.data.message,
+        description: notification.data.message || 'New update received.',
         duration: settings.autoHideToast ? settings.toastDuration : undefined,
       });
     }
-  }, [settings, playNotificationSound, toast, isRestaurant]);
+  }, [settings, playNotificationSound, toast]);
 
   // Actions
   const markAsRead = useCallback((notificationId: string) => {
@@ -224,6 +283,7 @@ export function NotificationProvider({ children, onNavigate }: NotificationProvi
     notifications,
     unreadCount,
     settings,
+    addNotification: handleNewNotification,
     markAsRead,
     markAllAsRead,
     clearAllNotifications,

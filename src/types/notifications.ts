@@ -20,6 +20,7 @@ export interface NotificationData {
   timestamp: string;
   id: string;
   read?: boolean;
+  quiet?: boolean;
 }
 
 export interface NotificationSettings {

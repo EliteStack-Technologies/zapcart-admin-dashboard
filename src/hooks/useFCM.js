@@ -59,7 +59,6 @@ async function removeTokenFromBackend(token) {
 export async function registerFCMOnLogin(clientId) {
   if (!clientId) return;
 
-  console.log('[FCM] Starting registration for client:', clientId);
   try {
     // ── Clean up any stale fake tokens (web-xxxx) from old sessions ───────────
     // ── Clean up any stale fake tokens (web-xxxx or device-xxxx) from old sessions ──
@@ -83,7 +82,6 @@ export async function registerFCMOnLogin(clientId) {
     }
 
     const permission = await Notification.requestPermission();
-    console.log('[FCM] Notification permission state:', permission);
     if (permission !== 'granted') {
       console.warn('[FCM] Notification permission not granted.');
       return;
@@ -103,30 +101,13 @@ export async function registerFCMOnLogin(clientId) {
 
     let token = null;
     try {
-      console.log('[FCM] Environment check:', {
-        isSecure: window.isSecureContext,
-        hostname: window.location.hostname,
-        protocol: window.location.protocol
-      });
-
       if (window.location.hostname !== 'localhost' && window.location.protocol !== 'https:') {
         console.error('[FCM] Push Service requires HTTPS or localhost. Current:', window.location.origin);
         return;
       }
 
-      console.log('[FCM] Cleaning up potentially conflicting Service Workers...');
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (const reg of regs) {
-        if (reg.active?.scriptURL.includes('firebase-messaging-sw')) {
-          console.log('[FCM] Unregistering existing Firebase SW to force fresh start...');
-          await reg.unregister();
-        }
-      }
-
-      console.log('[FCM] Registering fresh Service Worker...');
       const swReg = await navigator.serviceWorker.register(swUrl);
       
-      console.log('[FCM] Waiting for worker activation...');
       // Wait for it to become active
       await new Promise((resolve) => {
         if (swReg.active) return resolve();
@@ -141,11 +122,7 @@ export async function registerFCMOnLogin(clientId) {
         setTimeout(resolve, 4000); // Don't wait more than 4s
       });
       
-      console.log('[FCM] Service Worker is active. Requesting token...');
-      console.log('[FCM] VAPID Key used:', vapidKey ? (vapidKey.slice(0, 15) + '...') : 'NULL');
-
       // getToken with a 15s timeout — it can hang if push service is unreachable
-      console.log('[FCM] Requesting token with 15s timeout...');
       token = await Promise.race([
         getToken(messaging, { vapidKey, serviceWorkerRegistration: swReg }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase getToken timed out (15s)')), 15000)),
@@ -160,21 +137,8 @@ export async function registerFCMOnLogin(clientId) {
       return;
     }
 
-    console.log('[FCM] Success! Real token obtained:', token.slice(0, 30) + '...');
-
-    // ── Register with backend ─────────────────────────────────────────────────
-    const alreadyRegisteredToken = localStorage.getItem(FCM_TOKEN_KEY);
-    if (token === alreadyRegisteredToken) {
-      console.log('[FCM] This token is already registered locally, skipping API call.');
-      return;
-    }
-
-    console.log('[FCM] Registering token with backend...');
     const result = await registerTokenWithBackend(clientId, token);
-    console.log('[FCM] Backend registration result:', result);
-    
     localStorage.setItem(FCM_TOKEN_KEY, token);
-    console.log('[FCM] Everything done! Dashboard will now receive notifications.');
 
   } catch (err) {
     console.error('[FCM] registerFCMOnLogin error:', err);
