@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil, FileSpreadsheet } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import AddProductDialog from "@/components/AddProductDialog";
+import ExcelUploadDialog from "@/components/ExcelUploadDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { getProduct, deleteProduct, changeStatus, updateProduct, updatePriceVisibility } from "@/services/product";
@@ -48,6 +49,7 @@ import { getOfferTags } from "@/services/offersTags";
 const Products = () => {
   const { toast } = useToast();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [excelUploadOpen, setExcelUploadOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingPrice, setEditingPrice] = useState<{ productId: string; field: 'actual' | 'offer' } | null>(null);
   const [tempPrice, setTempPrice] = useState("");
@@ -56,6 +58,7 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<{
     _id: string;
     title: string;
+    description?: string;
     product_code?: string;
     actual_price: number;
     offer_price: number | null;
@@ -67,6 +70,7 @@ const Products = () => {
     offer_id?: string | { _id: string; name: string };
     category_id?: { _id: string; name: string };
     status?: string;
+    variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean; _id?: string; variant_sku?: string }>;
   } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [products, setProducts] = useState([]);
@@ -288,10 +292,16 @@ const Products = () => {
               Manage your product inventory and pricing
             </p>
           </div>
-          <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Add Product
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setExcelUploadOpen(true)}>
+              <FileSpreadsheet className="w-4 h-4" />
+              Upload Excel
+            </Button>
+            <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Add Product
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filter */}
@@ -756,6 +766,21 @@ const Products = () => {
           open={addDialogOpen}
           onOpenChange={setAddDialogOpen}
           setProducts={setProducts}
+        />
+        <ExcelUploadDialog
+          open={excelUploadOpen}
+          onOpenChange={setExcelUploadOpen}
+          onUploadSuccess={async () => {
+            const filters = {
+              category_id: categoryFilter,
+              offer_id: offerFilter,
+              status: statusFilter,
+            };
+            const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
+            setProducts(Array.isArray(data?.products) ? data?.products : []);
+            setTotalPages(data?.totalPages || 1);
+            setTotalProducts(data?.total || 0);
+          }}
         />
         <AddProductDialog
           open={editDialogOpen}

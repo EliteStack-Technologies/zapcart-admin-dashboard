@@ -199,3 +199,26 @@ export const updatePriceVisibility = async (productId: string) => {
     throw new Error(errorMessage);
   }
 };
+
+export const uploadProductsExcel = async (formData: FormData) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/v1/products/upload-excel",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while uploading products from Excel";
+
+    console.error("Error uploading products from Excel:", errorMessage);
+    throw new Error(errorMessage);
+  }
+};
