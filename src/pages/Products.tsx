@@ -303,7 +303,6 @@ const Products = () => {
             </Button>
           </div>
         </div>
-
         {/* Search and Filter */}
         <Card>
           <CardContent className="p-6">
