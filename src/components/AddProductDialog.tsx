@@ -76,7 +76,7 @@ const AddProductDialog = ({
   const [loadingImages, setLoadingImages] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string>("");
   const [unitType, setUnitType] = useState<string>(
-    editingProduct?.unit_type || "Nos"
+    editingProduct?.unit_type || "Pcs"
   );
   const [offers, setOffers] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -206,7 +206,7 @@ const AddProductDialog = ({
       setEndDate(undefined);
       setSelectedImage(null);
       setImagePreview(null);
-      setUnitType("Nos");
+      setUnitType("Pcs");
       setSelectedOfferId("");
       setSelectedCategoryId("");
       setSelectedSectionId("");
@@ -568,6 +568,7 @@ const AddProductDialog = ({
                   <SelectContent>
                     <SelectItem value="Nos">Nos</SelectItem>
                     <SelectItem value="Kg">Kg</SelectItem>
+                    <SelectItem value="Pcs">Pcs</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -345,8 +345,9 @@ export default function Customers() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-1 sm:space-y-6 sm:p-6">
+        {/* Desktop header */}
+        <div className="hidden sm:flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Customer Management</h1>
           <Button onClick={() => {
             setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "", company_name: "", whatsapp_number: "" });
@@ -357,7 +358,29 @@ export default function Customers() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Mobile: compact search + add button */}
+        <div className="flex items-center gap-1.5 sm:hidden">
+          <Input
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 h-7 text-xs"
+          />
+          <Button 
+            onClick={() => {
+              setFormData({ name: "", phone: "", email: "", street_address: "", region: "", country: "", contact_person: "", contact_mobile: "", address: "", company_name: "", whatsapp_number: "" });
+              setAddDialogOpen(true);
+            }}
+            className="h-7 px-2 text-[10px] gap-1 shrink-0"
+            size="sm"
+          >
+            <UserPlus className="h-3 w-3" />
+            New
+          </Button>
+        </div>
+
+        {/* Desktop search */}
+        <div className="hidden sm:flex items-center gap-4">
           <Input
             placeholder="Search by name, phone, or email..."
             value={searchTerm}
@@ -372,7 +395,8 @@ export default function Customers() {
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
+            {/* Desktop View Table */}
+            <div className="hidden md:block rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -460,6 +484,56 @@ export default function Customers() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile View Cards - Ultra Compact */}
+            <div className="grid grid-cols-1 gap-1.5 md:hidden">
+              {filteredCustomers.length === 0 ? (
+                <div className="text-center py-6 border rounded-lg bg-muted/50 text-muted-foreground text-sm">
+                  No customers found
+                </div>
+              ) : (
+                filteredCustomers.map((customer, index) => (
+                  <div key={customer._id} className="border rounded-lg p-2.5 space-y-1 bg-white shadow-sm active:bg-gray-50 transition-colors" onClick={() => handleViewCustomer(customer._id)}>
+                    {/* Row 1: Name + Source badge */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] text-muted-foreground font-medium">#{(currentPage - 1) * limit + index + 1}</span>
+                        <span className="font-bold text-sm truncate">{customer.name}</span>
+                      </div>
+                      <Badge variant={customer.created_source === "manual" ? "secondary" : "default"} className="text-[9px] px-1.5 py-0 shrink-0">
+                        {customer.created_source}
+                      </Badge>
+                    </div>
+                    
+                    {/* Row 2: Phone + Orders + Spent */}
+                    <div className="flex justify-between items-center text-xs">
+                      <div className="flex items-center gap-1 truncate flex-1 min-w-0">
+                        <span className="text-muted-foreground">{customer.phone}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground shrink-0">{customer.total_orders} orders</span>
+                      </div>
+                      <span className="font-bold text-primary shrink-0 ml-2 text-sm">{currency?.symbol || ""} {customer.total_spent.toFixed(2)}</span>
+                    </div>
+
+                    {/* Row 3: Last order + Actions */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-muted-foreground">Last: {formatDate(customer.last_order_date)}</span>
+                      <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleViewCustomer(customer._id)}>
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditDialog(customer)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openDeleteDialog(customer._id)}>
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {totalCustomers > 0 && (

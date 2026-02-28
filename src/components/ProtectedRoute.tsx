@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
@@ -10,12 +10,23 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/login");
     }
   }, [isLoading, isAuthenticated, navigate]);
+
+  // Redirect mobile users from Dashboard to Orders page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && location.pathname === "/") {
+      const isMobile = window.innerWidth < 764;
+      if (isMobile) {
+        navigate("/orders", { replace: true });
+      }
+    }
+  }, [isLoading, isAuthenticated, location.pathname, navigate]);
 
   if (isLoading) {
     return (

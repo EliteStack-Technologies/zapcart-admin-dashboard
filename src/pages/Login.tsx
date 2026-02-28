@@ -136,7 +136,9 @@ const Login = () => {
       }
 
       // Navigate after successful login
-      navigate("/");
+      // On mobile (< 764px), go directly to Orders page
+      const isMobile = window.innerWidth < 764;
+      navigate(isMobile ? "/orders" : "/");
       
     } catch (err: any) {
       // Handle different error types

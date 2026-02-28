@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus, MessageCircle, Copy } from "lucide-react";
+import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus, MessageCircle, Copy, User, ChevronDown, ChevronUp } from "lucide-react";
 import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
 import { getCustomers, createCustomer, type Customer } from "@/services/customer";
@@ -123,6 +123,11 @@ export default function Orders() {
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+
+  // Customer details in order dialog
+  const [orderCustomerDetails, setOrderCustomerDetails] = useState<Customer | null>(null);
+  const [loadingOrderCustomer, setLoadingOrderCustomer] = useState(false);
+  const [showOrderCustomerDetails, setShowOrderCustomerDetails] = useState(false);
 
   const fetchStatusCounts = async () => {
     try {
@@ -866,7 +871,7 @@ export default function Orders() {
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
   };
 
-  const handleCopyOrderDetails = (order: Order) => {
+  const handleCopyOrderDetails = async (order: Order) => {
     const itemsList = order.items
       .map(
         (item) =>
@@ -874,8 +879,29 @@ export default function Orders() {
       )
       .join("\n");
 
+    // Fetch customer address
+    let addressText = "";
+    try {
+      const data = await getCustomers(1, 10, order.customer_phone);
+      if (data.customers && data.customers.length > 0) {
+        const c = data.customers[0];
+        const addressParts = [
+          c.street_address,
+          c.region,
+          c.country,
+        ].filter(Boolean);
+        if (addressParts.length > 0) {
+          addressText = `Address: ${addressParts.join(", ")}\n`;
+        }
+      }
+    } catch (error) {
+      // Silently continue without address
+    }
+
     const text = `Order Details: ${order.order_number}\n\n` +
       `Customer: ${order.customer_name}\n` +
+      `Phone: ${order.customer_phone}\n` +
+      addressText +
       `Total: ${currency?.symbol || ""}${Number(order.total_amount).toFixed(2)}\n\n` +
       `Items:\n${itemsList}\n\n` +
       `Status: ${order.order_status.charAt(0).toUpperCase() + order.order_status.slice(1)}`;
@@ -924,15 +950,15 @@ export default function Orders() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold">Order Management</h1>
+      <div className="space-y-1 sm:space-y-6 sm:p-6">
+        <div className="hidden sm:flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold">Order Management</h1>
           <Button 
             onClick={() => {
               setCreateOrderDialogOpen(true);
               handleSearchOrderItems();
             }} 
-            className="w-full sm:w-auto gap-2"
+            className="gap-2"
           >
             <Plus className="h-4 w-4" />
             Create Order
@@ -940,20 +966,59 @@ export default function Orders() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex overflow-x-auto justify-start h-auto p-1 bg-muted/50 no-scrollbar">
-          <TabsTrigger value="all" className="relative gap-2 whitespace-nowrap px-4">
-            All Orders
+        {/* Mobile: compact search + filter + new button row */}
+        <div className="flex items-center gap-1.5 sm:hidden mb-1">
+          <Input
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 h-7 text-xs"
+          />
+          <Select
+            value={priorityFilter}
+            onValueChange={(value) => {
+              setPriorityFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[90px] h-7 text-[10px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {PRIORITY_LEVELS.map((priority) => (
+                <SelectItem key={priority.value} value={priority.value}>
+                  {priority.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button 
+            onClick={() => {
+              setCreateOrderDialogOpen(true);
+              handleSearchOrderItems();
+            }} 
+            className="h-7 px-2 text-[10px] gap-1 shrink-0"
+            size="sm"
+          >
+            <Plus className="h-3 w-3" />
+            New
+          </Button>
+        </div>
+        <TabsList className="flex overflow-x-auto justify-start h-auto p-0.5 sm:p-1 bg-muted/50 no-scrollbar">
+          <TabsTrigger value="all" className="relative gap-0.5 sm:gap-2 whitespace-nowrap px-1.5 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-sm">
+            All
             {statusCounts.all !== undefined && (
-              <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold bg-black text-primary-foreground rounded-md">
+              <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-0.5 sm:px-1 text-[8px] sm:text-[10px] font-bold bg-black text-primary-foreground rounded">
                 {statusCounts.all}
               </span>
             )}
           </TabsTrigger>
           {ORDER_STATUSES.map((status) => (
-            <TabsTrigger key={status.value} value={status.value} className="relative gap-2 whitespace-nowrap px-4">
+            <TabsTrigger key={status.value} value={status.value} className="relative gap-0.5 sm:gap-2 whitespace-nowrap px-1.5 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-sm">
               {status.label}
               {statusCounts[status.value] !== undefined && (
-                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold bg-black text-primary-foreground rounded-md">
+                <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-0.5 sm:px-1 text-[8px] sm:text-[10px] font-bold bg-black text-primary-foreground rounded">
                   {statusCounts[status.value]}
                 </span>
               )}
@@ -961,8 +1026,9 @@ export default function Orders() {
           ))}
         </TabsList>
 
-        <TabsContent value={activeTab} className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <TabsContent value={activeTab} className="space-y-1.5 sm:space-y-4 mt-1 sm:mt-4">
+          {/* Desktop search + filter */}
+          <div className="hidden sm:flex items-center gap-4">
             <div className="relative flex-1">
               <Input
                 placeholder="Search orders..."
@@ -978,7 +1044,7 @@ export default function Orders() {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
@@ -1072,71 +1138,49 @@ export default function Orders() {
                 </Table>
               </div>
 
-              {/* Mobile View Cards */}
-              <div className="grid grid-cols-1 gap-4 md:hidden">
+              {/* Mobile View Cards - Ultra Compact */}
+              <div className="grid grid-cols-1 gap-1.5 md:hidden">
                 {filteredOrders.length === 0 ? (
-                  <div className="text-center py-8 border rounded-lg bg-muted/50 text-muted-foreground">
+                  <div className="text-center py-6 border rounded-lg bg-muted/50 text-muted-foreground text-sm">
                     No orders found
                   </div>
                 ) : (
                   filteredOrders.map((order, index) => (
-                    <div key={order._id} className="border rounded-lg p-4 space-y-3 bg-white shadow-sm">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-xs text-muted-foreground">#{(currentPage - 1) * limit + index + 1}</p>
-                          <p className="font-bold text-lg">{order.order_number}</p>
+                    <div key={order._id} className="border rounded-lg p-2.5 space-y-1 bg-white shadow-sm active:bg-gray-50 transition-colors" onClick={() => handleViewOrder(order._id)}>
+                      {/* Row 1: Order number + Status */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground font-medium">#{(currentPage - 1) * limit + index + 1}</span>
+                          <span className="font-bold text-sm">{order.order_number}</span>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-1">
                           {getStatusBadge(order.order_status)}
-                          {getPriorityBadge(order.priority)}
+                          {order.priority && getPriorityBadge(order.priority)}
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Customer</p>
-                          <p className="font-medium truncate">{order.customer_name}</p>
+                      {/* Row 2: Customer + Items + Total */}
+                      <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-1 truncate flex-1 min-w-0">
+                          <span className="font-medium truncate">{order.customer_name}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="text-muted-foreground shrink-0">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Phone</p>
-                          <p className="font-medium">{order.customer_phone}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Items</p>
-                          <p className="font-medium">{order.items.length} product(s)</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Total</p>
-                          <p className="font-bold text-primary">{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</p>
-                        </div>
+                        <span className="font-bold text-primary shrink-0 ml-2 text-sm">{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</span>
                       </div>
-                      
-                      <div className="pt-2 border-t flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
-                        <div className="flex gap-1 sm:gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewOrder(order._id)}
-                          >
-                            <Eye className="h-4 w-4" />
+
+                      {/* Row 3: Date + Actions */}
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-muted-foreground">{formatDate(order.createdAt)}</span>
+                        <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleViewOrder(order._id)}>
+                            <Eye className="h-3 w-3" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              handleViewOrder(order._id);
-                              setTimeout(() => setEditMode(true), 300);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 text-blue-500" />
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { handleViewOrder(order._id); setTimeout(() => setEditMode(true), 300); }}>
+                            <Edit className="h-3 w-3 text-blue-500" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleShareWhatsApp(order)}
-                          >
-                            <MessageCircle className="h-4 w-4 text-green-600" />
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleShareWhatsApp(order)}>
+                            <MessageCircle className="h-3 w-3 text-green-600" />
                           </Button>
                         </div>
                       </div>
@@ -1254,6 +1298,8 @@ export default function Orders() {
             setOrderItemSearchTerm("");
             setOrderItemSearchResults([]);
             setLoadingOrderItemsSearch(false);
+            setOrderCustomerDetails(null);
+            setShowOrderCustomerDetails(false);
           }
         }}
       >
@@ -1314,7 +1360,7 @@ export default function Orders() {
           ) : selectedOrder ? (
             <div className="space-y-6">
               {/* Order Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:gap-4">
                 <div>
                   <Label className="text-muted-foreground">Order Number</Label>
                   <p className="font-semibold">{selectedOrder.order_number}</p>
@@ -1331,6 +1377,118 @@ export default function Orders() {
                   <Label className="text-muted-foreground">Phone Number</Label>
                   <p className="font-semibold">{selectedOrder.customer_phone}</p>
                 </div>
+                <div className="col-span-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 w-full sm:w-auto"
+                    disabled={loadingOrderCustomer}
+                    onClick={async () => {
+                      if (showOrderCustomerDetails) {
+                        setShowOrderCustomerDetails(false);
+                        return;
+                      }
+                      setLoadingOrderCustomer(true);
+                      try {
+                        const data = await getCustomers(1, 10, selectedOrder.customer_phone);
+                        if (data.customers && data.customers.length > 0) {
+                          setOrderCustomerDetails(data.customers[0]);
+                          setShowOrderCustomerDetails(true);
+                        } else {
+                          toast({ title: "Not Found", description: "Customer details not found for this phone number.", variant: "destructive" });
+                        }
+                      } catch (error) {
+                        toast({ title: "Error", description: "Failed to fetch customer details", variant: "destructive" });
+                      } finally {
+                        setLoadingOrderCustomer(false);
+                      }
+                    }}
+                  >
+                    {loadingOrderCustomer ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
+                    {showOrderCustomerDetails ? "Hide" : "View"} Customer Details
+                    {showOrderCustomerDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                       {/* Customer Details Section */}
+              {showOrderCustomerDetails && orderCustomerDetails && (
+                <div className="border mt-4 rounded-lg p-4 bg-blue-50/50 border-blue-200 space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-4 w-4 text-blue-600" />
+                    <Label className="text-sm font-semibold text-blue-800">Customer Profile</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Name</Label>
+                      <p className="text-sm font-semibold">{orderCustomerDetails.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Phone</Label>
+                      <p className="text-sm font-semibold">{orderCustomerDetails.phone}</p>
+                    </div>
+                    {orderCustomerDetails.email && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Email</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.email}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.company_name && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Company</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.company_name}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.whatsapp_number && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">WhatsApp</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.whatsapp_number}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.contact_person && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Contact Person</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.contact_person}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.contact_mobile && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Contact Mobile</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.contact_mobile}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.street_address && (
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Street Address</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.street_address}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.region && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Region/State</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.region}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.country && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Country</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.country}</p>
+                      </div>
+                    )}
+                    {orderCustomerDetails.address && (
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Additional Notes</Label>
+                        <p className="text-sm font-semibold">{orderCustomerDetails.address}</p>
+                      </div>
+                    )}
+                
+                  </div>
+                </div>
+              )}
+                </div>
+
+                
                 <div>
                   <Label className="text-muted-foreground">Status</Label>
                   <div className="mt-1">{getStatusBadge(selectedOrder.order_status)}</div>
@@ -1378,6 +1536,8 @@ export default function Orders() {
                 </div>
               </div>
 
+         
+
               {/* Cancellation Reason Section */}
               {selectedOrder.order_status === "cancelled" && selectedOrder.cancellation_reason ? (
                 <div className="border rounded-lg p-4 bg-red-50 border-red-200">
@@ -1385,96 +1545,7 @@ export default function Orders() {
                   <p className="mt-2 text-sm text-red-900">{selectedOrder.cancellation_reason}</p>
                 </div>
               ) : null}
-
-              {/* Notes Section */}
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <Label className="text-muted-foreground">Order Notes</Label>
-                {editMode ? (
-                  <textarea
-                    value={editedNotes}
-                    onChange={(e) => setEditedNotes(e.target.value)}
-                    placeholder="Add order notes..."
-                    className="mt-2 w-full min-h-[80px] p-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                    rows={3}
-                  />
-                ) : (
-                  <p className="mt-2 text-sm">{selectedOrder.notes || "No notes"}</p>
-                )}
-              </div>
-
-              {/* Status Timeline */}
-              {!editMode && timeTracking && timeTracking.status_timeline && (
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <Label className="text-lg font-semibold flex items-center gap-2">
-                      <Clock className="h-5 w-5" />
-                      Status Timeline
-                    </Label>
-                    {/* {timeTracking.total_time && (
-                      <Badge variant="outline">
-                        Total: {timeTracking.total_time.hours}h ({timeTracking.total_time.days}d)
-                      </Badge>
-                    )} */}
-                  </div>
-                  
-                  {loadingTimeTracking ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {timeTracking.status_timeline.map((timeline: any, index: number) => (
-                        <div
-                          key={index}
-                          className={`rounded border p-2.5 transition-all ${
-                            timeline.is_active 
-                              ? 'bg-blue-50 border-blue-200' 
-                              : 'bg-white border-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                timeline.is_active ? 'bg-blue-500' : 'bg-gray-300'
-                              }`}
-                            />
-                            
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Badge
-                                className={`${
-                                  ORDER_STATUSES.find((s) => s.value === timeline.status)?.color ||
-                                  'bg-gray-500'
-                                } text-white text-xs`}
-                              >
-                                {ORDER_STATUSES.find((s) => s.value === timeline.status)?.label ||
-                                  timeline.status}
-                              </Badge>
-                              
-                              <span className="text-xs text-muted-foreground">
-                                {formatDate(timeline.started_at)}
-                              </span>
-                              
-                              {timeline.is_active && (
-                                <Badge variant="secondary" className="text-xs ml-auto">
-                                  Current
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {timeline.note && (
-                            <p className="mt-1 ml-4 text-xs text-gray-600 italic">
-                              {timeline.note}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Order Items */}
+    {/* Order Items */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-lg font-semibold">Order Items</Label>
@@ -1695,6 +1766,95 @@ export default function Orders() {
                   </div>
                 </div>
               </div>
+              {/* Notes Section */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <Label className="text-muted-foreground">Order Notes</Label>
+                {editMode ? (
+                  <textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    placeholder="Add order notes..."
+                    className="mt-2 w-full min-h-[80px] p-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    rows={3}
+                  />
+                ) : (
+                  <p className="mt-2 text-sm">{selectedOrder.notes || "No notes"}</p>
+                )}
+              </div>
+
+              {/* Status Timeline */}
+              {!editMode && timeTracking && timeTracking.status_timeline && (
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label className="text-lg font-semibold flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Status Timeline
+                    </Label>
+                    {/* {timeTracking.total_time && (
+                      <Badge variant="outline">
+                        Total: {timeTracking.total_time.hours}h ({timeTracking.total_time.days}d)
+                      </Badge>
+                    )} */}
+                  </div>
+                  
+                  {loadingTimeTracking ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {timeTracking.status_timeline.map((timeline: any, index: number) => (
+                        <div
+                          key={index}
+                          className={`rounded border p-2.5 transition-all ${
+                            timeline.is_active 
+                              ? 'bg-blue-50 border-blue-200' 
+                              : 'bg-white border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                timeline.is_active ? 'bg-blue-500' : 'bg-gray-300'
+                              }`}
+                            />
+                            
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Badge
+                                className={`${
+                                  ORDER_STATUSES.find((s) => s.value === timeline.status)?.color ||
+                                  'bg-gray-500'
+                                } text-white text-xs`}
+                              >
+                                {ORDER_STATUSES.find((s) => s.value === timeline.status)?.label ||
+                                  timeline.status}
+                              </Badge>
+                              
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(timeline.started_at)}
+                              </span>
+                              
+                              {timeline.is_active && (
+                                <Badge variant="secondary" className="text-xs ml-auto">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {timeline.note && (
+                            <p className="mt-1 ml-4 text-xs text-gray-600 italic">
+                              {timeline.note}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+          
 
               {/* Price Summary */}
               <div className="border-t pt-4 space-y-2">
