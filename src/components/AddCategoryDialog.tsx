@@ -57,7 +57,7 @@ const AddCategoryDialog = ({
     
     if (!file) return;
 
-    // Validate file type
+    // Validate file type.
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type)) {
       toast({
