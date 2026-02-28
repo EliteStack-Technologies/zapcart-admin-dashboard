@@ -209,6 +209,7 @@ export const uploadProductsExcel = async (formData: FormData) => {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 600000, // 10 minutes — large Excel files (5000+ rows) take time
       }
     );
     return response.data;
