@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "372628880804",
+    "project_id": "zapgocart",
+    "storage_bucket": "zapgocart.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:372628880804:android:8aaea380b2a94128a99531",
+        "android_client_info": {
+          "package_name": "com.zapcart.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFx7AZ6hJg0YsC_VFnVNMli4HKZzEM44s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

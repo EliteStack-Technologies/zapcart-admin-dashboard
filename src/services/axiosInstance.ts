@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -58,10 +58,17 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem("customer_info");
         window.location.href = "/customer/login";
       } else {
-        // Unauthorized admin - clear auth and redirect to admin login
+        // Unauthorized admin - clear auth but don't loop if already on login page
+        localStorage.removeItem("accessToken");
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
-        window.location.href = "/login";
+        
+        const isLoginPage = window.location.pathname === "/login";
+        const isLoginRequest = error.config?.url?.includes("/clients/login");
+
+        if (!isLoginPage && !isLoginRequest) {
+          window.location.href = "/login";
+        }
       }
     }
 
