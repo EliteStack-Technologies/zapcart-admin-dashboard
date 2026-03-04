@@ -192,8 +192,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Main Content */}
       <main className={`flex-1 flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300`}>
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-3 py-2 flex items-center justify-between">
-          <h1 className="text-lg font-black text-black">ZapGoCart</h1>
+        <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-2 flex items-center justify-between">
+          <div className="flex flex-col">
+            <h1 className="text-lg font-black text-primary leading-tight">ZapGoCart</h1>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+              {user?.business_name || 'Administrator'}
+            </p>
+          </div>
           <div className="flex items-center gap-3">
             <NotificationBell />
           </div>
@@ -204,7 +209,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground font-medium">Welcome back, {user?.name || 'Admin'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground font-medium">Welcome back, {user?.name || 'Admin'}</p>
+                <span className="text-xs text-muted-foreground/40">|</span>
+                <p className="text-xs font-bold text-primary uppercase tracking-wide">{user?.business_name}</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <NotificationBell />

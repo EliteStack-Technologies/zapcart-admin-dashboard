@@ -1,14 +1,25 @@
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+// This function allows the app to switch between different client APIs (Multi-tenancy)
+const getBaseURL = () => {
+  const customUrl = localStorage.getItem("custom_api_url");
+  if (customUrl) return customUrl;
+  return import.meta.env.VITE_API_BASE_URL || "https://api.zapcart.zapelite.com";
+};
 
 const axiosInstance: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getBaseURL(),
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Use this function to switch the API server at runtime
+export const updateBaseURL = (newUrl: string) => {
+  localStorage.setItem("custom_api_url", newUrl);
+  axiosInstance.defaults.baseURL = newUrl;
+};
 
 // Request interceptor to add token to headers
 axiosInstance.interceptors.request.use(
