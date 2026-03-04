@@ -165,8 +165,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setEnquiryModeState(false);
     setInventoryEnabledState(false);
     setZohoEnabledState(false);
-    localStorage.removeItem("authToken");
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("authToken");
     localStorage.removeItem("user");
     localStorage.removeItem("currency");
     localStorage.removeItem("enquiry_mode");
