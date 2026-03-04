@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ZapCart Admin</string>
-    <string name="title_activity_main">ZapCart Admin</string>
+    <string name="app_name">ZapGoCart Admin</string>
+    <string name="title_activity_main">ZapGoCart Admin</string>
     <string name="package_name">com.zapcart.admin</string>
     <string name="custom_url_scheme">com.zapcart.admin</string>
 </resources>
