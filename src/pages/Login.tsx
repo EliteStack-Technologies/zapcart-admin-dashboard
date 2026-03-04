@@ -75,7 +75,7 @@ const Login = () => {
 
       // Make login request to the global server
       const response = await axiosInstance.post("/api/v1/clients/login", {
-        email: data.email,
+        email: data.email.trim(),
         password: data.password,
       });
 
