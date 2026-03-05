@@ -21,11 +21,14 @@ const Categories = () => {
   const [loading, setLoading] = useState(true);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [isReordering, setIsReordering] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
     useEffect(() => {
       const fetchData = async () => {
         try {
-          setLoading(true);
-          const data = await getCategory();
+          if (!searchTerm) {
+            setLoading(true);
+          }
+          const data = await getCategory(searchTerm);
           console.log("Categories data:", data);
           setCategories(data);
         } catch (error) {
@@ -39,8 +42,13 @@ const Categories = () => {
           setLoading(false);
         }
       };
-      fetchData();
-    }, []);
+
+      const timeoutId = setTimeout(() => {
+        fetchData();
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }, [searchTerm]);
 
 
   const handleDelete = async () => {
@@ -152,6 +160,8 @@ const Categories = () => {
                 <Input
                   placeholder="Search categories..."
                   className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>

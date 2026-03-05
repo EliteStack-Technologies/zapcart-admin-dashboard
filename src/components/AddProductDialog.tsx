@@ -146,21 +146,17 @@ const AddProductDialog = ({
       // Set unit type
       setUnitType(editingProduct.unit_type);
 
-      // Set offer and category
-      if (editingProduct.offer_id) {
-        setSelectedOfferId(getId(editingProduct.offer_id));
-      }
-      if (editingProduct.category_id) {
-        setSelectedCategoryId(getId(editingProduct.category_id));
-      }
-      if (editingProduct.section_id) {
-        setSelectedSectionId(getId(editingProduct.section_id));
-      }
+      // Set offer, category, and section (explicitly clear if missing)
+      setSelectedOfferId(editingProduct.offer_id ? getId(editingProduct.offer_id) : "");
+      setSelectedCategoryId(editingProduct.category_id ? getId(editingProduct.category_id) : "");
+      setSelectedSectionId(editingProduct.section_id ? getId(editingProduct.section_id) : "");
 
       // Set existing image preview
       const imgUrl = editingProduct.image_url || editingProduct.image;
       if (imgUrl) {
         setImagePreview(imgUrl);
+      } else {
+        setImagePreview(null);
       }
 
       // Set variants if they exist
@@ -172,7 +168,10 @@ const AddProductDialog = ({
         setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
       }
 
-      // Parse dates
+      // Parse dates (explicitly reset if missing)
+      setStartDate(undefined);
+      setEndDate(undefined);
+
       if (editingProduct.offer_start_date) {
         let parsedDate = parse(
           editingProduct.offer_start_date,
@@ -250,6 +249,12 @@ const AddProductDialog = ({
       const offersList =
         data?.offers || data?.data || (Array.isArray(data) ? data : []);
       setOffers(offersList);
+      
+      // Sync selected offer if editing and list just loaded
+      if (editingProduct?.offer_id && open) {
+        const id = getId(editingProduct.offer_id);
+        if (id) setSelectedOfferId(id);
+      }
     } catch (error: any) {
       console.error("Error fetching offers:", error);
       toast({
@@ -269,6 +274,12 @@ const AddProductDialog = ({
       const categoriesList =
         data?.categories || data?.data || (Array.isArray(data) ? data : []);
       setCategories(categoriesList);
+      
+      // Sync selected category if editing and list just loaded
+      if (editingProduct?.category_id && open) {
+        const id = getId(editingProduct.category_id);
+        if (id) setSelectedCategoryId(id);
+      }
     } catch (error: any) {
       console.error("Error fetching categories:", error);
       toast({
@@ -289,10 +300,10 @@ const AddProductDialog = ({
         data?.sections || data?.data || (Array.isArray(data) ? data : []);
       setSections(sectionsList);
       
-      // Auto-select first section if not editing and sections exist
-      if (!editingProduct && sectionsList.length > 0) {
-        const firstSectionId = sectionsList[0]._id || sectionsList[0].id;
-        setSelectedSectionId(firstSectionId);
+      // Sync selected section if editing and list just loaded
+      if (editingProduct?.section_id && open) {
+        const id = getId(editingProduct.section_id);
+        if (id) setSelectedSectionId(id);
       }
     } catch (error: any) {
       console.error("Error fetching sections:", error);
@@ -340,14 +351,6 @@ const AddProductDialog = ({
       return;
     }
 
-    if (!selectedSectionId) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a section",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Validate variants if enabled
     if (hasVariants && isRestaurant) {
@@ -395,13 +398,13 @@ const AddProductDialog = ({
         formData.append("offer_end_date", format(endDate, "yyyy-MM-dd"));
       }
       if (selectedOfferId) {
-        formData.append("offer_id", selectedOfferId);
+        formData.append("offer_id", selectedOfferId === "none" ? "" : selectedOfferId);
       }
       if (selectedCategoryId) {
         formData.append("category_id", selectedCategoryId);
       }
       if (selectedSectionId) {
-        formData.append("section_id", selectedSectionId);
+        formData.append("section_id", selectedSectionId === "none" ? "" : selectedSectionId);
       }
 
       // Append image file if a new file was selected
@@ -577,6 +580,7 @@ const AddProductDialog = ({
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
                 <Select
+                  key={`category-select-${categories.length}`}
                   value={selectedCategoryId}
                   onValueChange={setSelectedCategoryId}
                   disabled={loadingCategories}
@@ -616,6 +620,7 @@ const AddProductDialog = ({
             <div className="space-y-2">
               <Label htmlFor="offer">Offer</Label>
               <Select
+                key={`offer-select-${offers.length}`}
                 value={selectedOfferId}
                 onValueChange={setSelectedOfferId}
                 disabled={loadingOffers}
@@ -630,6 +635,7 @@ const AddProductDialog = ({
                   />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   {offers.length > 0 ? (
                     offers.map((offer) => {
                       const offerId = offer._id || offer.id;
@@ -651,8 +657,9 @@ const AddProductDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="section">Section*</Label>
+              <Label htmlFor="section">Section</Label>
               <Select
+                key={`section-select-${sections.length}`}
                 value={selectedSectionId}
                 onValueChange={setSelectedSectionId}
                 disabled={loadingSections}
@@ -660,11 +667,12 @@ const AddProductDialog = ({
                 <SelectTrigger id="section">
                   <SelectValue
                     placeholder={
-                      loadingSections ? "Loading sections..." : "Select a section"
+                      loadingSections ? "Loading sections..." : "Select a section (optional)"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   {sections.length > 0 ? (
                     sections.map((section) => {
                       const sectionId = section._id || section.id;
