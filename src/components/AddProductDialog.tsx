@@ -479,12 +479,12 @@ const AddProductDialog = ({
       return;
     }
 
-    // Validate file size (2MB)
-    const maxSize = 2 * 1024 * 1024;
+    // Validate file size (1MB)
+    const maxSize = 1 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         title: "File too large",
-        description: "Please select an image smaller than 2MB",
+        description: "Please select an image smaller than 1MB",
         variant: "destructive",
       });
       return;

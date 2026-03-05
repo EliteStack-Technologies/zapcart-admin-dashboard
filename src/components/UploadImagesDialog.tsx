@@ -81,8 +81,15 @@ const UploadImagesDialog = ({ open, onOpenChange,setUploadedImages }: UploadImag
     if (!files) return;
 
     const newImages: ImagePreview[] = [];
+    const maxSize = 1 * 1024 * 1024; // 1MB
+    let tooLarge = false;
+
     Array.from(files).forEach((file) => {
       if (file.type.startsWith("image/")) {
+        if (file.size > maxSize) {
+          tooLarge = true;
+          return;
+        }
         const preview = URL.createObjectURL(file);
         newImages.push({
           id: Math.random().toString(36).substr(2, 9),
@@ -91,6 +98,14 @@ const UploadImagesDialog = ({ open, onOpenChange,setUploadedImages }: UploadImag
         });
       }
     });
+
+    if (tooLarge) {
+      toast({
+        title: "Some images were too large",
+        description: "Images must be smaller than 1MB. Some files were skipped.",
+        variant: "destructive",
+      });
+    }
 
     setImages((prev) => [...prev, ...newImages]);
   };
