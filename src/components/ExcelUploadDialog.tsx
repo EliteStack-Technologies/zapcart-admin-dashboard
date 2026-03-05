@@ -26,6 +26,7 @@ interface UploadResult {
   total_skipped: number;
   available_columns: string[];
   categories_created?: string[];
+  sections_created?: string[];
   skipped_rows?: Array<{ row: number; reason: string }>;
 }
 
@@ -163,7 +164,7 @@ const ExcelUploadDialog = ({
           </DialogTitle>
           <DialogDescription>
             Upload an Excel file to bulk-add products. Only the <strong>title</strong> column is required.
-            Categories will be auto-created from the <strong>category</strong> column.
+            Categories and Sections will be auto-created from the <strong>category</strong> and <strong>section</strong> columns.
           </DialogDescription>
         </DialogHeader>
 
@@ -199,19 +200,39 @@ const ExcelUploadDialog = ({
                 </div>
               </div>
 
-              {/* Categories Created */}
-              {uploadResult.categories_created && uploadResult.categories_created.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">
-                    Categories Auto-Created
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {uploadResult.categories_created.map((cat) => (
-                      <Badge key={cat} className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                        + {cat}
-                      </Badge>
-                    ))}
-                  </div>
+              {/* Categories & Sections Created */}
+              {( (uploadResult.categories_created && uploadResult.categories_created.length > 0) || 
+                 (uploadResult.sections_created && uploadResult.sections_created.length > 0) ) && (
+                <div className="space-y-3">
+                  {uploadResult.categories_created && uploadResult.categories_created.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                        Categories Auto-Created
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {uploadResult.categories_created.map((cat) => (
+                          <Badge key={cat} className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                            + {cat}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadResult.sections_created && uploadResult.sections_created.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                        Sections Auto-Created
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {uploadResult.sections_created.map((sec) => (
+                          <Badge key={sec} className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                            + {sec}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -304,6 +325,7 @@ const ExcelUploadDialog = ({
                   {[
                     "title *",
                     "category",
+                    "section",
                     "description",
                     "product_code",
                     "actual_price",
