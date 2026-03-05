@@ -2,9 +2,9 @@ import { getSubdomain } from "@/utils/getSubdomain";
 import axiosInstance from "./axiosInstance";
 const sub_domain= getSubdomain()
 
-export const getCategory = async () => {
+export const getCategory = async (search: string = "") => {
   try {
-    const response = await axiosInstance.get(`/api/v1/categories/admin`);
+    const response = await axiosInstance.get(`/api/v1/categories/admin${search ? `?search=${search}` : ""}`);
     return response.data;
   } catch (error: any) {
     const errorMessage =
@@ -77,9 +77,9 @@ export const deleteCategory = async (categoryId: string) => {
   }
 };
 
-export const getCategoryProducts = async (categoryId: string) => {
+export const getCategoryProducts = async (categoryId: string, search: string = "") => {
   try {
-    const response = await axiosInstance.get(`/api/v1/categories/${categoryId}/products/admin`);
+    const response = await axiosInstance.get(`/api/v1/categories/${categoryId}/products/admin${search ? `?search=${search}` : ""}`);
 
     return response.data;
   } catch (error: any) {

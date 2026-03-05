@@ -50,26 +50,23 @@ const CategoryProducts = () => {
 
   const itemsPerPage = 10;
 
-  // Filter products based on search query
-  const filteredProducts = products.filter((product: any) =>
-    product.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Calculate pagination
-  const totalPages = Math.ceil((filteredProducts?.length || 0) / itemsPerPage);
+  // Products are now filtered by the backend
+  const totalPages = Math.ceil((products?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProducts = Array.isArray(filteredProducts)
-    ? filteredProducts.slice(startIndex, endIndex)
+  const currentProducts = Array.isArray(products)
+    ? products.slice(startIndex, endIndex)
     : [];
 
   useEffect(() => {
     const fetchData = async () => {
       if (!categoryId) return;
 
-      setLoading(true);
+      if (!searchQuery) {
+        setLoading(true);
+      }
       try {
-        const data = await getCategoryProducts(categoryId);
+        const data = await getCategoryProducts(categoryId, searchQuery);
         const productsList =
           data?.products || data?.data || (Array.isArray(data) ? data : []);
         setProducts(productsList);
@@ -90,8 +87,13 @@ const CategoryProducts = () => {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [categoryId, toast]);
+
+    const timeoutId = setTimeout(() => {
+      fetchData();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [categoryId, searchQuery, toast]);
 
   const handleDelete = async () => {
     if (!selectedProduct?._id) return;
@@ -351,8 +353,8 @@ const CategoryProducts = () => {
                 <div className="flex items-center justify-between px-6 py-4 border-t">
                   <p className="text-sm text-muted-foreground">
                     Showing {startIndex + 1} to{" "}
-                    {Math.min(endIndex, filteredProducts.length)} of{" "}
-                    {filteredProducts.length} products
+                    {Math.min(endIndex, products.length)} of{" "}
+                    {products.length} products
                   </p>
                   <Pagination>
                     <PaginationContent>

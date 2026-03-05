@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertCircle, Loader2 } from "lucide-react";
-import axiosInstance from "@/services/axiosInstance";
+import axiosInstance, { updateBaseURL } from "@/services/axiosInstance";
 import { registerFCMOnLogin } from "@/hooks/useFCM";
 
 const loginSchema = z.object({
@@ -73,9 +73,9 @@ const Login = () => {
         throw new Error("Email and password are required");
       }
 
-      // Make login request
+      // Make login request to the global server
       const response = await axiosInstance.post("/api/v1/clients/login", {
-        email: data.email,
+        email: data.email.trim(),
         password: data.password,
       });
 
