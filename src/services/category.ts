@@ -77,9 +77,21 @@ export const deleteCategory = async (categoryId: string) => {
   }
 };
 
-export const getCategoryProducts = async (categoryId: string, search: string = "") => {
+export const getCategoryProducts = async (
+  categoryId: string,
+  search: string = "",
+  page: number = 1,
+  limit: number = 25
+) => {
   try {
-    const response = await axiosInstance.get(`/api/v1/categories/${categoryId}/products/admin${search ? `?search=${search}` : ""}`);
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append("search", search);
+    queryParams.append("page", String(page));
+    queryParams.append("limit", String(limit));
+
+    const response = await axiosInstance.get(
+      `/api/v1/categories/${categoryId}/products/admin?${queryParams.toString()}`
+    );
 
     return response.data;
   } catch (error: any) {
