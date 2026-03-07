@@ -341,10 +341,10 @@ const Products = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => setExcelUploadOpen(true)}>
+            {/* <Button variant="outline" className="gap-2" onClick={() => setExcelUploadOpen(true)}>
               <FileSpreadsheet className="w-4 h-4" />
               Upload Excel
-            </Button>
+            </Button> */}
             <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
               <Plus className="w-4 h-4" />
               Add Product
