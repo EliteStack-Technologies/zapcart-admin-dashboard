@@ -223,16 +223,16 @@ export default function Profile() {
         </div>
 
         <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="account">
+          <TabsList className="flex overflow-x-auto justify-start h-auto p-1 bg-muted/60 no-scrollbar scroll-smooth rounded-lg border border-gray-100">
+            <TabsTrigger value="account" className="flex-shrink-0 px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <User className="h-4 w-4 mr-2" />
               Account Details
             </TabsTrigger>
-            <TabsTrigger value="currency">
+            <TabsTrigger value="currency" className="flex-shrink-0 px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <DollarSign className="h-4 w-4 mr-2" />
               Currency
             </TabsTrigger>
-            <TabsTrigger value="password">
+            <TabsTrigger value="password" className="flex-shrink-0 px-4 py-2 text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <Lock className="h-4 w-4 mr-2" />
               Change Password
             </TabsTrigger>

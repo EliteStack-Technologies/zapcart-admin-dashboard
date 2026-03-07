@@ -190,7 +190,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300`}>
+      <main className={`flex-1 w-full flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300`}>
         {/* Mobile Header */}
         <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-2 flex items-center justify-between">
           <div className="flex flex-col">

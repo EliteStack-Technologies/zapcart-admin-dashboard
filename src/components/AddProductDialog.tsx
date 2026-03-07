@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Upload, X, Loader, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Upload, X, Loader, Plus, Trash2, ChevronDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format, parse, isValid } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { addProduct, updateProduct } from "@/services/product";
@@ -53,8 +54,8 @@ interface AddProductDialogProps {
     image_url?: string;
     image?: string;
     offer_id?: string | { _id: string; name: string };
-    category_id?: string | { _id: string; name: string };
-    section_id?: string | { _id: string; name: string };
+    category_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
+    section_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     status?: string;
     variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean }>;
   };
@@ -67,8 +68,8 @@ const AddProductDialog = ({
   setProducts,
 }: AddProductDialogProps) => {
   const { toast } = useToast();
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -88,15 +89,27 @@ const AddProductDialog = ({
     return typeof item === "object" ? item._id : item;
   };
 
+  // Helper to safely ensure a value is always an array of ID strings
+  const ensureIdArray = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.map((item: any) => (typeof item === 'object' && item?._id ? item._id : String(item))).filter(Boolean);
+    }
+    if (typeof val === 'object' && val._id) {
+      return [val._id];
+    }
+    if (typeof val === 'string') {
+      // Handle comma-separated IDs
+      return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
   const [selectedOfferId, setSelectedOfferId] = useState<string>(
     getId(editingProduct?.offer_id)
   );
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
-    getId(editingProduct?.category_id)
-  );
-  const [selectedSectionId, setSelectedSectionId] = useState<string>(
-    getId(editingProduct?.section_id)
-  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState<string[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSections, setLoadingSections] = useState(false);
@@ -148,8 +161,8 @@ const AddProductDialog = ({
 
       // Set offer, category, and section (explicitly clear if missing)
       setSelectedOfferId(editingProduct.offer_id ? getId(editingProduct.offer_id) : "");
-      setSelectedCategoryId(editingProduct.category_id ? getId(editingProduct.category_id) : "");
-      setSelectedSectionId(editingProduct.section_id ? getId(editingProduct.section_id) : "");
+      setSelectedCategoryId(ensureIdArray(editingProduct.category_id));
+      setSelectedSectionId(ensureIdArray(editingProduct.section_id));
 
       // Set existing image preview
       const imgUrl = editingProduct.image_url || editingProduct.image;
@@ -207,8 +220,8 @@ const AddProductDialog = ({
       setImagePreview(null);
       setUnitType("Pcs");
       setSelectedOfferId("");
-      setSelectedCategoryId("");
-      setSelectedSectionId("");
+        setSelectedCategoryId([]);
+        setSelectedSectionId([]);
       setHasVariants(false);
       setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
     }
@@ -400,11 +413,17 @@ const AddProductDialog = ({
       if (selectedOfferId) {
         formData.append("offer_id", selectedOfferId === "none" ? "" : selectedOfferId);
       }
-      if (selectedCategoryId) {
-        formData.append("category_id", selectedCategoryId);
+      const safeCategoryIds = ensureIdArray(selectedCategoryId);
+      const safeSectionIds = ensureIdArray(selectedSectionId);
+      if (safeCategoryIds.length > 0) {
+        formData.append("category_id", safeCategoryIds.join(','));
+      } else {
+        formData.append("category_id", "");
       }
-      if (selectedSectionId) {
-        formData.append("section_id", selectedSectionId === "none" ? "" : selectedSectionId);
+      if (safeSectionIds.length > 0) {
+        formData.append("section_id", safeSectionIds.join(','));
+      } else {
+        formData.append("section_id", "");
       }
 
       // Append image file if a new file was selected
@@ -578,44 +597,38 @@ const AddProductDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-                <Select
-                  key={`category-select-${categories.length}`}
-                  value={selectedCategoryId}
-                  onValueChange={setSelectedCategoryId}
-                  disabled={loadingCategories}
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue
-                      placeholder={
-                        loadingCategories
-                          ? "Loading categories..."
-                          : "Select a category"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.length > 0 ? (
-                      categories.map((category) => {
-                        const categoryId = category._id || category.id;
-                        const categoryName =
-                          category.name || category.title || "Category";
-                        return (
-                          <SelectItem key={categoryId} value={categoryId}>
-                            {categoryName}
-                          </SelectItem>
-                        );
-                      })
-                    ) : (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        {loadingCategories
-                          ? "Loading..."
-                          : "No categories available"}
+              <Label>Categories</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-normal" disabled={loadingCategories}>
+                    <span className="truncate">
+                      {ensureIdArray(selectedCategoryId).length === 0 
+                        ? (loadingCategories ? "Loading..." : "Select categories") 
+                        : `${ensureIdArray(selectedCategoryId).length} categories selected`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                    {categories.map((cat) => (
+                      <div key={cat._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
+                           onClick={() => {
+                             const safeIds = ensureIdArray(selectedCategoryId);
+                             const newIds = safeIds.includes(cat._id)
+                               ? safeIds.filter(id => id !== cat._id)
+                               : [...safeIds, cat._id];
+                             setSelectedCategoryId(newIds);
+                           }}>
+                        <Checkbox checked={ensureIdArray(selectedCategoryId).includes(cat._id)} onCheckedChange={() => {}} />
+                        <Label className="flex-1 cursor-pointer truncate">{cat.name}</Label>
                       </div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+                    ))}
+                    {categories.length === 0 && !loadingCategories && <div className="p-2 text-center text-xs text-muted-foreground">No categories available</div>}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="offer">Offer</Label>
@@ -657,39 +670,37 @@ const AddProductDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="section">Section</Label>
-              <Select
-                key={`section-select-${sections.length}`}
-                value={selectedSectionId}
-                onValueChange={setSelectedSectionId}
-                disabled={loadingSections}
-              >
-                <SelectTrigger id="section">
-                  <SelectValue
-                    placeholder={
-                      loadingSections ? "Loading sections..." : "Select a section (optional)"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {sections.length > 0 ? (
-                    sections.map((section) => {
-                      const sectionId = section._id || section.id;
-                      const sectionName = section.name || "Section";
-                      return (
-                        <SelectItem key={sectionId} value={sectionId}>
-                          {sectionName}
-                        </SelectItem>
-                      );
-                    })
-                  ) : (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      {loadingSections ? "Loading..." : "No sections available"}
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+              <Label>Sections</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-normal" disabled={loadingSections}>
+                    <span className="truncate">
+                      {ensureIdArray(selectedSectionId).length === 0 
+                        ? (loadingSections ? "Loading..." : "Select sections (optional)") 
+                        : `${ensureIdArray(selectedSectionId).length} sections selected`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                    {sections.map((sec) => (
+                      <div key={sec._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
+                           onClick={() => {
+                             const safeIds = ensureIdArray(selectedSectionId);
+                             const newIds = safeIds.includes(sec._id)
+                               ? safeIds.filter(id => id !== sec._id)
+                               : [...safeIds, sec._id];
+                             setSelectedSectionId(newIds);
+                           }}>
+                        <Checkbox checked={ensureIdArray(selectedSectionId).includes(sec._id)} onCheckedChange={() => {}} />
+                        <Label className="flex-1 cursor-pointer truncate">{sec.name}</Label>
+                      </div>
+                    ))}
+                    {sections.length === 0 && !loadingSections && <div className="p-2 text-center text-xs text-muted-foreground">No sections available</div>}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Variant Builder - Only for Restaurant Businesses */}
