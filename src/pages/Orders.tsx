@@ -921,7 +921,7 @@ export default function Orders() {
   const getStatusBadge = (status: string) => {
     const statusConfig = ORDER_STATUSES.find((s) => s.value === status);
     return (
-      <Badge className={statusConfig?.color || "bg-gray-500"}>
+      <Badge className={`${statusConfig?.color || "bg-gray-500"} text-[8px] sm:text-[10px] px-1 py-0 sm:px-2.5 sm:py-0.5 whitespace-nowrap`}>
         {statusConfig?.label || status}
       </Badge>
     );
@@ -935,7 +935,7 @@ export default function Orders() {
     }
     const priorityConfig = PRIORITY_LEVELS.find((p) => p.value === priority);
     return (
-      <Badge className={priorityConfig?.color || "bg-gray-500"}>
+      <Badge className={`${priorityConfig?.color || "bg-gray-500"} text-[8px] sm:text-[10px] px-1 py-0 sm:px-2.5 sm:py-0.5 whitespace-nowrap`}>
         {priorityConfig?.label || priority}
       </Badge>
     );
@@ -950,7 +950,7 @@ export default function Orders() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-1 sm:space-y-6 sm:p-6">
+      <div className="  mx-auto sm:max-w-none space-y-1 sm:space-y-6 sm:p-6">
         <div className="hidden sm:flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Order Management</h1>
           <Button 
@@ -1005,20 +1005,27 @@ export default function Orders() {
             New
           </Button>
         </div>
-        <TabsList className="flex overflow-x-auto justify-start h-auto p-0.5 sm:p-1 bg-muted/50 no-scrollbar">
-          <TabsTrigger value="all" className="relative gap-0.5 sm:gap-2 whitespace-nowrap px-1.5 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-sm">
+        <TabsList className="grid grid-cols-4 sm:flex sm:overflow-x-auto justify-start h-auto p-1 bg-muted/60 no-scrollbar scroll-smooth rounded-lg gap-1">
+          <TabsTrigger 
+            value="all" 
+            className="w-full sm:w-auto flex-shrink-0 relative gap-1 sm:gap-3 px-2 sm:px-6 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary"
+          >
             All
             {statusCounts.all !== undefined && (
-              <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-0.5 sm:px-1 text-[8px] sm:text-[10px] font-bold bg-black text-primary-foreground rounded">
+              <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-1 text-[8px] sm:text-[11px] font-bold bg-black text-white rounded-full">
                 {statusCounts.all}
               </span>
             )}
           </TabsTrigger>
           {ORDER_STATUSES.map((status) => (
-            <TabsTrigger key={status.value} value={status.value} className="relative gap-0.5 sm:gap-2 whitespace-nowrap px-1.5 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-sm">
-              {status.label}
+            <TabsTrigger 
+              key={status.value} 
+              value={status.value} 
+              className="w-full sm:w-auto flex-shrink-0 relative gap-1 sm:gap-3 px-2 sm:px-6 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary"
+            >
+              <span className="truncate">{status.label}</span>
               {statusCounts[status.value] !== undefined && (
-                <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-0.5 sm:px-1 text-[8px] sm:text-[10px] font-bold bg-black text-primary-foreground rounded">
+                <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-1 text-[8px] sm:text-[11px] font-bold bg-black text-white rounded-full">
                   {statusCounts[status.value]}
                 </span>
               )}
@@ -1065,7 +1072,7 @@ export default function Orders() {
           ) : (
             <>
               {/* Desktop View Table */}
-              <div className="hidden md:block rounded-md border overflow-hidden">
+              <div className="hidden md:block rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1146,14 +1153,14 @@ export default function Orders() {
                   </div>
                 ) : (
                   filteredOrders.map((order, index) => (
-                    <div key={order._id} className="border rounded-lg p-2.5 space-y-1 bg-white shadow-sm active:bg-gray-50 transition-colors" onClick={() => handleViewOrder(order._id)}>
+                    <div key={order._id} className="border rounded-lg w-full p-2.5 space-y-1  bg-white shadow-sm active:bg-gray-50 transition-colors" onClick={() => handleViewOrder(order._id)}>
                       {/* Row 1: Order number + Status */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-muted-foreground font-medium">#{(currentPage - 1) * limit + index + 1}</span>
-                          <span className="font-bold text-sm">{order.order_number}</span>
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[10px] text-muted-foreground font-medium shrink-0">#{(currentPage - 1) * limit + index + 1}</span>
+                          <span className="font-bold text-xs sm:text-sm truncate">{order.order_number}</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           {getStatusBadge(order.order_status)}
                           {order.priority && getPriorityBadge(order.priority)}
                         </div>

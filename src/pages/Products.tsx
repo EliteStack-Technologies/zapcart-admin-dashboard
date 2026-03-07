@@ -77,7 +77,8 @@ const Products = () => {
     image_url?: string;
     image?: string;
     offer_id?: string | { _id: string; name: string };
-    category_id?: { _id: string; name: string };
+    category_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
+    section_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     status?: string;
     variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean; _id?: string; variant_sku?: string }>;
   } | null>(null);
@@ -1023,7 +1024,15 @@ const Products = () => {
                   <div className="grid grid-cols-4 gap-x-3 gap-y-1.5 text-sm pt-1 border-t">
                     <div>
                       <p className="text-xs text-muted-foreground">Category</p>
-                      <p className="font-medium text-sm">{selectedProduct.category_id?.name || "N/A"}</p>
+                      <p className="font-medium text-sm">
+                        {(() => {
+                          const cat = selectedProduct.category_id;
+                          if (!cat) return "N/A";
+                          if (Array.isArray(cat)) return cat.map((c: any) => c.name || c).join(", ") || "N/A";
+                          if (typeof cat === "object" && "name" in cat) return cat.name;
+                          return String(cat);
+                        })()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Unit</p>

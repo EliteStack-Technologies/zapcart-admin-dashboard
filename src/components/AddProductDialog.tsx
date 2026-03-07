@@ -54,8 +54,8 @@ interface AddProductDialogProps {
     image_url?: string;
     image?: string;
     offer_id?: string | { _id: string; name: string };
-    category_id?: string | { _id: string; name: string };
-    section_id?: string | { _id: string; name: string };
+    category_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
+    section_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     status?: string;
     variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean }>;
   };
@@ -87,6 +87,22 @@ const AddProductDialog = ({
   const getId = (item: any) => {
     if (!item) return "";
     return typeof item === "object" ? item._id : item;
+  };
+
+  // Helper to safely ensure a value is always an array of ID strings
+  const ensureIdArray = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.map((item: any) => (typeof item === 'object' && item?._id ? item._id : String(item))).filter(Boolean);
+    }
+    if (typeof val === 'object' && val._id) {
+      return [val._id];
+    }
+    if (typeof val === 'string') {
+      // Handle comma-separated IDs
+      return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [];
   };
 
   const [selectedOfferId, setSelectedOfferId] = useState<string>(
@@ -145,33 +161,8 @@ const AddProductDialog = ({
 
       // Set offer, category, and section (explicitly clear if missing)
       setSelectedOfferId(editingProduct.offer_id ? getId(editingProduct.offer_id) : "");
-      if (editingProduct.category_id) {
-        let catIds: string[] = [];
-        if (Array.isArray(editingProduct.category_id)) {
-          catIds = editingProduct.category_id.map((c: any) => c._id || c);
-        } else if (editingProduct.category_id && typeof editingProduct.category_id === 'object') {
-          catIds = [(editingProduct.category_id as any)._id || editingProduct.category_id];
-        } else if (typeof editingProduct.category_id === 'string') {
-          catIds = [editingProduct.category_id];
-        }
-        setSelectedCategoryId(catIds);
-      } else {
-        setSelectedCategoryId([]);
-      }
-
-      if (editingProduct.section_id) {
-        let secIds: string[] = [];
-        if (Array.isArray(editingProduct.section_id)) {
-          secIds = editingProduct.section_id.map((s: any) => s._id || s);
-        } else if (editingProduct.section_id && typeof editingProduct.section_id === 'object') {
-          secIds = [(editingProduct.section_id as any)._id || editingProduct.section_id];
-        } else if (typeof editingProduct.section_id === 'string') {
-          secIds = [editingProduct.section_id];
-        }
-        setSelectedSectionId(secIds);
-      } else {
-        setSelectedSectionId([]);
-      }
+      setSelectedCategoryId(ensureIdArray(editingProduct.category_id));
+      setSelectedSectionId(ensureIdArray(editingProduct.section_id));
 
       // Set existing image preview
       const imgUrl = editingProduct.image_url || editingProduct.image;
@@ -422,13 +413,15 @@ const AddProductDialog = ({
       if (selectedOfferId) {
         formData.append("offer_id", selectedOfferId === "none" ? "" : selectedOfferId);
       }
-      if (selectedCategoryId.length > 0) {
-        formData.append("category_id", selectedCategoryId.join(','));
+      const safeCategoryIds = ensureIdArray(selectedCategoryId);
+      const safeSectionIds = ensureIdArray(selectedSectionId);
+      if (safeCategoryIds.length > 0) {
+        formData.append("category_id", safeCategoryIds.join(','));
       } else {
         formData.append("category_id", "");
       }
-      if (selectedSectionId.length > 0) {
-        formData.append("section_id", selectedSectionId.join(','));
+      if (safeSectionIds.length > 0) {
+        formData.append("section_id", safeSectionIds.join(','));
       } else {
         formData.append("section_id", "");
       }
@@ -609,9 +602,9 @@ const AddProductDialog = ({
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between font-normal" disabled={loadingCategories}>
                     <span className="truncate">
-                      {selectedCategoryId.length === 0 
+                      {ensureIdArray(selectedCategoryId).length === 0 
                         ? (loadingCategories ? "Loading..." : "Select categories") 
-                        : `${selectedCategoryId.length} categories selected`}
+                        : `${ensureIdArray(selectedCategoryId).length} categories selected`}
                     </span>
                     <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
@@ -621,12 +614,13 @@ const AddProductDialog = ({
                     {categories.map((cat) => (
                       <div key={cat._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
                            onClick={() => {
-                             const newIds = selectedCategoryId.includes(cat._id)
-                               ? selectedCategoryId.filter(id => id !== cat._id)
-                               : [...selectedCategoryId, cat._id];
+                             const safeIds = ensureIdArray(selectedCategoryId);
+                             const newIds = safeIds.includes(cat._id)
+                               ? safeIds.filter(id => id !== cat._id)
+                               : [...safeIds, cat._id];
                              setSelectedCategoryId(newIds);
                            }}>
-                        <Checkbox checked={selectedCategoryId.includes(cat._id)} onCheckedChange={() => {}} />
+                        <Checkbox checked={ensureIdArray(selectedCategoryId).includes(cat._id)} onCheckedChange={() => {}} />
                         <Label className="flex-1 cursor-pointer truncate">{cat.name}</Label>
                       </div>
                     ))}
@@ -681,9 +675,9 @@ const AddProductDialog = ({
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between font-normal" disabled={loadingSections}>
                     <span className="truncate">
-                      {selectedSectionId.length === 0 
+                      {ensureIdArray(selectedSectionId).length === 0 
                         ? (loadingSections ? "Loading..." : "Select sections (optional)") 
-                        : `${selectedSectionId.length} sections selected`}
+                        : `${ensureIdArray(selectedSectionId).length} sections selected`}
                     </span>
                     <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
@@ -693,12 +687,13 @@ const AddProductDialog = ({
                     {sections.map((sec) => (
                       <div key={sec._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
                            onClick={() => {
-                             const newIds = selectedSectionId.includes(sec._id)
-                               ? selectedSectionId.filter(id => id !== sec._id)
-                               : [...selectedSectionId, sec._id];
+                             const safeIds = ensureIdArray(selectedSectionId);
+                             const newIds = safeIds.includes(sec._id)
+                               ? safeIds.filter(id => id !== sec._id)
+                               : [...safeIds, sec._id];
                              setSelectedSectionId(newIds);
                            }}>
-                        <Checkbox checked={selectedSectionId.includes(sec._id)} onCheckedChange={() => {}} />
+                        <Checkbox checked={ensureIdArray(selectedSectionId).includes(sec._id)} onCheckedChange={() => {}} />
                         <Label className="flex-1 cursor-pointer truncate">{sec.name}</Label>
                       </div>
                     ))}

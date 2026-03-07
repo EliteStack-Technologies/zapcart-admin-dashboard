@@ -97,7 +97,7 @@ export default function CustomerOrdersPage() {
     const statusConfig = ORDER_STATUSES.find((s) => s.value === status);
     const StatusIcon = statusConfig?.icon || Package;
     return (
-      <Badge className={`${statusConfig?.color || "bg-gray-500"} text-white flex items-center gap-1`}>
+      <Badge className={`${statusConfig?.color || "bg-gray-500"} text-white flex items-center gap-1 text-[10px] sm:text-xs px-1.5 py-0 sm:px-2.5 sm:py-0.5 whitespace-nowrap`}>
         <StatusIcon className="h-3 w-3" />
         {statusConfig?.label || status}
       </Badge>
@@ -137,22 +137,25 @@ export default function CustomerOrdersPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto p-4">
+      <div className="max-w-[600px] sm:max-w-6xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-4 bg-white shadow-sm h-12">
-            <TabsTrigger value="all" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-              All Orders
+        <TabsList className="flex overflow-x-auto justify-start h-auto p-1 mb-4 bg-white/80 backdrop-blur-sm shadow-sm no-scrollbar scroll-smooth rounded-xl border border-gray-100">
+          <TabsTrigger 
+            value="all" 
+            className="flex-shrink-0 px-4 py-2.5 text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg"
+          >
+            All Orders
+          </TabsTrigger>
+          {ORDER_STATUSES.map((status) => (
+            <TabsTrigger 
+              key={status.value} 
+              value={status.value}
+              className="flex-shrink-0 px-4 py-2.5 text-sm font-semibold transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg"
+            >
+              {status.label}
             </TabsTrigger>
-            {ORDER_STATUSES.map((status) => (
-              <TabsTrigger 
-                key={status.value} 
-                value={status.value}
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white"
-              >
-                {status.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          ))}
+        </TabsList>
 
           <TabsContent value={activeTab} className="space-y-4">
             {/* Search */}
@@ -188,11 +191,11 @@ export default function CustomerOrdersPage() {
               <div className="space-y-3">
                 {filteredOrders.map((order) => (
                   <Card key={order._id} className="hover:shadow-lg transition-all border-0 shadow-md">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-3 flex-1">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <p className="font-bold text-lg text-gray-900">{order.order_number}</p>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-2 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <p className="font-bold text-base sm:text-lg text-gray-900 truncate">{order.order_number}</p>
                             {getStatusBadge(order.order_status)}
                           </div>
                           
