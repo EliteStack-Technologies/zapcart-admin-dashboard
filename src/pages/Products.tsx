@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { format } from "date-fns";
 import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil, FileSpreadsheet } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,13 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown } from "lucide-react";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -45,6 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getProduct, deleteProduct, changeStatus, updateProduct, updatePriceVisibility } from "@/services/product";
 import { getCategory } from "@/services/category";
 import { getOfferTags } from "@/services/offersTags";
+import { getSections } from "@/services/rows";
 
 const Products = () => {
   const { toast } = useToast();
@@ -79,22 +88,25 @@ const Products = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("none");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [offerFilter, setOfferFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [offerFilter, setOfferFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [sectionFilter, setSectionFilter] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [categories, setCategories] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const { currency } = useCurrency();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const filters = {
-          category_id: categoryFilter,
-          offer_id: offerFilter,
-          status: statusFilter
+          category_id: categoryFilter.length > 0 ? categoryFilter.join(',') : undefined,
+          offer_id: offerFilter.length > 0 ? offerFilter.join(',') : undefined,
+          status: statusFilter.length > 0 ? statusFilter.join(',') : undefined,
+          section_id: sectionFilter.length > 0 ? sectionFilter.join(',') : undefined
         };
         const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
 
@@ -108,7 +120,7 @@ const Products = () => {
       }
     };
     fetchData();
-  }, [currentPage, limit, searchTerm, categoryFilter, offerFilter, statusFilter, sortBy]);
+  }, [currentPage, limit, searchTerm, categoryFilter, offerFilter, statusFilter, sortBy, sectionFilter]);
 
   // Fetch categories and offers for filters
   useEffect(() => {
@@ -121,6 +133,11 @@ const Products = () => {
         // Fetch offers - returns array directly
         const offersData = await getOfferTags();
         setOffers(Array.isArray(offersData) ? offersData : []);
+
+        // Fetch sections
+        const sectionsData = await getSections();
+        const sectionsList = sectionsData?.sections || sectionsData?.data || (Array.isArray(sectionsData) ? sectionsData : []);
+        setSections(sectionsList);
       } catch (error) {
         console.error("Error fetching filters:", error);
       }
@@ -148,8 +165,17 @@ const Products = () => {
     try {
       await deleteProduct(String(selectedProduct._id));
 
-      // Update state by filtering out the deleted product
-      setProducts((prev) => prev.filter((p) => p._id !== selectedProduct._id));
+      // Refresh products
+      const filters = {
+        category_id: categoryFilter.length > 0 ? categoryFilter.join(",") : undefined,
+        offer_id: offerFilter.length > 0 ? offerFilter.join(",") : undefined,
+        status: statusFilter.length > 0 ? statusFilter.join(",") : undefined,
+        section_id: sectionFilter.length > 0 ? sectionFilter.join(",") : undefined,
+      };
+      const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
+      setProducts(Array.isArray(data?.products) ? data?.products : []);
+      setTotalPages(data?.totalPages || 1);
+      setTotalProducts(data?.total || 0);
 
       toast({
         title: "Product deleted",
@@ -172,12 +198,22 @@ const Products = () => {
     try {
       // Call API to update product status
       await changeStatus(String(product._id));
-      const data = await getProduct();
+      
+      // Refresh products with current filters
+      const filters = {
+        category_id: categoryFilter.length > 0 ? categoryFilter.join(",") : undefined,
+        offer_id: offerFilter.length > 0 ? offerFilter.join(",") : undefined,
+        status: statusFilter.length > 0 ? statusFilter.join(",") : undefined,
+        section_id: sectionFilter.length > 0 ? sectionFilter.join(",") : undefined,
+      };
+      const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
 
       // Ensure data is always an array
       setProducts(
         Array.isArray(data?.products) ? data?.products : data?.products || []
       );
+      setTotalPages(data?.totalPages || 1);
+      setTotalProducts(data?.total || 0);
 
       toast({
         title: "Status updated",
@@ -199,12 +235,15 @@ const Products = () => {
       
       // Refresh products
       const filters = {
-        category_id: categoryFilter,
-        offer_id: offerFilter,
-        status: statusFilter
+        category_id: categoryFilter.length > 0 ? categoryFilter.join(",") : undefined,
+        offer_id: offerFilter.length > 0 ? offerFilter.join(",") : undefined,
+        status: statusFilter.length > 0 ? statusFilter.join(",") : undefined,
+        section_id: sectionFilter.length > 0 ? sectionFilter.join(",") : undefined,
       };
       const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
       setProducts(Array.isArray(data?.products) ? data?.products : []);
+      setTotalPages(data?.totalPages || 1);
+      setTotalProducts(data?.total || 0);
 
       toast({
         title: "Price visibility updated",
@@ -256,8 +295,16 @@ const Products = () => {
       await updateProduct(product._id, formData);
 
       // Refresh product list
-      const data = await getProduct(currentPage, limit);
+      const filters = {
+        category_id: categoryFilter.length > 0 ? categoryFilter.join(",") : undefined,
+        offer_id: offerFilter.length > 0 ? offerFilter.join(",") : undefined,
+        status: statusFilter.length > 0 ? statusFilter.join(",") : undefined,
+        section_id: sectionFilter.length > 0 ? sectionFilter.join(",") : undefined,
+      };
+      const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
       setProducts(Array.isArray(data?.products) ? data?.products : []);
+      setTotalPages(data?.totalPages || 1);
+      setTotalProducts(data?.total || 0);
 
       toast({
         title: "Price updated",
@@ -315,7 +362,10 @@ const Products = () => {
                     placeholder="Search products by name or code..."
                     className="pl-10"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
                   />
                 </div>
               </div>
@@ -323,7 +373,13 @@ const Products = () => {
               {/* Filters */}
               <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {/* Sort By */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select
+                  value={sortBy}
+                  onValueChange={(val) => {
+                    setSortBy(val);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -340,57 +396,168 @@ const Products = () => {
                   </SelectContent>
                 </Select>
 
-                {/* Category Filter */}
-                <Select
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category._id} value={category._id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Category Filter (Multi-select) */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-normal">
+                      <span className="truncate">
+                        {categoryFilter.length === 0
+                          ? "Select Categories"
+                          : `${categoryFilter.length} Categories`}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                      {categories.map((cat) => (
+                        <div key={cat._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
+                             onClick={() => {
+                               const newFilter = categoryFilter.includes(cat._id)
+                                 ? categoryFilter.filter(id => id !== cat._id)
+                                 : [...categoryFilter, cat._id];
+                               setCategoryFilter(newFilter);
+                               setCurrentPage(1);
+                             }}>
+                          <Checkbox checked={categoryFilter.includes(cat._id)} onCheckedChange={() => {}} />
+                          <Label className="flex-1 cursor-pointer truncate">{cat.name}</Label>
+                        </div>
+                      ))}
+                      {categories.length === 0 && <div className="p-2 text-xs text-muted-foreground text-center">No categories</div>}
+                    </div>
+                    {categoryFilter.length > 0 && (
+                      <div className="border-t p-2">
+                        <Button variant="ghost" size="sm" className="w-full text-xs h-8" onClick={() => setCategoryFilter([])}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
 
-                {/* Offer Filter */}
-                <Select value={offerFilter} onValueChange={setOfferFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Offer Tag" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Offers</SelectItem>
-                    {offers.map((offer) => (
-                      <SelectItem key={offer._id} value={offer._id}>
-                        {offer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Offer Filter (Multi-select) */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-normal">
+                      <span className="truncate">
+                        {offerFilter.length === 0
+                          ? "Select Offers"
+                          : `${offerFilter.length} Offers`}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                      {offers.map((offer) => (
+                        <div key={offer._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
+                             onClick={() => {
+                               const newFilter = offerFilter.includes(offer._id)
+                                 ? offerFilter.filter(id => id !== offer._id)
+                                 : [...offerFilter, offer._id];
+                               setOfferFilter(newFilter);
+                               setCurrentPage(1);
+                             }}>
+                          <Checkbox checked={offerFilter.includes(offer._id)} onCheckedChange={() => {}} />
+                          <Label className="flex-1 cursor-pointer truncate">{offer.name}</Label>
+                        </div>
+                      ))}
+                      {offers.length === 0 && <div className="p-2 text-xs text-muted-foreground text-center">No offers</div>}
+                    </div>
+                    {offerFilter.length > 0 && (
+                      <div className="border-t p-2">
+                        <Button variant="ghost" size="sm" className="w-full text-xs h-8" onClick={() => setOfferFilter([])}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
 
-                {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Status Filter (Multi-select) */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-normal">
+                      <span className="truncate">
+                        {statusFilter.length === 0
+                          ? "Select Status"
+                          : `${statusFilter.length} Statuses`}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <div className="p-2 space-y-1">
+                      {['active', 'inactive'].map((s) => (
+                        <div key={s} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
+                             onClick={() => {
+                               const newFilter = statusFilter.includes(s)
+                                 ? statusFilter.filter(id => id !== s)
+                                 : [...statusFilter, s];
+                               setStatusFilter(newFilter);
+                               setCurrentPage(1);
+                             }}>
+                          <Checkbox checked={statusFilter.includes(s)} onCheckedChange={() => {}} />
+                          <Label className="flex-1 cursor-pointer capitalize">{s}</Label>
+                        </div>
+                      ))}
+                    </div>
+                    {statusFilter.length > 0 && (
+                      <div className="border-t p-2">
+                        <Button variant="ghost" size="sm" className="w-full text-xs h-8" onClick={() => setStatusFilter([])}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                {/* Section Filter (Multi-select) */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-normal">
+                      <span className="truncate">
+                        {sectionFilter.length === 0
+                          ? "Select Sections"
+                          : `${sectionFilter.length} Sections`}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                      {sections.map((section) => (
+                        <div key={section._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
+                             onClick={() => {
+                               const newFilter = sectionFilter.includes(section._id)
+                                 ? sectionFilter.filter(id => id !== section._id)
+                                 : [...sectionFilter, section._id];
+                               setSectionFilter(newFilter);
+                               setCurrentPage(1);
+                             }}>
+                          <Checkbox checked={sectionFilter.includes(section._id)} onCheckedChange={() => {}} />
+                          <Label className="flex-1 cursor-pointer truncate">{section.name}</Label>
+                        </div>
+                      ))}
+                      {sections.length === 0 && <div className="p-2 text-xs text-muted-foreground text-center">No sections</div>}
+                    </div>
+                    {sectionFilter.length > 0 && (
+                      <div className="border-t p-2">
+                        <Button variant="ghost" size="sm" className="w-full text-xs h-8" onClick={() => setSectionFilter([])}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
 
                 {/* Clear Filters Button */}
                 {(searchTerm ||
                   sortBy !== "none" ||
-                  categoryFilter !== "all" ||
-                  offerFilter !== "all" ||
-                  statusFilter !== "all" ||
+                  categoryFilter.length > 0 ||
+                  offerFilter.length > 0 ||
+                  statusFilter.length > 0 ||
+                  sectionFilter.length > 0 ||
                   minPrice ||
                   maxPrice) && (
                   <Button
@@ -398,11 +565,13 @@ const Products = () => {
                     onClick={() => {
                       setSearchTerm("");
                       setSortBy("none");
-                      setCategoryFilter("all");
-                      setOfferFilter("all");
-                      setStatusFilter("all");
+                      setCategoryFilter([]);
+                      setOfferFilter([]);
+                      setStatusFilter([]);
+                      setSectionFilter([]);
                       setMinPrice("");
                       setMaxPrice("");
+                      setCurrentPage(1);
                     }}
                   >
                     Clear Filters
@@ -475,7 +644,22 @@ const Products = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{product.product_code || "-"}
                       </TableCell>
-                      <TableCell>{product.category_id?.name || "--"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {Array.isArray(product.category_id) ? (
+                            product.category_id.map((cat: any) => (
+                              <Badge key={cat._id} variant="outline" className="text-[10px] px-1 py-0 h-4">
+                                {cat.name}
+                              </Badge>
+                            ))
+                          ) : product.category_id?.name ? (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                              {product.category_id.name}
+                            </Badge>
+                          ) : "--"}
+                        </div>
+                      </TableCell>
+                
 
                       <TableCell className="font-medium text-primary">
                         {product.variants && product.variants.length > 0 ? (
@@ -609,6 +793,9 @@ const Products = () => {
                           />
                         </div>
                       </TableCell>
+
+                
+
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -771,9 +958,10 @@ const Products = () => {
           onOpenChange={setExcelUploadOpen}
           onUploadSuccess={async () => {
             const filters = {
-              category_id: categoryFilter,
-              offer_id: offerFilter,
-              status: statusFilter,
+              category_id: categoryFilter.length > 0 ? categoryFilter.join(',') : undefined,
+              offer_id: offerFilter.length > 0 ? offerFilter.join(',') : undefined,
+              status: statusFilter.length > 0 ? statusFilter.join(',') : undefined,
+              section_id: sectionFilter.length > 0 ? sectionFilter.join(',') : undefined
             };
             const data = await getProduct(currentPage, limit, searchTerm || undefined, filters, sortBy);
             setProducts(Array.isArray(data?.products) ? data?.products : []);
