@@ -242,7 +242,7 @@ const AddProductDialog = ({
       // Handle flexible response format
       const images =
         data?.images || data?.data || (Array.isArray(data) ? data : []);
-      setProductImages(images);
+      setProductImages(Array.isArray(images) ? images : []);
     } catch (error: any) {
       console.error("Error fetching product images:", error);
       toast({
@@ -261,7 +261,7 @@ const AddProductDialog = ({
       const data = await getOfferTags();
       const offersList =
         data?.offers || data?.data || (Array.isArray(data) ? data : []);
-      setOffers(offersList);
+      setOffers(Array.isArray(offersList) ? offersList : []);
       
       // Sync selected offer if editing and list just loaded
       if (editingProduct?.offer_id && open) {
@@ -286,7 +286,7 @@ const AddProductDialog = ({
       const data = await getCategory();
       const categoriesList =
         data?.categories || data?.data || (Array.isArray(data) ? data : []);
-      setCategories(categoriesList);
+      setCategories(Array.isArray(categoriesList) ? categoriesList : []);
       
       // Sync selected category if editing and list just loaded
       if (editingProduct?.category_id && open) {
@@ -311,7 +311,7 @@ const AddProductDialog = ({
       const data = await getSections();
       const sectionsList =
         data?.sections || data?.data || (Array.isArray(data) ? data : []);
-      setSections(sectionsList);
+      setSections(Array.isArray(sectionsList) ? sectionsList : []);
       
       // Sync selected section if editing and list just loaded
       if (editingProduct?.section_id && open) {
@@ -610,8 +610,8 @@ const AddProductDialog = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
-                  <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
-                    {categories.map((cat) => (
+                  <div className="p-2 space-y-1 max-h-[280px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                    {(Array.isArray(categories) ? categories : []).map((cat) => (
                       <div key={cat._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
                            onClick={() => {
                              const safeIds = ensureIdArray(selectedCategoryId);
@@ -649,8 +649,8 @@ const AddProductDialog = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {offers.length > 0 ? (
-                    offers.map((offer) => {
+                  {offers && offers.length > 0 ? (
+                    (Array.isArray(offers) ? offers : []).map((offer) => {
                       const offerId = offer._id || offer.id;
                       const offerName =
                         offer.name || offer.title || offer.tag_name || "Offer";
@@ -683,8 +683,8 @@ const AddProductDialog = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
-                  <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
-                    {sections.map((sec) => (
+                  <div className="p-2 space-y-1 max-h-[280px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                    {(Array.isArray(sections) ? sections : []).map((sec) => (
                       <div key={sec._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
                            onClick={() => {
                              const safeIds = ensureIdArray(selectedSectionId);
@@ -741,7 +741,7 @@ const AddProductDialog = ({
                       </Button>
                     </div>
 
-                    {variants.map((variant, index) => (
+                    {(Array.isArray(variants) ? variants : []).map((variant, index) => (
                       <div key={index} className="flex gap-2 items-start p-3 bg-background rounded border">
                         <div className="flex-1 space-y-2">
                           <Input
