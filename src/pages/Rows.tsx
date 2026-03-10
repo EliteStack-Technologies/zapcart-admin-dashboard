@@ -57,7 +57,8 @@ const Rows = () => {
     const fetchData = async () => {
       try {
         const data = await getSections();
-        const sectionsList = data?.sections || data?.data || (Array.isArray(data) ? data : []);
+        let sectionsList = data?.sections || data?.data || (Array.isArray(data) ? data : []);
+        if (!Array.isArray(sectionsList)) sectionsList = [];
         // Sort sections by order field if it exists, otherwise keep original order
         const sortedSections = sectionsList.sort((a: any, b: any) => {
           if (a.order !== undefined && b.order !== undefined) {
