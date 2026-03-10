@@ -611,7 +611,7 @@ const AddProductDialog = ({
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
                   <div className="p-2 space-y-1 max-h-[280px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
-                          {categories.map((cat) => (
+                    {categories.map((cat) => (
                       <div key={cat._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
                            onClick={() => {
                              const safeIds = ensureIdArray(selectedCategoryId);
@@ -683,7 +683,7 @@ const AddProductDialog = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
-                  <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                  <div className="p-2 space-y-1 max-h-[280px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
                     {sections.map((sec) => (
                       <div key={sec._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer"
                            onClick={() => {
