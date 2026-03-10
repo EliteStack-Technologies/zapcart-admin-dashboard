@@ -411,7 +411,7 @@ const Products = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0" align="start">
                     <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
-                      {categories.map((cat) => (
+                      {(Array.isArray(categories) ? categories : []).map((cat) => (
                         <div key={cat._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
                              onClick={() => {
                                const newFilter = categoryFilter.includes(cat._id)
@@ -450,7 +450,7 @@ const Products = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0" align="start">
                     <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
-                      {offers.map((offer) => (
+                      {(Array.isArray(offers) ? offers : []).map((offer) => (
                         <div key={offer._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
                              onClick={() => {
                                const newFilter = offerFilter.includes(offer._id)
@@ -527,7 +527,7 @@ const Products = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0" align="start">
                     <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
-                      {sections.map((section) => (
+                      {(Array.isArray(sections) ? sections : []).map((section) => (
                         <div key={section._id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded text-sm cursor-pointer" 
                              onClick={() => {
                                const newFilter = sectionFilter.includes(section._id)
@@ -613,7 +613,7 @@ const Products = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredAndSortedProducts.map((product, index) => (
+                  (Array.isArray(filteredAndSortedProducts) ? filteredAndSortedProducts : []).map((product, index) => (
                     <TableRow key={product._id}>
                       <TableCell>
                         {(currentPage - 1) * limit + index + 1}
@@ -666,7 +666,7 @@ const Products = () => {
                         {product.variants && product.variants.length > 0 ? (
                           <div className="text-sm">
                             <span className="text-muted-foreground">From </span>
-                            <span>{currency?.symbol || "$"}{Math.min(...product.variants.map((v: any) => v.variant_price))}</span>
+                            <span>{currency?.symbol || "$"}{Math.min(...(Array.isArray(product.variants) ? product.variants : []).map((v: any) => v.variant_price))}</span>
                           </div>
                         ) : editingPrice?.productId === product._id && editingPrice?.field === 'actual' ? (
                           <div className="flex items-center gap-1">
@@ -1057,7 +1057,7 @@ const Products = () => {
                     <div className="pt-1.5 border-t space-y-2">
                       <p className="text-xs text-muted-foreground font-medium">Product Variants</p>
                       <div className="grid gap-2">
-                        {selectedProduct.variants.map((variant: any, idx: number) => (
+                        {(Array.isArray(selectedProduct.variants) ? selectedProduct.variants : []).map((variant: any, idx: number) => (
                           <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded border text-sm">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{variant.variant_name}</span>
