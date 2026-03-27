@@ -172,6 +172,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("enquiry_mode");
     localStorage.removeItem("inventory_enabled");
     localStorage.removeItem("zoho_enabled");
+    // Branch admin cleanup
+    localStorage.removeItem("is_branch_admin");
+    localStorage.removeItem("branch_admin_token");
+    localStorage.removeItem("branch_admin_info");
+    localStorage.removeItem("assigned_clients");
+    localStorage.removeItem("sub_domain_name");
   };
 
   const isRestaurant = user?.business_type?.map((t) => t.toLowerCase()).includes("restaurant") ?? false;

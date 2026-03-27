@@ -38,9 +38,11 @@ axiosInstance.interceptors.request.use(
       }
     } else {
       // Use admin token for other requests (including admin customer management)
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      if (!config.headers.Authorization) {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     }
     return config;

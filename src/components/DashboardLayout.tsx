@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "./NotificationBell";
 import { removeFCMTokenOnLogout } from "@/hooks/useFCM";
-// import { NotifyButton } from "./NotifyButton";
+import { registerFCMOnLogin } from "@/hooks/useFCM";
+import axiosInstance from "@/services/axiosInstance";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -28,6 +29,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Branch admin client switcher state
+  const [isBranchAdmin] = useState(() => localStorage.getItem("is_branch_admin") === "true");
+  const [assignedClients] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem("assigned_clients") || "[]"); } catch { return []; }
+  });
+  const [branchAdminInfo] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem("branch_admin_info") || "null"); } catch { return null; }
+  });
+  const [showClientSwitcher, setShowClientSwitcher] = useState(false);
+  const [switchingClient, setSwitchingClient] = useState(false);
+
   // Auto-expand inventory menu when on inventory pages
   useEffect(() => {
     if (location.pathname.startsWith('/inventory')) {
@@ -37,10 +49,62 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, [location.pathname]);
   
   const handleLogout = async () => {
-    // Remove FCM token from backend before clearing auth state
     await removeFCMTokenOnLogout();
     logout();
     navigate("/login");
+  };
+
+  const handleSwitchClient = async (client: any) => {
+    if (switchingClient) return;
+    setSwitchingClient(true);
+    try {
+      const branchToken = localStorage.getItem("branch_admin_token");
+      if (!branchToken) throw new Error("Branch admin session expired");
+
+      const response = await axiosInstance.post(
+        `/api/v1/branch-admins/switch-client/${client._id}`,
+        {},
+        { headers: { Authorization: `Bearer ${branchToken}` } }
+      );
+
+      if (!response?.data?.accessToken) throw new Error("Failed to switch client");
+
+      localStorage.setItem("accessToken", response.data.accessToken);
+
+      if (response.data.client) {
+        const userData = {
+          id: response.data.client.id,
+          email: response.data.client.email,
+          name: response.data.client.client_name || response.data.client.business_name,
+          business_name: response.data.client.business_name,
+          business_type: response.data.client.business_type,
+          enquiry_mode: response.data.client.enquiry_mode || false,
+          inventory_enabled: response.data.client.inventory_enabled || false,
+          zoho_enabled: response.data.client.zoho_enabled || false,
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("enquiry_mode", String(response.data.client.enquiry_mode || false));
+        localStorage.setItem("inventory_enabled", String(response.data.client.inventory_enabled || false));
+        localStorage.setItem("zoho_enabled", String(response.data.client.zoho_enabled || false));
+        if (response.data.client.sub_domain_name) {
+          localStorage.setItem("sub_domain_name", response.data.client.sub_domain_name);
+        }
+
+        if (response.data.client.currency_id) {
+          localStorage.setItem("currency", JSON.stringify(response.data.client.currency_id));
+          window.dispatchEvent(new Event("currencyUpdated"));
+        }
+      }
+
+      // Reload to reinitialize all contexts with new client data
+      window.location.href = "/";
+    } catch (err: any) {
+      console.error("Switch client error:", err);
+      alert(err.response?.data?.message || err.message || "Failed to switch client");
+    } finally {
+      setSwitchingClient(false);
+      setShowClientSwitcher(false);
+    }
   };
 
   const toggleInventory = () => {
@@ -216,6 +280,50 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Branch Admin Client Switcher */}
+              {isBranchAdmin && assignedClients.length > 1 && (
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-sm"
+                    onClick={() => setShowClientSwitcher(!showClientSwitcher)}
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                    Switch Client
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showClientSwitcher ? 'rotate-180' : ''}`} />
+                  </Button>
+
+                  {showClientSwitcher && (
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-background border rounded-lg shadow-xl z-50 py-2 max-h-80 overflow-y-auto">
+                      <div className="px-3 py-2 border-b">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {branchAdminInfo?.name || 'Branch Admin'} — Assigned Clients
+                        </p>
+                      </div>
+                      {assignedClients.map((client: any) => (
+                        <button
+                          key={client._id}
+                          onClick={() => handleSwitchClient(client)}
+                          disabled={switchingClient || client._id === user?.id}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors ${
+                            client._id === user?.id ? 'bg-primary/5 border-l-2 border-primary' : ''
+                          } ${switchingClient ? 'opacity-50' : ''}`}
+                        >
+                          <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{client.business_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{client.client_name}</p>
+                          </div>
+                          {client._id === user?.id && (
+                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Current</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <NotificationBell />
             </div>
           </div>

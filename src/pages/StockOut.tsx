@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { TrendingDown, Package, Search } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { TrendingDown, Package, Search, Check, ChevronsUpDown } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -11,12 +12,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import {
   Table,
   TableBody,
@@ -44,15 +51,66 @@ const StockOut = () => {
   
   // Form state
   const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedProductTitle, setSelectedProductTitle] = useState('');
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
-  
+
+  const [productPage, setProductPage] = useState(1);
+  const [productSearch, setProductSearch] = useState('');
+  const [isProductLoading, setIsProductLoading] = useState(false);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const observer = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
+
+  const loadProducts = async (pageToLoad: number, searchParam: string, reset: boolean = false) => {
+    setIsProductLoading(true);
+    try {
+      const response = await getProduct(pageToLoad, 20, searchParam);
+      const newProducts = response.products || [];
+      
+      setProducts(prev => reset ? newProducts : [...prev, ...newProducts]);
+      setHasMoreProducts(newProducts.length >= 20);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to fetch products',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProductLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchStockHistory();
-    fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setProductPage(1);
+      loadProducts(1, productSearch, true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [productSearch]);
+
+  const lastProductRef = useCallback((node: HTMLDivElement | null) => {
+    if (isProductLoading) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMoreProducts) {
+        setProductPage((prev) => {
+          const nextPage = prev + 1;
+          loadProducts(nextPage, productSearch, false);
+          return nextPage;
+        });
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [isProductLoading, hasMoreProducts, productSearch]);
 
   const fetchStockHistory = async () => {
     try {
@@ -64,19 +122,6 @@ const StockOut = () => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to fetch stock history',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const response = await getProduct(); // Fetch first 1000 products
-      setProducts(response.products || []);
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to fetch products',
         variant: 'destructive',
       });
     }
@@ -109,6 +154,7 @@ const StockOut = () => {
 
       // Reset form
       setSelectedProduct('');
+      setSelectedProductTitle('');
       setQuantity('');
       setReason('');
       setIsModalOpen(false);
@@ -242,20 +288,65 @@ const StockOut = () => {
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label htmlFor="product">Select Product</Label>
-              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                <SelectTrigger>
-                  <SelectValue placeholder="-- Choose Product --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product._id} value={product._id}>
-                      {product.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={true}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={popoverOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedProduct
+                      ? selectedProductTitle
+                      : "-- Choose Product --"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput 
+                      placeholder="Search products..." 
+                      value={productSearch}
+                      onValueChange={setProductSearch}
+                    />
+                    <CommandList className="max-h-[200px] overflow-y-auto">
+                      <CommandEmpty>No product found.</CommandEmpty>
+                      <CommandGroup>
+                        {products.map((product, index) => {
+                          const isLast = index === products.length - 1;
+                          return (
+                            <CommandItem
+                              key={product._id}
+                              value={product._id}
+                              onSelect={() => {
+                                setSelectedProduct(product._id);
+                                setSelectedProductTitle(product.title);
+                                setPopoverOpen(false);
+                              }}
+                              ref={isLast ? lastProductRef : undefined}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4 flex-shrink-0",
+                                  selectedProduct === product._id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{product.title}</span>
+                            </CommandItem>
+                          );
+                        })}
+                        {isProductLoading && (
+                          <div className="p-4 text-center items-center text-sm text-muted-foreground w-full">
+                            Loading more...
+                          </div>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
