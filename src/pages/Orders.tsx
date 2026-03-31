@@ -40,12 +40,14 @@ import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus, Me
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, Order, OrderItem } from "@/services/orders";
+import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, assignDeliveryAgent, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
 import { getCustomers, createCustomer, type Customer } from "@/services/customer";
+import { getDeliveryAgents, type DeliveryAgent } from "@/services/deliveryAgents";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/contexts/AuthContext";
 import AddCustomerSheet from "@/components/AddCustomerSheet";
 
 const ORDER_STATUSES = [
@@ -73,6 +75,7 @@ export default function Orders() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const { currency } = useCurrency();
+  const { deliveryManagementEnabled } = useAuth();
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -137,6 +140,24 @@ export default function Orders() {
   const [orderCustomerDetails, setOrderCustomerDetails] = useState<Customer | null>(null);
   const [loadingOrderCustomer, setLoadingOrderCustomer] = useState(false);
   const [showOrderCustomerDetails, setShowOrderCustomerDetails] = useState(false);
+
+  // Delivery Agents
+  const [deliveryAgents, setDeliveryAgents] = useState<DeliveryAgent[]>([]);
+  const [assigningAgent, setAssigningAgent] = useState(false);
+
+  useEffect(() => {
+    if (deliveryManagementEnabled) {
+      const fetchAgents = async () => {
+        try {
+          const data = await getDeliveryAgents();
+          setDeliveryAgents(Array.isArray(data) ? data : data?.deliveryAgents || data?.data || []);
+        } catch (error) {
+          console.error("Error fetching delivery agents:", error);
+        }
+      };
+      fetchAgents();
+    }
+  }, [deliveryManagementEnabled]);
 
   const fetchStatusCounts = async () => {
     try {
@@ -556,6 +577,35 @@ export default function Orders() {
         description: "Failed to update order priority",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAssignDeliveryAgent = async (orderId: string, agentId: string) => {
+    setAssigningAgent(true);
+    try {
+      const selectedId = agentId === "none" ? null : agentId;
+      await assignDeliveryAgent(orderId, selectedId);
+      toast({
+        title: "Success",
+        description: "Delivery agent assigned successfully",
+      });
+      fetchOrders(currentPage, activeTab, priorityFilter);
+      if (selectedOrder && selectedOrder._id === orderId) {
+        const agentObj = deliveryAgents.find(a => a._id === selectedId);
+        setSelectedOrder({ 
+          ...selectedOrder, 
+          delivery_agent_id: agentObj ? { _id: agentObj._id, name: agentObj.name } : undefined 
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning delivery agent:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign delivery agent",
+        variant: "destructive",
+      });
+    } finally {
+      setAssigningAgent(false);
     }
   };
 
@@ -1585,6 +1635,49 @@ export default function Orders() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {deliveryManagementEnabled && (
+                  <>
+                    <div>
+                      <Label className="text-muted-foreground">Delivery Agent</Label>
+                      <div className="mt-1">
+                        {selectedOrder.delivery_agent_id ? (
+                          <Badge variant="secondary" className="px-2.5 py-0.5">
+                            {typeof selectedOrder.delivery_agent_id === "string" 
+                              ? deliveryAgents.find(a => a._id === selectedOrder.delivery_agent_id)?.name || "Assigned"
+                              : selectedOrder.delivery_agent_id.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Not assigned</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Assign Agent</Label>
+                      <Select
+                        value={
+                          typeof selectedOrder.delivery_agent_id === "string" 
+                            ? selectedOrder.delivery_agent_id
+                            : selectedOrder.delivery_agent_id?._id || "none"
+                        }
+                        onValueChange={(value) => handleAssignDeliveryAgent(selectedOrder._id, value)}
+                        disabled={assigningAgent}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select Agent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {deliveryAgents.map((agent) => (
+                            <SelectItem key={agent._id} value={agent._id}>
+                              {agent.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
 
          

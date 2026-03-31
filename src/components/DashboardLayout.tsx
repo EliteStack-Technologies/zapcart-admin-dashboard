@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +25,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const stored = localStorage.getItem('inventoryExpanded');
     return stored === 'true';
   });
-  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled } = useAuth();
+
+  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled, deliveryManagementEnabled } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,6 +48,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       localStorage.setItem('inventoryExpanded', 'true');
     }
   }, [location.pathname]);
+
+
   
   const handleLogout = async () => {
     await removeFCMTokenOnLogout();
@@ -85,6 +88,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("enquiry_mode", String(response.data.client.enquiry_mode || false));
         localStorage.setItem("inventory_enabled", String(response.data.client.inventory_enabled || false));
+        localStorage.setItem("delivery_management_enabled", String(response.data.client.delivery_management_enabled || false));
         localStorage.setItem("zoho_enabled", String(response.data.client.zoho_enabled || false));
         if (response.data.client.sub_domain_name) {
           localStorage.setItem("sub_domain_name", response.data.client.sub_domain_name);
@@ -112,6 +116,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setInventoryExpanded(newState);
     localStorage.setItem('inventoryExpanded', newState.toString());
   };
+
+
   
   const allNavItems = [
     { to: "/", icon: Home, label: "Dashboard" },
@@ -126,6 +132,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/flyers", icon: FileText, label: "Flyers" },
     // { to: "/upload-images", icon: Upload, label: "Upload Images" },
     { to: "/settings/zoho-books", icon: Settings, label: "Zoho Books", requireZohoEnabled: true },
+    { to: "/delivery-agents", icon: Truck, label: "Delivery Management", requireDeliveryManagement: true },
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
@@ -137,13 +144,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/inventory/low-stock", icon: AlertTriangle, label: "Low Stock" },
   ];
   
+
+  
   // Filter nav items based on enquiry mode and zoho enabled
   const navItems = allNavItems.filter(item => {
-    if (item.requireEnquiryMode) {
+    if ('requireEnquiryMode' in item && item.requireEnquiryMode) {
       return enquiryMode === true;
     }
-    if (item.requireZohoEnabled) {
+    if ('requireZohoEnabled' in item && item.requireZohoEnabled) {
       return zohoEnabled === true;
+    }
+    if ('requireDeliveryManagement' in item && item.requireDeliveryManagement) {
+      return deliveryManagementEnabled === true;
     }
     return true;
   });
@@ -196,7 +208,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <item.icon className="w-5 h-5" />
                   {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
                 </NavLink>
-                
+
                 {/* Insert Inventory Management after Products */}
                 {item.to === '/products' && inventoryEnabled && (
                   <div className="space-y-1 mt-1">

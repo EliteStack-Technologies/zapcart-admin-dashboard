@@ -32,6 +32,10 @@ export interface Order {
   notes?: string;
   cancellation_reason?: string;
   product_code?: string;
+  delivery_agent_id?: {
+    _id: string;
+    name: string;
+  } | string;
   zoho_salesorder_id?: string;
   zoho_sync_status?: "not_synced" | "synced" | "failed";
   zoho_sync_error?: string;
@@ -120,5 +124,10 @@ export const getOrderTimeTracking = async (orderId: string) => {
 
 export const updateOrderPriority = async (orderId: string, priority: "low" | "medium" | "high") => {
   const response = await axiosInstance.patch(`/api/v1/orders/${orderId}/priority`, { priority });
+  return response.data;
+};
+
+export const assignDeliveryAgent = async (orderId: string, deliveryAgentId: string | null) => {
+  const response = await axiosInstance.patch(`/api/v1/orders/${orderId}/assign-delivery`, { delivery_agent_id: deliveryAgentId });
   return response.data;
 };

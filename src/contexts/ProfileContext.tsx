@@ -17,8 +17,9 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
   const { token, isAuthenticated } = useAuth();
 
   const fetchProfile = async () => {
-    // Only fetch if we have a token and are not on the login page
-    if (!token || window.location.pathname === "/login") {
+    // Only fetch if we have an admin token and are not on the login page
+    const adminToken = localStorage.getItem("accessToken") || localStorage.getItem("authToken");
+    if (!adminToken || window.location.pathname === "/login") {
       setIsLoading(false);
       return;
     }
@@ -30,7 +31,6 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
     } catch (error: any) {
       console.error("Error fetching profile:", error);
       setProfile(null);
-      // If it's a 401, the axios interceptor will handle the redirect
     } finally {
       setIsLoading(false);
     }
