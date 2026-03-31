@@ -38,9 +38,15 @@ axiosInstance.interceptors.request.use(
       }
     } else {
       // Use admin token for other requests (including admin customer management)
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      if (!config.headers.Authorization) {
+        const token = localStorage.getItem("accessToken");
+        const deliveryToken = localStorage.getItem("delivery_agent_token");
+        
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        } else if (deliveryToken) {
+          config.headers.Authorization = `Bearer ${deliveryToken}`;
+        }
       }
     }
     return config;
@@ -68,7 +74,26 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem("customer_token");
         localStorage.removeItem("customer_info");
         window.location.href = "/customer/login";
+      } else if (error.config?.url?.includes('/delivery-app/')) {
+        // Unauthorized delivery agent - redirect to delivery login
+        localStorage.removeItem("delivery_agent_token");
+        localStorage.removeItem("delivery_agent_info");
+        const isDeliveryLogin = window.location.pathname === "/delivery-agent-login";
+        if (!isDeliveryLogin) {
+          window.location.href = "/delivery-agent-login";
+        }
       } else {
+        // Unauthorized admin or other - check if we are in the delivery portal
+        const isDeliveryPortal = window.location.pathname.startsWith("/delivery-portal") || 
+                               window.location.pathname.startsWith("/delivery-agent-login");
+        
+        if (isDeliveryPortal) {
+          // If 401 happens while on delivery portal, it might be the refreshCurrency call failing
+          // Don't redirect to admin login. If the agent token itself is invalid, another interceptor (above) handles it.
+          console.warn("401 Unauthorized encountered on delivery portal. Skipping admin redirect.");
+          return Promise.reject(error);
+        }
+
         // Unauthorized admin - clear auth but don't loop if already on login page
         localStorage.removeItem("accessToken");
         localStorage.removeItem("authToken");

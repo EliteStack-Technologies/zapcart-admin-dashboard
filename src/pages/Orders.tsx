@@ -36,13 +36,18 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus, MessageCircle, Copy, User, ChevronDown, ChevronUp } from "lucide-react";
-import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, Order, OrderItem } from "@/services/orders";
+import { Eye, Loader2, Trash2, Printer, Edit, Save, X, Plus, Clock, UserPlus, MessageCircle, Copy, User, ChevronDown, ChevronUp, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { getOrders, getOrderById, updateOrderStatus, deleteOrder, updateOrderItems, getOrderTimeTracking, updateOrderPriority, createOrder, assignDeliveryAgent, Order, OrderItem } from "@/services/orders";
 import { getProduct } from "@/services/product";
 import { getCustomers, createCustomer, type Customer } from "@/services/customer";
+import { getDeliveryAgents, type DeliveryAgent } from "@/services/deliveryAgents";
 import { format, isValid, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/contexts/AuthContext";
 import AddCustomerSheet from "@/components/AddCustomerSheet";
 
 const ORDER_STATUSES = [
@@ -70,6 +75,7 @@ export default function Orders() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const { currency } = useCurrency();
+  const { deliveryManagementEnabled } = useAuth();
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -113,6 +119,12 @@ export default function Orders() {
   const [loadingNewOrderProducts, setLoadingNewOrderProducts] = useState(false);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loadingAllProducts, setLoadingAllProducts] = useState(false);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsSearch, setProductsSearch] = useState('');
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const productsObserver = useRef<IntersectionObserver | null>(null);
+  const [popoverOpenAdd, setPopoverOpenAdd] = useState(false);
+  const [popoverOpenCreate, setPopoverOpenCreate] = useState(false);
   
   // Customer management states
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -128,6 +140,24 @@ export default function Orders() {
   const [orderCustomerDetails, setOrderCustomerDetails] = useState<Customer | null>(null);
   const [loadingOrderCustomer, setLoadingOrderCustomer] = useState(false);
   const [showOrderCustomerDetails, setShowOrderCustomerDetails] = useState(false);
+
+  // Delivery Agents
+  const [deliveryAgents, setDeliveryAgents] = useState<DeliveryAgent[]>([]);
+  const [assigningAgent, setAssigningAgent] = useState(false);
+
+  useEffect(() => {
+    if (deliveryManagementEnabled) {
+      const fetchAgents = async () => {
+        try {
+          const data = await getDeliveryAgents();
+          setDeliveryAgents(Array.isArray(data) ? data : data?.deliveryAgents || data?.data || []);
+        } catch (error) {
+          console.error("Error fetching delivery agents:", error);
+        }
+      };
+      fetchAgents();
+    }
+  }, [deliveryManagementEnabled]);
 
   const fetchStatusCounts = async () => {
     try {
@@ -258,7 +288,8 @@ export default function Orders() {
       setNewOrderPriority("medium");
       
       fetchCustomers();
-      handleSearchOrderItems();
+      setProductsSearch("");
+      handleSearchOrderItems(1, "", true);
     }
   }, [createOrderDialogOpen]);
 
@@ -279,18 +310,52 @@ export default function Orders() {
     }
   };
 
-  const handleSearchOrderItems = async () => {
+  const handleSearchOrderItems = async (pageToLoad: number = 1, searchParam: string = '', reset: boolean = false) => {
     setLoadingAllProducts(true);
     try {
-      const data = await getProduct(); // Fetch first 100 products
-      setAllProducts(data?.products || []);
+      const data = await getProduct(pageToLoad, 20, searchParam); 
+      const newProducts = data?.products || [];
+      // Deduplicate products based on _id
+      setAllProducts(prev => {
+        const merged = reset ? newProducts : [...prev, ...newProducts];
+        return Array.from(new Map(merged.map(item => [item._id, item])).values());
+      });
+      setHasMoreProducts(newProducts.length >= 20);
     } catch (error) {
       console.error("Error fetching products:", error);
-      setAllProducts([]);
+      if (reset) setAllProducts([]);
     } finally {
       setLoadingAllProducts(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Only fire if at least one dialog is open so we don't fetch randomly
+      if (createOrderDialogOpen || addItemDialogOpen || popoverOpenAdd || popoverOpenCreate) {
+        setProductsPage(1);
+        handleSearchOrderItems(1, productsSearch, true);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [productsSearch, createOrderDialogOpen, addItemDialogOpen]);
+
+  const lastProductRef = useCallback((node: HTMLDivElement | null) => {
+    if (loadingAllProducts) return;
+    if (productsObserver.current) productsObserver.current.disconnect();
+
+    productsObserver.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMoreProducts) {
+        setProductsPage((prev) => {
+          const nextPage = prev + 1;
+          handleSearchOrderItems(nextPage, productsSearch, false);
+          return nextPage;
+        });
+      }
+    });
+
+    if (node) productsObserver.current.observe(node);
+  }, [loadingAllProducts, hasMoreProducts, productsSearch]);
 
   const handleAddProductToOrder = (product: any) => {
     const newItem: OrderItem = {
@@ -512,6 +577,35 @@ export default function Orders() {
         description: "Failed to update order priority",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAssignDeliveryAgent = async (orderId: string, agentId: string) => {
+    setAssigningAgent(true);
+    try {
+      const selectedId = agentId === "none" ? null : agentId;
+      await assignDeliveryAgent(orderId, selectedId);
+      toast({
+        title: "Success",
+        description: "Delivery agent assigned successfully",
+      });
+      fetchOrders(currentPage, activeTab, priorityFilter);
+      if (selectedOrder && selectedOrder._id === orderId) {
+        const agentObj = deliveryAgents.find(a => a._id === selectedId);
+        setSelectedOrder({ 
+          ...selectedOrder, 
+          delivery_agent_id: agentObj ? { _id: agentObj._id, name: agentObj.name } : undefined 
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning delivery agent:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign delivery agent",
+        variant: "destructive",
+      });
+    } finally {
+      setAssigningAgent(false);
     }
   };
 
@@ -1541,6 +1635,49 @@ export default function Orders() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {deliveryManagementEnabled && (
+                  <>
+                    <div>
+                      <Label className="text-muted-foreground">Delivery Agent</Label>
+                      <div className="mt-1">
+                        {selectedOrder.delivery_agent_id ? (
+                          <Badge variant="secondary" className="px-2.5 py-0.5">
+                            {typeof selectedOrder.delivery_agent_id === "string" 
+                              ? deliveryAgents.find(a => a._id === selectedOrder.delivery_agent_id)?.name || "Assigned"
+                              : selectedOrder.delivery_agent_id.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Not assigned</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Assign Agent</Label>
+                      <Select
+                        value={
+                          typeof selectedOrder.delivery_agent_id === "string" 
+                            ? selectedOrder.delivery_agent_id
+                            : selectedOrder.delivery_agent_id?._id || "none"
+                        }
+                        onValueChange={(value) => handleAssignDeliveryAgent(selectedOrder._id, value)}
+                        disabled={assigningAgent}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select Agent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {deliveryAgents.map((agent) => (
+                            <SelectItem key={agent._id} value={agent._id}>
+                              {agent.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
 
          
@@ -2078,7 +2215,10 @@ export default function Orders() {
         open={addItemDialogOpen} 
         onOpenChange={(open) => {
           setAddItemDialogOpen(open);
-          if (open) handleSearchOrderItems(); // Fetch products when opening
+          if (open) {
+            setProductsSearch("");
+            handleSearchOrderItems(1, "", true);
+          }
         }}
       >
         <DialogContent className="max-w-2xl w-[95vw] sm:w-full">
@@ -2092,34 +2232,55 @@ export default function Orders() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Select Product</Label>
-              <Select
-                onValueChange={(productId) => {
-                  const product = allProducts.find(p => p._id === productId);
-                  if (product) handleAddProductToOrder(product);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingAllProducts ? "Loading products..." : "Select a product to add"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadingAllProducts ? (
-                    <div className="p-2 text-center text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
-                      Loading products...
-                    </div>
-                  ) : allProducts.length > 0 ? (
-                    allProducts.map((product) => (
-                      <SelectItem key={product._id} value={product._id}>
-                        {product.title} - {currency?.symbol || ''} {product.offer_price || product.price}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="p-2 text-center text-sm text-muted-foreground">
-                      No products found
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+              <Popover open={popoverOpenAdd} onOpenChange={setPopoverOpenAdd} modal={true}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={popoverOpenAdd}
+                    className="w-full justify-between font-normal h-10 px-3 py-2 text-sm"
+                  >
+                    Select a product to add
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput 
+                      placeholder="Search products..." 
+                      value={productsSearch}
+                      onValueChange={setProductsSearch}
+                    />
+                    <CommandList className="max-h-[200px] overflow-y-auto">
+                      <CommandEmpty>No product found.</CommandEmpty>
+                      <CommandGroup>
+                        {allProducts.map((product, index) => {
+                          const isLast = index === allProducts.length - 1;
+                          return (
+                            <CommandItem
+                              key={product._id}
+                              value={product._id}
+                              onSelect={() => {
+                                handleAddProductToOrder(product);
+                                setPopoverOpenAdd(false);
+                                setProductsSearch("");
+                              }}
+                              ref={isLast ? lastProductRef : undefined}
+                            >
+                              <span className="truncate">{product.title} - {currency?.symbol || ''} {product.offer_price || product.price}</span>
+                            </CommandItem>
+                          );
+                        })}
+                        {loadingAllProducts && (
+                          <div className="p-4 text-center items-center text-sm text-muted-foreground w-full">
+                            Loading more...
+                          </div>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </DialogContent>
@@ -2197,34 +2358,55 @@ export default function Orders() {
               <h3 className="font-semibold">Add Products</h3>
               <div className="space-y-2">
                 <Label>Select Product*</Label>
-                <Select
-                  onValueChange={(productId) => {
-                    const product = allProducts.find(p => p._id === productId);
-                    if (product) handleAddProductToNewOrder(product);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingAllProducts ? "Loading products..." : "Select a product to add"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingAllProducts ? (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
-                        Loading products...
-                      </div>
-                    ) : allProducts.length > 0 ? (
-                      allProducts.map((product) => (
-                        <SelectItem key={product._id} value={product._id}>
-                          {product.title} - {currency?.symbol || ''} {product.offer_price || product.price}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        No products found
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Popover open={popoverOpenCreate} onOpenChange={setPopoverOpenCreate} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={popoverOpenCreate}
+                      className="w-full justify-between font-normal h-10 px-3 py-2 text-sm"
+                    >
+                      Select a product to add
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput 
+                        placeholder="Search products..." 
+                        value={productsSearch}
+                        onValueChange={setProductsSearch}
+                      />
+                      <CommandList className="max-h-[200px] overflow-y-auto">
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                          {allProducts.map((product, index) => {
+                            const isLast = index === allProducts.length - 1;
+                            return (
+                              <CommandItem
+                                key={product._id}
+                                value={product._id}
+                                onSelect={() => {
+                                  handleAddProductToNewOrder(product);
+                                  setPopoverOpenCreate(false);
+                                  setProductsSearch("");
+                                }}
+                                ref={isLast ? lastProductRef : undefined}
+                              >
+                                <span className="truncate">{product.title} - {currency?.symbol || ''} {product.offer_price || product.price}</span>
+                              </CommandItem>
+                            );
+                          })}
+                          {loadingAllProducts && (
+                            <div className="p-4 text-center items-center text-sm text-muted-foreground w-full">
+                              Loading more...
+                            </div>
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 

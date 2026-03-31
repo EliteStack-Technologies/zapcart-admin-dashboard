@@ -34,6 +34,10 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     // Prevent duplicate calls
     if (isFetchingRef.current) return;
     
+    // Only fetch if we have an admin token or delivery agent token
+    const hasToken = !!(localStorage.getItem("accessToken") || localStorage.getItem("delivery_agent_token"));
+    if (!hasToken) return;
+    
     isFetchingRef.current = true;
     try {
       const profile = await getClientProfile(false); // Use cached data if available

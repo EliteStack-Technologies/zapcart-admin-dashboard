@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "./NotificationBell";
 import { removeFCMTokenOnLogout } from "@/hooks/useFCM";
-// import { NotifyButton } from "./NotifyButton";
+import { registerFCMOnLogin } from "@/hooks/useFCM";
+import axiosInstance from "@/services/axiosInstance";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -24,9 +25,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const stored = localStorage.getItem('inventoryExpanded');
     return stored === 'true';
   });
-  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled } = useAuth();
+
+  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled, deliveryManagementEnabled } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Branch admin client switcher state
+  const [isBranchAdmin] = useState(() => localStorage.getItem("is_branch_admin") === "true");
+  const [assignedClients] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem("assigned_clients") || "[]"); } catch { return []; }
+  });
+  const [branchAdminInfo] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem("branch_admin_info") || "null"); } catch { return null; }
+  });
+  const [showClientSwitcher, setShowClientSwitcher] = useState(false);
+  const [switchingClient, setSwitchingClient] = useState(false);
 
   // Auto-expand inventory menu when on inventory pages
   useEffect(() => {
@@ -35,12 +48,67 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       localStorage.setItem('inventoryExpanded', 'true');
     }
   }, [location.pathname]);
+
+
   
   const handleLogout = async () => {
-    // Remove FCM token from backend before clearing auth state
     await removeFCMTokenOnLogout();
     logout();
     navigate("/login");
+  };
+
+  const handleSwitchClient = async (client: any) => {
+    if (switchingClient) return;
+    setSwitchingClient(true);
+    try {
+      const branchToken = localStorage.getItem("branch_admin_token");
+      if (!branchToken) throw new Error("Branch admin session expired");
+
+      const response = await axiosInstance.post(
+        `/api/v1/branch-admins/switch-client/${client._id}`,
+        {},
+        { headers: { Authorization: `Bearer ${branchToken}` } }
+      );
+
+      if (!response?.data?.accessToken) throw new Error("Failed to switch client");
+
+      localStorage.setItem("accessToken", response.data.accessToken);
+
+      if (response.data.client) {
+        const userData = {
+          id: response.data.client.id,
+          email: response.data.client.email,
+          name: response.data.client.client_name || response.data.client.business_name,
+          business_name: response.data.client.business_name,
+          business_type: response.data.client.business_type,
+          enquiry_mode: response.data.client.enquiry_mode || false,
+          inventory_enabled: response.data.client.inventory_enabled || false,
+          zoho_enabled: response.data.client.zoho_enabled || false,
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("enquiry_mode", String(response.data.client.enquiry_mode || false));
+        localStorage.setItem("inventory_enabled", String(response.data.client.inventory_enabled || false));
+        localStorage.setItem("delivery_management_enabled", String(response.data.client.delivery_management_enabled || false));
+        localStorage.setItem("zoho_enabled", String(response.data.client.zoho_enabled || false));
+        if (response.data.client.sub_domain_name) {
+          localStorage.setItem("sub_domain_name", response.data.client.sub_domain_name);
+        }
+
+        if (response.data.client.currency_id) {
+          localStorage.setItem("currency", JSON.stringify(response.data.client.currency_id));
+          window.dispatchEvent(new Event("currencyUpdated"));
+        }
+      }
+
+      // Reload to reinitialize all contexts with new client data
+      window.location.href = "/";
+    } catch (err: any) {
+      console.error("Switch client error:", err);
+      alert(err.response?.data?.message || err.message || "Failed to switch client");
+    } finally {
+      setSwitchingClient(false);
+      setShowClientSwitcher(false);
+    }
   };
 
   const toggleInventory = () => {
@@ -48,6 +116,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     setInventoryExpanded(newState);
     localStorage.setItem('inventoryExpanded', newState.toString());
   };
+
+
   
   const allNavItems = [
     { to: "/", icon: Home, label: "Dashboard" },
@@ -62,6 +132,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/flyers", icon: FileText, label: "Flyers" },
     // { to: "/upload-images", icon: Upload, label: "Upload Images" },
     { to: "/settings/zoho-books", icon: Settings, label: "Zoho Books", requireZohoEnabled: true },
+    { to: "/delivery-agents", icon: Truck, label: "Delivery Management", requireDeliveryManagement: true },
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
@@ -73,13 +144,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/inventory/low-stock", icon: AlertTriangle, label: "Low Stock" },
   ];
   
+
+  
   // Filter nav items based on enquiry mode and zoho enabled
   const navItems = allNavItems.filter(item => {
-    if (item.requireEnquiryMode) {
+    if ('requireEnquiryMode' in item && item.requireEnquiryMode) {
       return enquiryMode === true;
     }
-    if (item.requireZohoEnabled) {
+    if ('requireZohoEnabled' in item && item.requireZohoEnabled) {
       return zohoEnabled === true;
+    }
+    if ('requireDeliveryManagement' in item && item.requireDeliveryManagement) {
+      return deliveryManagementEnabled === true;
     }
     return true;
   });
@@ -132,7 +208,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <item.icon className="w-5 h-5" />
                   {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
                 </NavLink>
-                
+
                 {/* Insert Inventory Management after Products */}
                 {item.to === '/products' && inventoryEnabled && (
                   <div className="space-y-1 mt-1">
@@ -216,6 +292,50 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Branch Admin Client Switcher */}
+              {isBranchAdmin && assignedClients.length > 1 && (
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-sm"
+                    onClick={() => setShowClientSwitcher(!showClientSwitcher)}
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                    Switch Client
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showClientSwitcher ? 'rotate-180' : ''}`} />
+                  </Button>
+
+                  {showClientSwitcher && (
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-background border rounded-lg shadow-xl z-50 py-2 max-h-80 overflow-y-auto">
+                      <div className="px-3 py-2 border-b">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {branchAdminInfo?.name || 'Branch Admin'} — Assigned Clients
+                        </p>
+                      </div>
+                      {assignedClients.map((client: any) => (
+                        <button
+                          key={client._id}
+                          onClick={() => handleSwitchClient(client)}
+                          disabled={switchingClient || client._id === user?.id}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors ${
+                            client._id === user?.id ? 'bg-primary/5 border-l-2 border-primary' : ''
+                          } ${switchingClient ? 'opacity-50' : ''}`}
+                        >
+                          <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{client.business_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{client.client_name}</p>
+                          </div>
+                          {client._id === user?.id && (
+                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Current</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <NotificationBell />
             </div>
           </div>

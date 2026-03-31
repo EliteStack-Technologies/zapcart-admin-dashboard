@@ -9,6 +9,7 @@ interface User {
   enquiry_mode?: boolean;
   inventory_enabled?: boolean;
   zoho_enabled?: boolean;
+  delivery_management_enabled?: boolean;
   business_type?: string[];
   business_name?: string;
 }
@@ -23,6 +24,7 @@ interface AuthContextType {
   enquiryMode: boolean;
   setEnquiryMode: (mode: boolean) => void;
   inventoryEnabled: boolean;
+  deliveryManagementEnabled: boolean;
   zohoEnabled: boolean;
   setZohoEnabled: (enabled: boolean) => void;
   isRestaurant: boolean;
@@ -44,6 +46,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   });
   const [zohoEnabled, setZohoEnabledState] = useState<boolean>(() => {
     const stored = localStorage.getItem("zoho_enabled");
+    return stored === "true";
+  });
+  const [deliveryManagementEnabled, setDeliveryManagementEnabledState] = useState<boolean>(() => {
+    const stored = localStorage.getItem("delivery_management_enabled");
     return stored === "true";
   });
 
@@ -84,6 +90,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else if (parsedUser.zoho_enabled !== undefined) {
           setZohoEnabledState(parsedUser.zoho_enabled);
           localStorage.setItem("zoho_enabled", String(parsedUser.zoho_enabled));
+        }
+        
+        // Sync delivery_management_enabled from user object
+        const storedDeliveryEnabled = localStorage.getItem("delivery_management_enabled");
+        if (storedDeliveryEnabled !== null) {
+          setDeliveryManagementEnabledState(storedDeliveryEnabled === "true");
+        } else if (parsedUser.delivery_management_enabled !== undefined) {
+          setDeliveryManagementEnabledState(parsedUser.delivery_management_enabled);
+          localStorage.setItem("delivery_management_enabled", String(parsedUser.delivery_management_enabled));
         }
       } catch (error) {
         console.error("Failed to restore auth state:", error);
@@ -126,6 +141,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsedUser.zoho_enabled !== undefined) {
           setZohoEnabledState(parsedUser.zoho_enabled);
         }
+        // Sync delivery_management_enabled from user object if available
+        if (parsedUser.delivery_management_enabled !== undefined) {
+          setDeliveryManagementEnabledState(parsedUser.delivery_management_enabled);
+        }
       }
 
       return true;
@@ -165,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setEnquiryModeState(false);
     setInventoryEnabledState(false);
     setZohoEnabledState(false);
+    setDeliveryManagementEnabledState(false);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
@@ -172,6 +192,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("enquiry_mode");
     localStorage.removeItem("inventory_enabled");
     localStorage.removeItem("zoho_enabled");
+    localStorage.removeItem("delivery_management_enabled");
+    // Branch admin cleanup
+    localStorage.removeItem("is_branch_admin");
+    localStorage.removeItem("branch_admin_token");
+    localStorage.removeItem("branch_admin_info");
+    localStorage.removeItem("assigned_clients");
+    localStorage.removeItem("sub_domain_name");
   };
 
   const isRestaurant = user?.business_type?.map((t) => t.toLowerCase()).includes("restaurant") ?? false;
@@ -188,6 +215,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         enquiryMode,
         setEnquiryMode,
         inventoryEnabled,
+        deliveryManagementEnabled,
         zohoEnabled,
         setZohoEnabled,
         isRestaurant,

@@ -18,6 +18,7 @@ import Enquiries from "@/pages/Enquiries";
 import Offers from "@/pages/Offers";
 import Banners from "@/pages/Banners";
 import Flyers from "@/pages/Flyers";
+import DeliveryAgents from "@/pages/DeliveryAgents";
 import UploadImages from "@/pages/UploadImages";
 import Account from "@/pages/Account";
 import Profile from "@/pages/Profile";
@@ -33,6 +34,7 @@ import LowStock from "@/pages/LowStock";
 import CurrentStock from "@/pages/CurrentStock";
 import ZohoBooksIntegration from "@/pages/ZohoBooksIntegration";
 import ZohoCallback from "@/pages/ZohoCallback";
+
 
 const queryClient = new QueryClient();
 
@@ -58,6 +60,7 @@ function AppRoutes() {
           <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
           <Route path="/banners" element={<ProtectedRoute><Banners /></ProtectedRoute>} />
           <Route path="/flyers" element={<ProtectedRoute><Flyers /></ProtectedRoute>} />
+          <Route path="/delivery-agents" element={<ProtectedRoute><DeliveryAgents /></ProtectedRoute>} />
           <Route path="/upload-images" element={<ProtectedRoute><UploadImages /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -72,6 +75,9 @@ function AppRoutes() {
           <Route path="/customer/login" element={<CustomerLogin />} />
           <Route path="/customer/profile" element={<CustomerProfile />} />
           <Route path="/customer/orders" element={<CustomerOrders />} />
+          
+     
+
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

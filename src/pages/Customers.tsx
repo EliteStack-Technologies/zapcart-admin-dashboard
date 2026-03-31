@@ -404,7 +404,7 @@ export default function Customers() {
                     <TableHead>Customer ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
+                    {/* <TableHead>Email</TableHead> */}
                     <TableHead>Total Orders</TableHead>
                     <TableHead>Total Spent</TableHead>
                     <TableHead>Last Order</TableHead>
@@ -427,7 +427,7 @@ export default function Customers() {
                         <TableCell className="font-mono text-sm">{customer.customer_id || "-"}</TableCell>
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.phone}</TableCell>
-                        <TableCell>{customer.email || "-"}</TableCell>
+                        {/* <TableCell>{customer.email || "-"}</TableCell> */}
                         <TableCell>{customer.total_orders}</TableCell>
                         <TableCell>
                           {currency?.symbol || ""} {customer.total_spent.toFixed(2)}
