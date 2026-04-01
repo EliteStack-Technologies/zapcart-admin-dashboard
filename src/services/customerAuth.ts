@@ -7,6 +7,7 @@ export interface CustomerProfile {
   email?: string;
   address?: string;
   login_enabled: boolean;
+  delivered_orders_count?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,8 +53,8 @@ export const customerLogin = async (phone: string, password: string, sub_domain_
 };
 
 export const getCustomerProfile = async () => {
-  const response = await axiosInstance.get<CustomerProfile>("/api/v1/customer-auth/profile");
-  return response.data;
+  const response = await axiosInstance.get<{ customer: CustomerProfile }>("/api/v1/customer-auth/profile");
+  return response.data.customer;
 };
 
 export const updateCustomerPassword = async (current_password: string, new_password : string) => {

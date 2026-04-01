@@ -38,7 +38,8 @@ axiosInstance.interceptors.request.use(
       }
     } else {
       // Use admin token for other requests (including admin customer management)
-      if (!config.headers.Authorization) {
+      const existingAuth = config.headers.get?.('Authorization') || config.headers.get?.('authorization');
+      if (!existingAuth) {
         const token = localStorage.getItem("accessToken");
         const deliveryToken = localStorage.getItem("delivery_agent_token");
         

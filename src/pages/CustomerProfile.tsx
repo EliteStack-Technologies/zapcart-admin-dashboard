@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCustomerProfile, updateCustomerPassword, getCustomerOrders, getCustomerOrderById, CustomerProfile, CustomerOrder } from "@/services/customerAuth";
-import { Loader2, LogOut, Lock, ShoppingBag, Package, Eye, Calendar } from "lucide-react";
+import { Loader2, LogOut, Lock, ShoppingBag, Package, Eye, Calendar, Truck } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
@@ -516,9 +516,54 @@ export default function CustomerProfilePage() {
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto">
         <div className="h-full p-8">
-          <div className="h-full max-w-full">
+            {/* Stats Header */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="bg-white border-none shadow-sm overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex items-center p-6 gap-4">
+                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Package className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Total Orders</p>
+                      <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white border-none shadow-sm overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex items-center p-6 gap-4">
+                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                      <Truck className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Delivered Orders</p>
+                      <p className="text-2xl font-bold text-gray-900">{profile?.delivered_orders_count || 0}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white border-none shadow-sm overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex items-center p-6 gap-4">
+                    <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                      <ShoppingBag className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Total Spent</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {currency?.symbol || ''} {orders.reduce((acc, o) => acc + (o.order_status !== 'cancelled' ? o.total_amount : 0), 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {renderContent()}
-          </div>
         </div>
       </div>
 
