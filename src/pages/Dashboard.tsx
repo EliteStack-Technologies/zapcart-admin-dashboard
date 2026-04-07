@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, ShoppingCart, TrendingUp, DollarSign, Activity, Users } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, DollarSign, Activity, Users, Bike, CheckCircle2, UserPlus } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import StatCard from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,9 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const data = await getAnalyticsOverview();
+        const isBranchAdmin = localStorage.getItem("is_branch_admin") === "true";
+        const isClientSelected = !!localStorage.getItem("user");
+        const data = await getAnalyticsOverview(isBranchAdmin && !isClientSelected);
         setAnalytics(data);
       } catch (error) {
         console.error("Error fetching analytics:", error);
@@ -35,7 +37,7 @@ const Dashboard = () => {
 
     fetchAnalytics();
   }, []);
-  
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-yellow-500",
@@ -80,35 +82,71 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <StatCard
-            title="Total Orders"
+            title={analytics.clients_summary ? "Total Orders (Branch)" : "Total Orders"}
             value={analytics.overview.total_orders.toString()}
             icon={ShoppingCart}
             trend={`${analytics.overview.total_orders} orders`}
             trendUp={true}
           />
           <StatCard
-            title="Total Revenue"
+            title={analytics.clients_summary ? "Total Sales (Branch)" : "Total Revenue"}
             value={`${currency?.symbol || analytics?.overview?.currency?.symbol || '$'}${analytics.overview.total_revenue.toFixed(2)}`}
             icon={DollarSign}
             trend={`Avg: ${currency?.symbol || analytics?.overview?.currency?.symbol || '$'}${analytics.overview.average_order_value.toFixed(2)}`}
             trendUp={true}
           />
           <StatCard
-            title="Total Products"
-            value={analytics.overview.total_products.toString()}
-            icon={Package}
-            trend={`${analytics.overview.active_products} active`}
+            title={analytics.clients_summary ? "Active Clients" : "Total Products"}
+            value={analytics.clients_summary ? analytics.overview.active_clients?.toString() || "0" : analytics.overview.total_products.toString()}
+            icon={analytics.clients_summary ? Users : Package}
+            trend={analytics.clients_summary ? `${analytics.overview.total_clients} total clients` : `${analytics.overview.active_products} active`}
+            trendUp={true}
+          />
+
+          {/* Delivery & Customer Stats */}
+          <StatCard
+            title="Active Agents"
+            value={analytics.overview.active_delivery_agents?.toString() || "0"}
+            icon={Bike}
+            trend={`${analytics.overview.total_delivery_agents || 0} total agents`}
             trendUp={true}
           />
           <StatCard
-            title="Active Products"
-            value={analytics.overview.active_products.toString()}
-            icon={Activity}
-            trend={`${analytics.overview.inactive_products} inactive`}
-            trendUp={analytics.overview.active_products > analytics.overview.inactive_products}
+            title="Delivered"
+            value={analytics.overview.delivered_orders?.toString() || "0"}
+            icon={CheckCircle2}
+            trend="Completed"
+            trendUp={true}
           />
+          <StatCard
+            title="Pending Delivery"
+            value={analytics.overview.pending_delivery_orders?.toString() || "0"}
+            icon={Activity}
+            trend="In Transit"
+            trendUp={false}
+          />
+
+          {analytics.overview.total_customers !== undefined && (
+            <StatCard
+              title="Total Customers"
+              value={analytics.overview.total_customers.toString()}
+              icon={UserPlus}
+              trend="Engagement"
+              trendUp={true}
+            />
+          )}
+
+          {(!analytics.clients_summary) && (
+            <StatCard
+              title="Active Products"
+              value={analytics.overview.active_products.toString()}
+              icon={Package}
+              trend={`${analytics.overview.inactive_products} inactive`}
+              trendUp={analytics.overview.active_products > analytics.overview.inactive_products}
+            />
+          )}
         </div>
 
         {/* Order Status Breakdown & Revenue Trend */}
@@ -184,7 +222,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <span className="font-semibold text-foreground">
-                      {currency?.symbol || analytics.overview.currency.symbol}{product.total_revenue.toFixed(2)}
+                      {currency?.symbol || analytics.overview.currency?.symbol || '$'}{product.total_revenue.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -223,48 +261,100 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Orders */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order Number</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {analytics.recent_orders.map((order) => (
-                  <TableRow key={order._id}>
-                    <TableCell className="font-medium">{order.order_number}</TableCell>
-                    <TableCell>{order.customer_name}</TableCell>
-                    <TableCell>
-                      {currency?.symbol || analytics.overview.currency.symbol}{order.total_amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(order.order_status)}>
-                        {order.order_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{format(parseISO(order.createdAt), "MMM dd, yyyy HH:mm")}</TableCell>
-                  </TableRow>
-                ))}
-                {analytics.recent_orders.length === 0 && (
+        {!analytics.clients_summary && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No recent orders
-                    </TableCell>
+                    <TableHead>Order Number</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {analytics.recent_orders.map((order) => (
+                    <TableRow key={order._id}>
+                      <TableCell className="font-medium">{order.order_number}</TableCell>
+                      <TableCell>{order.customer_name}</TableCell>
+                      <TableCell>
+                        {currency?.symbol || analytics.overview.currency?.symbol || '$'}{order.total_amount.toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(order.order_status)}>
+                          {order.order_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{format(parseISO(order.createdAt), "MMM dd, yyyy HH:mm")}</TableCell>
+                    </TableRow>
+                  ))}
+                  {analytics.recent_orders.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No recent orders
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Branch Admin Clients Summary */}
+        {analytics.clients_summary && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Clients Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Business Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Orders</TableHead>
+                    <TableHead>Delivered</TableHead>
+                    <TableHead>Pending Delivery</TableHead>
+                    <TableHead>Agents</TableHead>
+                    <TableHead>Total Sales</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {analytics.clients_summary.map((client) => (
+                    <TableRow key={client._id}>
+                      <TableCell className="font-medium">{client.business_name}</TableCell>
+                      <TableCell>
+                        <Badge className={client.status === "active" ? "bg-green-500" : "bg-red-500"}>
+                          {client.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{client.total_orders}</TableCell>
+                      <TableCell className="text-green-600 font-medium">{client.delivered_orders || 0}</TableCell>
+                      <TableCell className="text-amber-600 font-medium">{client.pending_delivery_orders || 0}</TableCell>
+                      <TableCell>{client.active_delivery_agents || 0} / {client.total_delivery_agents || 0}</TableCell>
+                      <TableCell className="font-semibold">
+                        {currency?.symbol || client.currency_id?.symbol || analytics.overview.currency?.symbol || '$'}{(client.total_sales || 0).toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {analytics.clients_summary.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No assigned clients found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

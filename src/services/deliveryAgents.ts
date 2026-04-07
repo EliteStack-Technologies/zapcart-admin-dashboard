@@ -2,12 +2,16 @@ import axiosInstance from "./axiosInstance";
 
 export interface DeliveryAgent {
   _id: string;
+  client_id: string;
   name: string;
   phone_number: string;
   email: string;
+  status: "active" | "inactive";
   vehicle_type?: string;
   vehicle_number?: string;
-  status: string;
+  delivered_orders_count?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const getDeliveryAgents = async () => {
@@ -29,3 +33,14 @@ export const deleteDeliveryAgent = async (id: string) => {
   const response = await axiosInstance.delete(`/api/v1/delivery-agents/${id}`);
   return response.data;
 };
+
+export const getDeliveryStats = async () => {
+  const response = await axiosInstance.get("/api/v1/delivery-agents/stats/overview");
+  return response.data;
+};
+
+export const getAllDeliveries = async (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+  const response = await axiosInstance.get("/api/v1/delivery-agents/orders/all", { params });
+  return response.data;
+};
+

@@ -80,7 +80,7 @@ const Products = () => {
     category_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     section_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     status?: string;
-    variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean; _id?: string; variant_sku?: string }>;
+    variants?: Array<{ variant_name: string; actual_price: number; offer_price: number; is_available: boolean; _id?: string; variant_sku?: string }>;
   } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [products, setProducts] = useState([]);
@@ -666,7 +666,7 @@ const Products = () => {
                         {product.variants && product.variants.length > 0 ? (
                           <div className="text-sm">
                             <span className="text-muted-foreground">From </span>
-                            <span>{currency?.symbol || "$"}{Math.min(...(Array.isArray(product.variants) ? product.variants : []).map((v: any) => v.variant_price))}</span>
+                            <span>{currency?.symbol || "$"}{Math.min(...(Array.isArray(product.variants) ? product.variants : []).map((v: any) => v.offer_price || v.actual_price))}</span>
                           </div>
                         ) : editingPrice?.productId === product._id && editingPrice?.field === 'actual' ? (
                           <div className="flex items-center gap-1">
@@ -1059,13 +1059,18 @@ const Products = () => {
                       <div className="grid gap-2">
                         {(Array.isArray(selectedProduct.variants) ? selectedProduct.variants : []).map((variant: any, idx: number) => (
                           <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded border text-sm">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col gap-0.5">
                               <span className="font-medium">{variant.variant_name}</span>
                               {!variant.is_available && (
-                                <Badge variant="destructive" className="text-xs">Unavailable</Badge>
+                                <Badge variant="destructive" className="text-xs w-fit">Unavailable</Badge>
                               )}
                             </div>
-                            <span className="font-semibold">{currency?.symbol || "$"}{variant.variant_price}</span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="font-semibold text-primary">{currency?.symbol || "$"}{variant.offer_price || variant.actual_price}</span>
+                              {variant.offer_price && variant.offer_price < variant.actual_price && (
+                                <span className="text-[10px] text-muted-foreground line-through">{currency?.symbol || "$"}{variant.actual_price}</span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

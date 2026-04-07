@@ -50,7 +50,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, [location.pathname]);
 
 
-  
+
   const handleLogout = async () => {
     await removeFCMTokenOnLogout();
     logout();
@@ -118,7 +118,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
 
-  
+
   const allNavItems = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/orders", icon: ShoppingCart, label: "Orders" },
@@ -143,9 +143,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/inventory/stock-out", icon: TrendingDown, label: "Stock Out" },
     { to: "/inventory/low-stock", icon: AlertTriangle, label: "Low Stock" },
   ];
-  
 
-  
+
+
   // Filter nav items based on enquiry mode and zoho enabled
   const navItems = allNavItems.filter(item => {
     if ('requireEnquiryMode' in item && item.requireEnquiryMode) {
@@ -161,7 +161,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   });
 
 
-  
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar - Desktop Only */}
@@ -174,7 +174,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className={`flex items-center justify-between mb-8 ${sidebarCollapsed ? 'flex-col gap-2' : ''}`}>
             <div className={sidebarCollapsed ? 'flex flex-col items-center' : ''}>
               <h1 className={sidebarCollapsed ? "text-xl font-bold text-sidebar-foreground" : "text-2xl font-bold text-sidebar-foreground"}>
-              {sidebarCollapsed ? "" :"ZapGoCart"}   
+                {sidebarCollapsed ? "" : "ZapGoCart"}
               </h1>
               {!sidebarCollapsed && (
                 <p className="text-sm text-sidebar-foreground/60 mt-1">Management Dashboard</p>
@@ -214,21 +214,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <div className="space-y-1 mt-1">
                     <button
                       onClick={toggleInventory}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${
-                        location.pathname.startsWith('/inventory') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
-                      } ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${location.pathname.startsWith('/inventory') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
+                        } ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}
                     >
                       <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
                         <PackageOpen className="w-5 h-5" />
                         {!sidebarCollapsed && <span className="font-medium">Inventory</span>}
                       </div>
                       {!sidebarCollapsed && (
-                        <ChevronDown 
-                          className={`w-4 h-4 transition-transform duration-200 ${inventoryExpanded ? 'rotate-180' : ''}`} 
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${inventoryExpanded ? 'rotate-180' : ''}`}
                         />
                       )}
                     </button>
-                    
+
                     {/* Inventory Sub-items */}
                     {inventoryExpanded && !sidebarCollapsed && (
                       <div className="ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
@@ -318,9 +317,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                           key={client._id}
                           onClick={() => handleSwitchClient(client)}
                           disabled={switchingClient || client._id === user?.id}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors ${
-                            client._id === user?.id ? 'bg-primary/5 border-l-2 border-primary' : ''
-                          } ${switchingClient ? 'opacity-50' : ''}`}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors ${client._id === user?.id ? 'bg-primary/5 border-l-2 border-primary' : ''
+                            } ${switchingClient ? 'opacity-50' : ''}`}
                         >
                           <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -340,7 +338,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
           </div>
         </div>
-        
+
         <div className="flex-1 p-2 sm:p-6 lg:p-8 pb-32 lg:pb-8">
           {children}
         </div>
