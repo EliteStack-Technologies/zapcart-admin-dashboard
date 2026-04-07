@@ -57,7 +57,7 @@ interface AddProductDialogProps {
     category_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     section_id?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
     status?: string;
-    variants?: Array<{ variant_name: string; variant_price: number; is_available: boolean }>;
+    variants?: Array<{ variant_name: string; actual_price: number; offer_price: number; is_available: boolean }>;
   };
 }
 
@@ -120,8 +120,8 @@ const AddProductDialog = ({
   
   // Variant management states
   const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState<Array<{ variant_name: string; variant_price: number; is_available: boolean }>>([
-    { variant_name: "", variant_price: 0, is_available: true }
+  const [variants, setVariants] = useState<Array<{ variant_name: string; actual_price: number; offer_price: number; is_available: boolean }>>([
+    { variant_name: "", actual_price: 0, offer_price: 0, is_available: true }
   ]);
 
   const {
@@ -178,7 +178,7 @@ const AddProductDialog = ({
         setVariants(editingProduct.variants);
       } else {
         setHasVariants(false);
-        setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
+        setVariants([{ variant_name: "", actual_price: 0, offer_price: 0, is_available: true }]);
       }
 
       // Parse dates (explicitly reset if missing)
@@ -223,7 +223,7 @@ const AddProductDialog = ({
         setSelectedCategoryId([]);
         setSelectedSectionId([]);
       setHasVariants(false);
-      setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
+      setVariants([{ variant_name: "", actual_price: 0, offer_price: 0, is_available: true }]);
     }
 
     // Fetch product images when dialog opens
@@ -331,7 +331,7 @@ const AddProductDialog = ({
   };
   // Variant management functions
   const addVariant = () => {
-    setVariants([...variants, { variant_name: "", variant_price: 0, is_available: true }]);
+    setVariants([...variants, { variant_name: "", actual_price: 0, offer_price: 0, is_available: true }]);
   };
 
   const removeVariant = (index: number) => {
@@ -367,7 +367,7 @@ const AddProductDialog = ({
 
     // Validate variants if enabled
     if (hasVariants && isRestaurant) {
-      const validVariants = variants.filter(v => v.variant_name.trim() && v.variant_price > 0);
+      const validVariants = variants.filter(v => v.variant_name.trim() && v.actual_price > 0);
       if (validVariants.length === 0) {
         toast({
           title: "Validation Error",
@@ -393,7 +393,7 @@ const AddProductDialog = ({
  
       // Handle variants or traditional pricing
       if (hasVariants && isRestaurant) {
-        const validVariants = variants.filter(v => v.variant_name.trim() && v.variant_price > 0);
+        const validVariants = variants.filter(v => v.variant_name.trim() && v.actual_price > 0);
         formData.append("variants", JSON.stringify(validVariants));
         // Set default prices for backward compatibility
         formData.append("actual_price", "0");
@@ -719,7 +719,7 @@ const AddProductDialog = ({
                     onCheckedChange={(checked) => {
                       setHasVariants(checked);
                       if (!checked) {
-                        setVariants([{ variant_name: "", variant_price: 0, is_available: true }]);
+                        setVariants([{ variant_name: "", actual_price: 0, offer_price: 0, is_available: true }]);
                       }
                     }}
                   />
@@ -749,25 +749,39 @@ const AddProductDialog = ({
                             value={variant.variant_name}
                             onChange={(e) => updateVariant(index, "variant_name", e.target.value)}
                           />
-                          <div className="flex gap-2">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="Price"
-                              value={variant.variant_price || ""}
-                              onChange={(e) => updateVariant(index, "variant_price", parseFloat(e.target.value) || 0)}
-                              className="flex-1"
-                            />
-                            <div className="flex items-center gap-2 px-3 border rounded-md bg-muted/30">
-                              <Label htmlFor={`variant-available-${index}`} className="text-sm cursor-pointer whitespace-nowrap">
-                                Available
-                              </Label>
-                              <Switch
-                                id={`variant-available-${index}`}
-                                checked={variant.is_available}
-                                onCheckedChange={(checked) => updateVariant(index, "is_available", checked)}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-muted-foreground ml-1">Actual Price</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Actual Price"
+                                value={variant.actual_price || ""}
+                                onChange={(e) => updateVariant(index, "actual_price", parseFloat(e.target.value) || 0)}
+                                className="flex-1"
                               />
                             </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-muted-foreground ml-1">Offer Price</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="Offer Price"
+                                value={variant.offer_price || ""}
+                                onChange={(e) => updateVariant(index, "offer_price", parseFloat(e.target.value) || 0)}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted/30 w-fit">
+                            <Label htmlFor={`variant-available-${index}`} className="text-sm cursor-pointer whitespace-nowrap">
+                              Available
+                            </Label>
+                            <Switch
+                              id={`variant-available-${index}`}
+                              checked={variant.is_available}
+                              onCheckedChange={(checked) => updateVariant(index, "is_available", checked)}
+                            />
                           </div>
                         </div>
                         {variants.length > 1 && (

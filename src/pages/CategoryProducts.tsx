@@ -270,7 +270,7 @@ const CategoryProducts = () => {
                           {product.variants && product.variants.length > 0 ? (
                             <div className="text-sm">
                               <span className="text-muted-foreground">From </span>
-                              <span>{currency?.symbol || "$"}{Math.min(...product.variants.map((v: any) => v.variant_price))}</span>
+                              <span>{currency?.symbol || "$"}{Math.min(...product.variants.map((v: any) => v.offer_price || v.actual_price))}</span>
                             </div>
                           ) : (
                             <span>{currency?.symbol || "$"} {product.actual_price}</span>
