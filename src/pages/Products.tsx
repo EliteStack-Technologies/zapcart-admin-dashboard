@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil, FileSpreadsheet, TableProperties } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,7 @@ import { getSections } from "@/services/rows";
 
 const Products = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [excelUploadOpen, setExcelUploadOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -341,6 +343,10 @@ const Products = () => {
             </p>
           </div>
           <div className="flex gap-2">
+             <Button variant="outline" className="gap-2" onClick={() => navigate("/products/bulk-edit")}>
+              <TableProperties className="w-4 h-4" />
+              Bulk Edit
+            </Button>
              <Button variant="outline" className="gap-2" onClick={() => setExcelUploadOpen(true)}>
               <FileSpreadsheet className="w-4 h-4" />
               Upload Excel

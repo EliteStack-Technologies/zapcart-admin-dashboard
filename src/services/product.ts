@@ -226,3 +226,17 @@ export const uploadProductsExcel = async (formData: FormData) => {
     throw new Error(errorMessage);
   }
 };
+
+export const bulkUpdateProducts = async (products: any[]) => {
+  try {
+    const response = await axiosInstance.patch("/api/v1/products/bulk-update", { products });
+    return response.data;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred during bulk update";
+    console.error("Error bulk updating products:", errorMessage);
+    throw new Error(errorMessage);
+  }
+};
