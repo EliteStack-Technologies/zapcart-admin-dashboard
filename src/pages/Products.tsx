@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Check, X, Pencil, FileSpreadsheet, TableProperties, Download } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,17 +51,47 @@ import AddProductDialog from "@/components/AddProductDialog";
 import ExcelUploadDialog from "@/components/ExcelUploadDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, deleteProduct, changeStatus, updateProduct, updatePriceVisibility } from "@/services/product";
+import { getProduct, deleteProduct, changeStatus, updateProduct, updatePriceVisibility, downloadProductsExcel } from "@/services/product";
 import { getCategory } from "@/services/category";
 import { getOfferTags } from "@/services/offersTags";
 import { getSections } from "@/services/rows";
 
+const EXPORTABLE_FIELDS = [
+  { id: "product_id", label: "Product ID" },
+  { id: "product_code", label: "Product Code" },
+  { id: "title", label: "Title" },
+  { id: "description", label: "Description" },
+  { id: "actual_price", label: "Actual Price" },
+  { id: "offer_price", label: "Offer Price" },
+  { id: "category", label: "Category" },
+  { id: "section", label: "Section" },
+  { id: "unit_type", label: "Unit Type" },
+  { id: "stock_count", label: "Stock Count" },
+  { id: "status", label: "Status" },
+];
 const Products = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [excelUploadOpen, setExcelUploadOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingPrice, setEditingPrice] = useState<{ productId: string; field: 'actual' | 'offer' } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedExportFields, setSelectedExportFields] = useState<string[]>([
+    "product_id",
+    "product_code",
+    "title",
+    "description",
+    "actual_price",
+    "offer_price",
+    "category",
+    "section",
+    "unit_type",
+    "stock_count",
+    "status",
+    "image"
+  ]);
   const [tempPrice, setTempPrice] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -329,6 +360,26 @@ const Products = () => {
     setTempPrice("");
   };
 
+  const handleConfirmExport = async () => {
+    setIsExporting(true);
+    try {
+      await downloadProductsExcel(selectedExportFields);
+      toast({
+        title: "Export Success",
+        description: "Products exported successfully",
+      });
+      setExportDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export products.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -341,10 +392,27 @@ const Products = () => {
             </p>
           </div>
           <div className="flex gap-2">
+             <Button variant="outline" className="gap-2" onClick={() => navigate("/products/bulk-edit")}>
+              <TableProperties className="w-4 h-4" />
+              Bulk Edit
+            </Button>
              <Button variant="outline" className="gap-2" onClick={() => setExcelUploadOpen(true)}>
               <FileSpreadsheet className="w-4 h-4" />
               Upload Excel
             </Button> 
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              onClick={() => setExportDialogOpen(true)} 
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Export Excel
+            </Button>
             <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
               <Plus className="w-4 h-4" />
               Add Product
@@ -983,6 +1051,77 @@ const Products = () => {
           description="Are you sure you want to delete this product? This action cannot be undone."
           onConfirm={handleDelete}
         />
+
+        {/* Selective Export Excel Dialog */}
+        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Export Products</DialogTitle>
+              <DialogDescription>
+                Select the fields you want to include in the exported Excel spreadsheet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between pb-2 border-b">
+              <span className="text-xs text-muted-foreground font-medium">
+                {selectedExportFields.length} of {EXPORTABLE_FIELDS.length} fields selected
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs px-2 hover:bg-transparent hover:underline"
+                onClick={() => {
+                  if (selectedExportFields.length === EXPORTABLE_FIELDS.length) {
+                    setSelectedExportFields([]);
+                  } else {
+                    setSelectedExportFields(EXPORTABLE_FIELDS.map((f) => f.id));
+                  }
+                }}
+              >
+                {selectedExportFields.length === EXPORTABLE_FIELDS.length
+                  ? "Deselect All"
+                  : "Select All"}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 py-3">
+              {EXPORTABLE_FIELDS.map((field) => (
+                <div key={field.id} className="flex items-center space-x-2 p-1.5 rounded hover:bg-muted/50 transition-colors">
+                  <Checkbox
+                    id={`export-${field.id}`}
+                    checked={selectedExportFields.includes(field.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedExportFields([...selectedExportFields, field.id]);
+                      } else {
+                        setSelectedExportFields(selectedExportFields.filter((f) => f !== field.id));
+                      }
+                    }}
+                  />
+                  <Label 
+                    htmlFor={`export-${field.id}`} 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full select-none"
+                  >
+                    {field.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                size="sm"
+                onClick={handleConfirmExport} 
+                disabled={isExporting || selectedExportFields.length === 0}
+              >
+                {isExporting ? (
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-background border-t-transparent mr-2" />
+                ) : null}
+                Export Excel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* View Product Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
