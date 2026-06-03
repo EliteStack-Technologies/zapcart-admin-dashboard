@@ -69,7 +69,6 @@ const EXPORTABLE_FIELDS = [
   { id: "stock_count", label: "Stock Count" },
   { id: "status", label: "Status" },
 ];
-
 const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
