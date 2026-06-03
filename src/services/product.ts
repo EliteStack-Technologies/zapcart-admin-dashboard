@@ -203,6 +203,29 @@ export const updatePriceVisibility = async (productId: string) => {
   }
 };
 
+export const parseExcelHeaders = async (formData: FormData) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/v1/products/parse-excel-headers",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data.headers;
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while parsing Excel headers";
+
+    console.error("Error parsing Excel headers:", errorMessage);
+    throw new Error(errorMessage);
+  }
+};
+
 export const uploadProductsExcel = async (formData: FormData) => {
   try {
     const response = await axiosInstance.post(
@@ -223,6 +246,31 @@ export const uploadProductsExcel = async (formData: FormData) => {
       "An error occurred while uploading products from Excel";
 
     console.error("Error uploading products from Excel:", errorMessage);
+    throw new Error(errorMessage);
+  }
+};
+
+export const downloadProductsExcel = async (fields?: string[]) => {
+  try {
+    const params = fields && fields.length > 0 ? { fields: fields.join(",") } : {};
+    const response = await axiosInstance.get("/api/v1/products/download-excel", {
+      responseType: "blob",
+      params,
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `products_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error: any) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "An error occurred while downloading products Excel";
+    console.error("Error downloading products Excel:", errorMessage);
     throw new Error(errorMessage);
   }
 };
