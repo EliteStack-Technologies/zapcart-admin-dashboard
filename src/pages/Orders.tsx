@@ -75,7 +75,7 @@ export default function Orders() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const { currency } = useCurrency();
-  const { deliveryManagementEnabled, isRestaurant } = useAuth();
+  const { deliveryManagementEnabled } = useAuth();
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -113,7 +113,6 @@ export default function Orders() {
   const [newOrderDiscount, setNewOrderDiscount] = useState<number>(0);
   const [newOrderNotes, setNewOrderNotes] = useState("");
   const [newOrderPriority, setNewOrderPriority] = useState<"low" | "medium" | "high">("medium");
-  const [newOrderTableNumber, setNewOrderTableNumber] = useState("");
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [newOrderProductSearch, setNewOrderProductSearch] = useState("");
   const [newOrderProductResults, setNewOrderProductResults] = useState<any[]>([]);
@@ -287,7 +286,6 @@ export default function Orders() {
       setNewOrderDiscount(0);
       setNewOrderNotes("");
       setNewOrderPriority("medium");
-      setNewOrderTableNumber("");
       
       fetchCustomers();
       setProductsSearch("");
@@ -726,18 +724,9 @@ export default function Orders() {
       return;
     }
 
-    if (isRestaurant && !newOrderTableNumber.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a table number",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCreatingOrder(true);
     try {
-    await createOrder({
+      await createOrder({
         customer_name: newOrderCustomerName,
         customer_phone: newOrderCustomerPhone,
         items: newOrderItems,
@@ -745,7 +734,6 @@ export default function Orders() {
         discount: newOrderDiscount,
         notes: newOrderNotes,
         priority: newOrderPriority,
-        ...(isRestaurant && newOrderTableNumber ? { table_number: newOrderTableNumber } : {}),
       });
 
       toast({
@@ -762,7 +750,6 @@ export default function Orders() {
       setNewOrderDiscount(0);
       setNewOrderNotes("");
       setNewOrderPriority("medium");
-      setNewOrderTableNumber("");
       setCreateOrderDialogOpen(false);
 
       // Refresh orders list
@@ -894,11 +881,6 @@ export default function Orders() {
             <div class="info-label">Order Date:</div>
             <div>${formatDate(selectedOrder.createdAt)}</div>
           </div>
-          ${selectedOrder.table_number ? `
-          <div class="info-row">
-            <div class="info-label">Table Number:</div>
-            <div><strong>${selectedOrder.table_number}</strong></div>
-          </div>` : ''}
       
         </div>
 
@@ -969,9 +951,8 @@ export default function Orders() {
       .join("\n");
 
     const message = `*Order Details: ${order.order_number}*\n\n` +
-      `*Customer:* ${order.customer_name}\n` +
-      (order.table_number ? `*Table:* ${order.table_number}\n` : '') +
-      `\n*Items:*\n${itemsList}\n\n` +
+      `*Customer:* ${order.customer_name}\n\n` +
+      `*Items:*\n${itemsList}\n\n` +
       `*Subtotal:* ${currency?.symbol || ""}${order.subtotal.toFixed(2)}\n` +
       `*Shipping:* ${currency?.symbol || ""}${(order.shipping_charge || 0).toFixed(2)}\n` +
       `*Discount:* ${currency?.symbol || ""}${(order.discount || 0).toFixed(2)}\n` +
@@ -1014,7 +995,6 @@ export default function Orders() {
     const text = `Order Details: ${order.order_number}\n\n` +
       `Customer: ${order.customer_name}\n` +
       `Phone: ${order.customer_phone}\n` +
-      (order.table_number ? `Table: ${order.table_number}\n` : '') +
       addressText +
       `Total: ${currency?.symbol || ""}${Number(order.total_amount).toFixed(2)}\n\n` +
       `Items:\n${itemsList}\n\n` +
@@ -1192,12 +1172,11 @@ export default function Orders() {
                     <TableRow>
                       <TableHead>SI No</TableHead>
                       <TableHead>Order Number</TableHead>
-                      {/* <TableHead>Customer Name</TableHead> */}
-                      {/* <TableHead>Phone</TableHead> */}
+                      <TableHead>Customer Name</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>Items</TableHead>
-                      {isRestaurant && <TableHead>Table</TableHead>}
-                      {/* <TableHead>Total Amount</TableHead> */}
-                      {/* <TableHead>Priority</TableHead> */}
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Priority</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Order Date</TableHead>
                       <TableHead>Actions</TableHead>
@@ -1215,22 +1194,11 @@ export default function Orders() {
                         <TableRow key={order._id}>
                           <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                           <TableCell className="font-medium">{order.order_number}</TableCell>
-                          {/* <TableCell>{order.customer_name}</TableCell> */}
-                          {/* <TableCell>{order.customer_phone}</TableCell> */}
+                          <TableCell>{order.customer_name}</TableCell>
+                          <TableCell>{order.customer_phone}</TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
-                          {isRestaurant && (
-                            <TableCell>
-                              {order.table_number ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                  🍽️ {order.table_number}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">—</span>
-                              )}
-                            </TableCell>
-                          )}
-                          {/* <TableCell>{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</TableCell> */}
-                          {/* <TableCell>{getPriorityBadge(order.priority)}</TableCell> */}
+                          <TableCell>{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</TableCell>
+                          <TableCell>{getPriorityBadge(order.priority)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
                           <TableCell>
@@ -1285,11 +1253,6 @@ export default function Orders() {
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[10px] text-muted-foreground font-medium shrink-0">#{(currentPage - 1) * limit + index + 1}</span>
                           <span className="font-bold text-xs sm:text-sm truncate">{order.order_number}</span>
-                          {isRestaurant && order.table_number && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-orange-100 text-orange-700 border border-orange-200 shrink-0">
-                              🍽️ {order.table_number}
-                            </span>
-                          )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {getStatusBadge(order.order_status)}
@@ -1507,27 +1470,15 @@ export default function Orders() {
                   <Label className="text-muted-foreground">Order Date</Label>
                   <p className="font-semibold">{formatDate(selectedOrder.createdAt)}</p>
                 </div>
-                {isRestaurant && (
-                  <div className="col-span-2">
-                    <Label className="text-muted-foreground">Table Number</Label>
-                    {selectedOrder.table_number ? (
-                      <span className="inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-full text-sm font-bold bg-orange-100 text-orange-800 border border-orange-300">
-                        🍽️ {selectedOrder.table_number}
-                      </span>
-                    ) : (
-                      <p className="font-semibold text-muted-foreground">Not specified</p>
-                    )}
-                  </div>
-                )}
-                {/* <div>
+                <div>
                   <Label className="text-muted-foreground">Customer Name</Label>
                   <p className="font-semibold">{selectedOrder.customer_name}</p>
-                </div> */}
-                {/* <div>
+                </div>
+                <div>
                   <Label className="text-muted-foreground">Phone Number</Label>
                   <p className="font-semibold">{selectedOrder.customer_phone}</p>
-                </div> */}
-                {/* <div className="col-span-2">
+                </div>
+                <div className="col-span-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -1562,6 +1513,7 @@ export default function Orders() {
                     {showOrderCustomerDetails ? "Hide" : "View"} Customer Details
                     {showOrderCustomerDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                   </Button>
+                       {/* Customer Details Section */}
               {showOrderCustomerDetails && orderCustomerDetails && (
                 <div className="border mt-4 rounded-lg p-4 bg-blue-50/50 border-blue-200 space-y-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -1635,7 +1587,7 @@ export default function Orders() {
                   </div>
                 </div>
               )}
-                </div> */}
+                </div>
 
                 
                 <div>
@@ -1661,7 +1613,7 @@ export default function Orders() {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* <div>
+                <div>
                   <Label className="text-muted-foreground">Priority</Label>
                   <div className="mt-1">{getPriorityBadge(selectedOrder.priority)}</div>
                 </div>
@@ -1682,7 +1634,7 @@ export default function Orders() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div> */}
+                </div>
                 
                 {deliveryManagementEnabled && (
                   <>
@@ -2593,23 +2545,6 @@ export default function Orders() {
                   placeholder="Add any notes for this order"
                 />
               </div>
-              {isRestaurant && (
-                <div className="space-y-2">
-                  <Label htmlFor="table_number">Table Number <span className="text-red-500">*</span></Label>
-                  <Select value={newOrderTableNumber} onValueChange={setNewOrderTableNumber}>
-                    <SelectTrigger id="table_number">
-                      <SelectValue placeholder="Select table number" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 20 }, (_, i) => `T${i + 1}`).map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                      <SelectItem value="Takeaway">Takeaway</SelectItem>
-                      <SelectItem value="Delivery">Delivery</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
 
             {/* Order Summary */}

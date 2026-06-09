@@ -122,7 +122,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const allNavItems = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/orders", icon: ShoppingCart, label: "Orders" },
-    // { to: "/customers", icon: Users, label: "Customers" },
+    { to: "/customers", icon: Users, label: "Customers" },
     { to: "/enquiries", icon: MessageSquare, label: "Enquiries", requireEnquiryMode: true },
     { to: "/products", icon: Package, label: "Products" },
     { to: "/categories", icon: FolderOpen, label: "Categories" },
