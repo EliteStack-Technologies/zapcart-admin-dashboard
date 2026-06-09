@@ -136,7 +136,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
-
   const inventorySubItems = [
     { to: "/inventory/current-stock", icon: Warehouse, label: "Current Stock" },
     { to: "/inventory/stock-in", icon: TrendingUp, label: "Stock In" },
