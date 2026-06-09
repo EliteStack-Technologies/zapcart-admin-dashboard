@@ -29,7 +29,9 @@
       ]
     },
     "types": [
-      "vite-plugin-pwa/client"
+      "vite-plugin-pwa/client",
+      "react",
+      "react-dom"
     ]
   },
   "include": [

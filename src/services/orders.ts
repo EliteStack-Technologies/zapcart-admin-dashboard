@@ -39,6 +39,7 @@ export interface Order {
   zoho_salesorder_id?: string;
   zoho_sync_status?: "not_synced" | "synced" | "failed";
   zoho_sync_error?: string;
+  table_number?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -67,6 +68,7 @@ export interface CreateOrderRequest {
   discount?: number;
   notes?: string;
   priority?: "low" | "medium" | "high";
+  table_number?: string;
 }
 
 const sub_domain= getSubdomain()

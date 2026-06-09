@@ -1,7 +1,6 @@
 import { getSubdomain } from "@/utils/getSubdomain";
 import axiosInstance from "./axiosInstance";
 const sub_domain= getSubdomain()
-
 export const getProduct = async (page = 1, limit = 10, search?: string, filters?: { category_id?: string; offer_id?: string; status?: string; section_id?: string }, sortBy?: string) => {
   try {
     let url = `/api/v1/products?sub_domain_name=${sub_domain}&page=${page}&limit=${limit}`;
