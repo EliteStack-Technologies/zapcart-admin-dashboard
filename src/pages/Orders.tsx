@@ -59,6 +59,13 @@ const ORDER_STATUSES = [
   { value: "cancelled", label: "Cancelled", color: "bg-red-500" },
 ];
 
+const RESTAURANT_ORDER_TYPES = [
+  { value: "online", label: "Online" },
+  { value: "takeaway", label: "Takeaway" },
+  { value: "waiter", label: "Waiter Order" },
+  { value: "qr", label: "QR Order" },
+];
+
 const PRIORITY_LEVELS = [
   { value: "low", label: "Low", color: "bg-gray-500" },
   { value: "medium", label: "Medium", color: "bg-orange-500" },
@@ -74,6 +81,7 @@ export default function Orders() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
+  const [activeOrderType, setActiveOrderType] = useState("all");
   const { currency } = useCurrency();
   const { deliveryManagementEnabled, isRestaurant } = useAuth();
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -114,6 +122,10 @@ export default function Orders() {
   const [newOrderNotes, setNewOrderNotes] = useState("");
   const [newOrderPriority, setNewOrderPriority] = useState<"low" | "medium" | "high">("medium");
   const [newOrderTableNumber, setNewOrderTableNumber] = useState("");
+  const [newOrderType, setNewOrderType] = useState("online");
+  const [newOrderWaiterName, setNewOrderWaiterName] = useState("");
+  const [newOrderVehicleNumber, setNewOrderVehicleNumber] = useState("");
+  const [newOrderTableSubtype, setNewOrderTableSubtype] = useState("dine_in");
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [newOrderProductSearch, setNewOrderProductSearch] = useState("");
   const [newOrderProductResults, setNewOrderProductResults] = useState<any[]>([]);
@@ -162,17 +174,30 @@ export default function Orders() {
 
   const fetchStatusCounts = async () => {
     try {
-      // Fetch counts for all statuses
-      const allData = await getOrders(1, 1);
+      const typeFilter = isRestaurant && activeOrderType !== "all" ? activeOrderType : undefined;
+
+      // Fetch counts for all statuses (filtered by activeOrderType)
+      const allData = await getOrders(1, 1, undefined, undefined, typeFilter);
       const counts: Record<string, number> = { all: allData.total };
       
-      // Fetch counts for each status
+      // Fetch counts for each status (filtered by activeOrderType)
       await Promise.all(
         ORDER_STATUSES.map(async (status) => {
-          const data = await getOrders(1, 1, status.value);
+          const data = await getOrders(1, 1, status.value, undefined, typeFilter);
           counts[status.value] = data.total;
         })
       );
+
+      // Fetch type counts for the top pill buttons (independent of status tab)
+      if (isRestaurant) {
+        const orderTypes = ["online", "takeaway", "waiter", "qr"];
+        await Promise.all(
+          orderTypes.map(async (type) => {
+            const data = await getOrders(1, 1, undefined, undefined, type);
+            counts[type] = data.total;
+          })
+        );
+      }
       
       setStatusCounts(counts);
     } catch (error) {
@@ -180,12 +205,14 @@ export default function Orders() {
     }
   };
 
-  const fetchOrders = async (page = 1, status?: string, priority?: string) => {
+  const fetchOrders = async (page = 1, statusFilterValue?: string, priority?: string) => {
     setLoading(true);
     try {
-      const statusFilter = status && status !== "all" ? status : undefined;
+      const statusFilter = statusFilterValue && statusFilterValue !== "all" ? statusFilterValue : undefined;
       const priorityFilterValue = priority && priority !== "all" ? priority : undefined;
-      const data = await getOrders(page, limit, statusFilter, priorityFilterValue);
+      const orderTypeFilter = isRestaurant && activeOrderType !== "all" ? activeOrderType : undefined;
+      
+      const data = await getOrders(page, limit, statusFilter, priorityFilterValue, orderTypeFilter);
       setOrders(data.orders || []);
       setTotalPages(data.totalPages || 1);
       setTotalOrders(data.total || 0);
@@ -268,12 +295,8 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders(1, activeTab, priorityFilter);
-  }, [activeTab, limit, priorityFilter]);
-
-  useEffect(() => {
-    // Fetch status counts only on initial load
     fetchStatusCounts();
-  }, []);
+  }, [activeTab, activeOrderType, limit, priorityFilter]);
 
   useEffect(() => {
     // Fetch customers and reset form when create order dialog opens
@@ -699,22 +722,70 @@ export default function Orders() {
   };
 
   const handleCreateOrder = async () => {
-    if (!newOrderCustomerName.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter customer name",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!newOrderCustomerPhone.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter customer phone",
-        variant: "destructive",
-      });
-      return;
+    if (isRestaurant) {
+      if (newOrderType === "online") {
+        if (!newOrderCustomerName.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Please enter customer name",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!newOrderCustomerPhone.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Please enter customer phone",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else if (newOrderType === "waiter" || newOrderType === "qr") {
+        if (newOrderType === "waiter" && newOrderTableSubtype === "dine_in") {
+          if (!newOrderTableNumber.trim()) {
+            toast({
+              title: "Validation Error",
+              description: "Please select a table number",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (!newOrderWaiterName.trim()) {
+            toast({
+              title: "Validation Error",
+              description: "Please select a waiter",
+              variant: "destructive",
+            });
+            return;
+          }
+        } else if (newOrderType === "qr") {
+          if (!newOrderTableNumber.trim()) {
+            toast({
+              title: "Validation Error",
+              description: "Please select a table number",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
+    } else {
+      if (!newOrderCustomerName.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter customer name",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!newOrderCustomerPhone.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter customer phone",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (newOrderItems.length === 0) {
@@ -726,26 +797,45 @@ export default function Orders() {
       return;
     }
 
-    if (isRestaurant && !newOrderTableNumber.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a table number",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCreatingOrder(true);
     try {
-    await createOrder({
-        customer_name: newOrderCustomerName,
-        customer_phone: newOrderCustomerPhone,
+      let finalNotes = newOrderNotes;
+      if (isRestaurant && 
+        (newOrderType === "takeaway" || (newOrderType === "waiter" && newOrderTableSubtype === "takeaway")) && 
+        newOrderVehicleNumber.trim()
+      ) {
+        finalNotes = `Vehicle Number: ${newOrderVehicleNumber}\n${finalNotes}`;
+      }
+
+      let customerNamePayload = newOrderCustomerName;
+      let customerPhonePayload = newOrderCustomerPhone;
+
+      if (isRestaurant) {
+        if (newOrderType === "takeaway") {
+          customerNamePayload = newOrderCustomerName.trim() || "Takeaway Guest";
+          customerPhonePayload = newOrderCustomerPhone.trim() || "9999999999";
+        } else if (newOrderType === "waiter" || newOrderType === "qr") {
+          if (newOrderType === "waiter" && newOrderTableSubtype === "takeaway") {
+            customerNamePayload = newOrderCustomerName.trim() || "Takeaway Guest";
+            customerPhonePayload = newOrderCustomerPhone.trim() || "9999999999";
+          } else {
+            customerNamePayload = newOrderType === "waiter" ? `Table ${newOrderTableNumber}` : `QR-${newOrderTableNumber} Guest`;
+            customerPhonePayload = "9999999999";
+          }
+        }
+      }
+
+      await createOrder({
+        customer_name: customerNamePayload,
+        customer_phone: customerPhonePayload,
         items: newOrderItems,
         shipping_charge: newOrderShippingCharge,
         discount: newOrderDiscount,
-        notes: newOrderNotes,
+        notes: finalNotes,
         priority: newOrderPriority,
-        ...(isRestaurant && newOrderTableNumber ? { table_number: newOrderTableNumber } : {}),
+        ...(isRestaurant ? { order_type: newOrderType } : {}),
+        ...(isRestaurant && (newOrderType === "waiter" || newOrderType === "qr") && newOrderTableNumber ? { table_number: newOrderTableNumber } : {}),
+        ...(isRestaurant && newOrderType === "waiter" && newOrderTableSubtype === "dine_in" && newOrderWaiterName ? { waiter_name: newOrderWaiterName } : {}),
       });
 
       toast({
@@ -754,15 +844,19 @@ export default function Orders() {
       });
 
       // Reset form
-    setSelectedCustomerId("");
-    setNewOrderCustomerName("");
-    setNewOrderCustomerPhone("");
-    setNewOrderItems([]);
+      setSelectedCustomerId("");
+      setNewOrderCustomerName("");
+      setNewOrderCustomerPhone("");
+      setNewOrderItems([]);
       setNewOrderShippingCharge(0);
       setNewOrderDiscount(0);
       setNewOrderNotes("");
       setNewOrderPriority("medium");
       setNewOrderTableNumber("");
+      setNewOrderType("online");
+      setNewOrderWaiterName("");
+      setNewOrderVehicleNumber("");
+      setNewOrderTableSubtype("dine_in");
       setCreateOrderDialogOpen(false);
 
       // Refresh orders list
@@ -894,10 +988,20 @@ export default function Orders() {
             <div class="info-label">Order Date:</div>
             <div>${formatDate(selectedOrder.createdAt)}</div>
           </div>
+          ${selectedOrder.order_type ? `
+          <div class="info-row">
+            <div class="info-label">Order Type:</div>
+            <div><strong style="text-transform: capitalize;">${selectedOrder.order_type}</strong></div>
+          </div>` : ''}
           ${selectedOrder.table_number ? `
           <div class="info-row">
             <div class="info-label">Table Number:</div>
             <div><strong>${selectedOrder.table_number}</strong></div>
+          </div>` : ''}
+          ${selectedOrder.waiter_name ? `
+          <div class="info-row">
+            <div class="info-label">Waiter Name:</div>
+            <div><strong>${selectedOrder.waiter_name}</strong></div>
           </div>` : ''}
       
         </div>
@@ -1012,9 +1116,11 @@ export default function Orders() {
     }
 
     const text = `Order Details: ${order.order_number}\n\n` +
+      (order.order_type ? `Order Type: ${order.order_type.toUpperCase()}\n` : '') +
       `Customer: ${order.customer_name}\n` +
       `Phone: ${order.customer_phone}\n` +
       (order.table_number ? `Table: ${order.table_number}\n` : '') +
+      (order.waiter_name ? `Waiter: ${order.waiter_name}\n` : '') +
       addressText +
       `Total: ${currency?.symbol || ""}${Number(order.total_amount).toFixed(2)}\n\n` +
       `Items:\n${itemsList}\n\n` +
@@ -1079,6 +1185,33 @@ export default function Orders() {
           </Button>
         </div>
 
+      {isRestaurant && (
+        <Tabs value={activeOrderType} onValueChange={(val) => { setActiveOrderType(val); setCurrentPage(1); }} className="w-full mb-4">
+          <TabsList className="grid grid-cols-5 sm:flex sm:overflow-x-auto justify-start h-auto p-1 bg-muted/60 no-scrollbar scroll-smooth rounded-lg gap-1">
+            {[
+              { value: "all", label: "All Types" },
+              { value: "online", label: "Online" },
+              { value: "takeaway", label: "Takeaway" },
+              { value: "waiter", label: "Waiter Order" },
+              { value: "qr", label: "QR Order" },
+            ].map((type) => (
+              <TabsTrigger
+                key={type.value}
+                value={type.value}
+                className="w-full sm:w-auto flex-shrink-0 relative gap-1 sm:gap-3 px-2 sm:px-6 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary"
+              >
+                <span className="truncate">{type.label}</span>
+                {statusCounts[type.value] !== undefined && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-1 text-[8px] sm:text-[11px] font-bold bg-black text-white rounded-full">
+                    {statusCounts[type.value]}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Mobile: compact search + filter + new button row */}
         <div className="flex items-center gap-1.5 sm:hidden mb-1">
@@ -1124,7 +1257,7 @@ export default function Orders() {
             value="all" 
             className="w-full sm:w-auto flex-shrink-0 relative gap-1 sm:gap-3 px-2 sm:px-6 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-semibold transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary"
           >
-            All
+            All Status
             {statusCounts.all !== undefined && (
               <span className="inline-flex items-center justify-center min-w-[16px] h-3.5 sm:h-5 px-1 text-[8px] sm:text-[11px] font-bold bg-black text-white rounded-full">
                 {statusCounts.all}
@@ -1192,12 +1325,12 @@ export default function Orders() {
                     <TableRow>
                       <TableHead>SI No</TableHead>
                       <TableHead>Order Number</TableHead>
-                      {/* <TableHead>Customer Name</TableHead> */}
-                      {/* <TableHead>Phone</TableHead> */}
+                      <TableHead>Customer Name</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>Items</TableHead>
-                      {isRestaurant && <TableHead>Table</TableHead>}
-                      {/* <TableHead>Total Amount</TableHead> */}
-                      {/* <TableHead>Priority</TableHead> */}
+                      {isRestaurant && <TableHead>Order Type</TableHead>}
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Priority</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Order Date</TableHead>
                       <TableHead>Actions</TableHead>
@@ -1215,22 +1348,46 @@ export default function Orders() {
                         <TableRow key={order._id}>
                           <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                           <TableCell className="font-medium">{order.order_number}</TableCell>
-                          {/* <TableCell>{order.customer_name}</TableCell> */}
-                          {/* <TableCell>{order.customer_phone}</TableCell> */}
+                          <TableCell>
+                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter' || order.order_type === 'qr') ? (
+                              <span className="text-muted-foreground italic">Dining / QR</span>
+                            ) : (
+                              order.customer_name
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter' || order.order_type === 'qr') ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              order.customer_phone
+                            )}
+                          </TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
                           {isRestaurant && (
                             <TableCell>
-                              {order.table_number ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200">
-                                  🍽️ {order.table_number}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">—</span>
-                              )}
+                              <div className="flex flex-col gap-1">
+                                {order.order_type && (
+                                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                                    {order.order_type}
+                                  </span>
+                                )}
+                                {order.table_number ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 w-max">
+                                    🍽️ {order.table_number}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
+                                {order.waiter_name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Waiter: {order.waiter_name}
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                           )}
-                          {/* <TableCell>{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</TableCell> */}
-                          {/* <TableCell>{getPriorityBadge(order.priority)}</TableCell> */}
+                          <TableCell>{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</TableCell>
+                          <TableCell>{getPriorityBadge(order.priority)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
                           <TableCell>
@@ -1282,12 +1439,22 @@ export default function Orders() {
                     <div key={order._id} className="border rounded-lg w-full p-2.5 space-y-1  bg-white shadow-sm active:bg-gray-50 transition-colors" onClick={() => handleViewOrder(order._id)}>
                       {/* Row 1: Order number + Status */}
                       <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                           <span className="text-[10px] text-muted-foreground font-medium shrink-0">#{(currentPage - 1) * limit + index + 1}</span>
                           <span className="font-bold text-xs sm:text-sm truncate">{order.order_number}</span>
+                          {order.order_type && (
+                            <span className="text-[9px] uppercase font-bold text-slate-500 shrink-0">
+                              {order.order_type}
+                            </span>
+                          )}
                           {isRestaurant && order.table_number && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-orange-100 text-orange-700 border border-orange-200 shrink-0">
                               🍽️ {order.table_number}
+                            </span>
+                          )}
+                          {isRestaurant && order.waiter_name && (
+                            <span className="text-[9px] text-muted-foreground shrink-0">
+                              W: {order.waiter_name}
                             </span>
                           )}
                         </div>
@@ -1300,7 +1467,13 @@ export default function Orders() {
                       {/* Row 2: Customer + Items + Total */}
                       <div className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-1 truncate flex-1 min-w-0">
-                          <span className="font-medium truncate">{order.customer_name}</span>
+                          <span className="font-medium truncate">
+                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter' || order.order_type === 'qr') ? (
+                              order.table_number ? `Table ${order.table_number}` : 'Dining / QR'
+                            ) : (
+                              order.customer_name
+                            )}
+                          </span>
                           <span className="text-muted-foreground">·</span>
                           <span className="text-muted-foreground shrink-0">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
                         </div>
@@ -1508,25 +1681,43 @@ export default function Orders() {
                   <p className="font-semibold">{formatDate(selectedOrder.createdAt)}</p>
                 </div>
                 {isRestaurant && (
-                  <div className="col-span-2">
-                    <Label className="text-muted-foreground">Table Number</Label>
-                    {selectedOrder.table_number ? (
-                      <span className="inline-flex items-center gap-1 mt-1 px-3 py-1 rounded-full text-sm font-bold bg-orange-100 text-orange-800 border border-orange-300">
-                        🍽️ {selectedOrder.table_number}
-                      </span>
-                    ) : (
-                      <p className="font-semibold text-muted-foreground">Not specified</p>
+                  <>
+                    <div>
+                      <Label className="text-muted-foreground">Order Type</Label>
+                      <p className="font-semibold capitalize">{selectedOrder.order_type || "Online"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Table Number</Label>
+                      <div className="mt-1">
+                        {selectedOrder.table_number ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold bg-orange-100 text-orange-800 border border-orange-300">
+                            🍽️ {selectedOrder.table_number}
+                          </span>
+                        ) : (
+                          <p className="font-semibold text-muted-foreground">Not specified</p>
+                        )}
+                      </div>
+                    </div>
+                    {selectedOrder.waiter_name && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground">Waiter Name</Label>
+                        <p className="font-semibold">{selectedOrder.waiter_name}</p>
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
-                {/* <div>
-                  <Label className="text-muted-foreground">Customer Name</Label>
-                  <p className="font-semibold">{selectedOrder.customer_name}</p>
-                </div> */}
-                {/* <div>
-                  <Label className="text-muted-foreground">Phone Number</Label>
-                  <p className="font-semibold">{selectedOrder.customer_phone}</p>
-                </div> */}
+                {(!isRestaurant || (selectedOrder.order_type !== "table" && selectedOrder.order_type !== "waiter" && selectedOrder.order_type !== "qr")) && (
+                  <>
+                    <div>
+                      <Label className="text-muted-foreground">Customer Name</Label>
+                      <p className="font-semibold">{selectedOrder.customer_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Phone Number</Label>
+                      <p className="font-semibold">{selectedOrder.customer_phone}</p>
+                    </div>
+                  </>
+                )}
                 {/* <div className="col-span-2">
                   <Button
                     variant="outline"
@@ -1661,7 +1852,7 @@ export default function Orders() {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* <div>
+                <div>
                   <Label className="text-muted-foreground">Priority</Label>
                   <div className="mt-1">{getPriorityBadge(selectedOrder.priority)}</div>
                 </div>
@@ -1682,7 +1873,7 @@ export default function Orders() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div> */}
+                </div>
                 
                 {deliveryManagementEnabled && (
                   <>
@@ -2345,61 +2536,197 @@ export default function Orders() {
           </DialogHeader>
 
           <div className="space-y-6 mt-4">
-            {/* Customer Details */}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Customer Information</h3>
-              <div className="space-y-2">
-                <Label>Select Customer *</Label>
-                <Select
-                  value={selectedCustomerId}
-                  onValueChange={(value) => {
-                    if (value === "add_new") {
-                      setAddCustomerSheetOpen(true);
-                    } else {
-                      setSelectedCustomerId(value);
-                      const customer = customers.find(c => (c._id || (c as any).id) === value);
-                      if (customer) {
-                        setNewOrderCustomerName(customer.name);
-                        setNewOrderCustomerPhone(customer.phone);
-                      }
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingCustomers ? "Loading customers..." : "Select a customer"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingCustomers ? (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
-                        Loading customers...
-                      </div>
-                    ) : (
-                      <>
-                        {customers.length > 0 ? (
-                          customers.map((customer) => (
-                            <SelectItem key={customer._id || (customer as any).id} value={customer._id || (customer as any).id}>
-                              {customer.name} - {customer.phone}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            No customers found
-                          </div>
-                        )}
-                        <Separator className="my-1" />
-                        <SelectItem value="add_new" className="text-primary font-medium focus:bg-blue-600 focus:text-white cursor-pointer">
-                          <div className="flex items-center gap-2 ">
-                            <UserPlus className="h-4 w-4" />
-                            Add New Customer
-                          </div>
-                        </SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
+            {/* Order Type Selection (if Restaurant) */}
+            {isRestaurant && (
+              <div className="space-y-4 border-b pb-4">
+                <h3 className="font-semibold">Order Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="create-order-type">Order Type</Label>
+                    <Select
+                      value={newOrderType}
+                      onValueChange={(value) => {
+                        setNewOrderType(value);
+                        setNewOrderTableSubtype("dine_in");
+                        // If changing to waiter/qr, clear customer selection
+                        if (value === "waiter" || value === "qr") {
+                          setSelectedCustomerId("");
+                          setNewOrderCustomerName("");
+                          setNewOrderCustomerPhone("");
+                          setNewOrderTableNumber("");
+                          setNewOrderWaiterName("");
+                        } else if (value === "takeaway") {
+                          setNewOrderTableNumber("");
+                          setNewOrderWaiterName("");
+                          setNewOrderVehicleNumber("");
+                        } else if (value === "online") {
+                          setNewOrderTableNumber("");
+                          setNewOrderWaiterName("");
+                          setNewOrderVehicleNumber("");
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="create-order-type">
+                        <SelectValue placeholder="Select order type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="takeaway">Takeaway</SelectItem>
+                        <SelectItem value="waiter">Waiter Order</SelectItem>
+                        <SelectItem value="qr">QR Order</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Subtype for Waiter Order */}
+                  {newOrderType === "waiter" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="create-table-subtype">Service Type</Label>
+                      <Select
+                        value={newOrderTableSubtype}
+                        onValueChange={(value) => {
+                          setNewOrderTableSubtype(value);
+                          if (value === "takeaway") {
+                            setNewOrderTableNumber("Takeaway");
+                            setNewOrderWaiterName("");
+                            setSelectedCustomerId("");
+                            setNewOrderCustomerName("");
+                            setNewOrderCustomerPhone("");
+                          } else {
+                            setNewOrderTableNumber("");
+                            setNewOrderWaiterName("");
+                            setSelectedCustomerId("");
+                            setNewOrderCustomerName("");
+                            setNewOrderCustomerPhone("");
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="create-table-subtype">
+                          <SelectValue placeholder="Select service type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dine_in">Dine In</SelectItem>
+                          <SelectItem value="takeaway">Takeaway</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Table details show up here if (waiter and dine_in) OR qr */}
+                  {((newOrderType === "waiter" && newOrderTableSubtype === "dine_in") || newOrderType === "qr") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="table_number">Table Number *</Label>
+                      <Select value={newOrderTableNumber} onValueChange={setNewOrderTableNumber}>
+                        <SelectTrigger id="table_number">
+                          <SelectValue placeholder="Select table number" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 20 }, (_, i) => `T${i + 1}`).map((t) => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Waiter Details show up here if waiter and dine_in */}
+                  {newOrderType === "waiter" && newOrderTableSubtype === "dine_in" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="waiter_name">Waiter Name *</Label>
+                      <Select value={newOrderWaiterName} onValueChange={setNewOrderWaiterName}>
+                        <SelectTrigger id="waiter_name">
+                          <SelectValue placeholder="Select waiter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="John">John</SelectItem>
+                          <SelectItem value="David">David</SelectItem>
+                          <SelectItem value="Sarah">Sarah</SelectItem>
+                          <SelectItem value="Emily">Emily</SelectItem>
+                          <SelectItem value="Michael">Michael</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Customer Details */}
+            {(!isRestaurant || 
+              newOrderType === "online" || 
+              newOrderType === "takeaway" || 
+              (newOrderType === "waiter" && newOrderTableSubtype === "takeaway")
+            ) && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Customer Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  <div className="space-y-2">
+                    <Label>Select Customer {(!isRestaurant || newOrderType === "online") ? "*" : "(Optional)"}</Label>
+                    <Select
+                      value={selectedCustomerId}
+                      onValueChange={(value) => {
+                        if (value === "add_new") {
+                          setAddCustomerSheetOpen(true);
+                        } else {
+                          setSelectedCustomerId(value);
+                          const customer = customers.find(c => (c._id || (c as any).id) === value);
+                          if (customer) {
+                            setNewOrderCustomerName(customer.name);
+                            setNewOrderCustomerPhone(customer.phone);
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingCustomers ? "Loading customers..." : "Select a customer"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {loadingCustomers ? (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto mr-2 inline" />
+                            Loading customers...
+                          </div>
+                        ) : (
+                          <>
+                            {customers.length > 0 ? (
+                              customers.map((customer) => (
+                                <SelectItem key={customer._id || (customer as any).id} value={customer._id || (customer as any).id}>
+                                  {customer.name} - {customer.phone}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                No customers found
+                              </div>
+                            )}
+                            <Separator className="my-1" />
+                            <SelectItem value="add_new" className="text-primary font-medium focus:bg-blue-600 focus:text-white cursor-pointer">
+                              <div className="flex items-center gap-2 ">
+                                <UserPlus className="h-4 w-4" />
+                                Add New Customer
+                              </div>
+                            </SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Takeaway / Waiter-takeaway vehicle number input */}
+                  {isRestaurant && (newOrderType === "takeaway" || (newOrderType === "waiter" && newOrderTableSubtype === "takeaway")) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="vehicle_number">Vehicle Number (Optional)</Label>
+                      <Input
+                        id="vehicle_number"
+                        placeholder="e.g. AB 12 CD 3456"
+                        value={newOrderVehicleNumber}
+                        onChange={(e) => setNewOrderVehicleNumber(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Product Selection Dropdown */}
             <div className="space-y-4">
@@ -2593,23 +2920,6 @@ export default function Orders() {
                   placeholder="Add any notes for this order"
                 />
               </div>
-              {isRestaurant && (
-                <div className="space-y-2">
-                  <Label htmlFor="table_number">Table Number <span className="text-red-500">*</span></Label>
-                  <Select value={newOrderTableNumber} onValueChange={setNewOrderTableNumber}>
-                    <SelectTrigger id="table_number">
-                      <SelectValue placeholder="Select table number" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 20 }, (_, i) => `T${i + 1}`).map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                      <SelectItem value="Takeaway">Takeaway</SelectItem>
-                      <SelectItem value="Delivery">Delivery</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
 
             {/* Order Summary */}

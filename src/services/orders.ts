@@ -40,6 +40,8 @@ export interface Order {
   zoho_sync_status?: "not_synced" | "synced" | "failed";
   zoho_sync_error?: string;
   table_number?: string;
+  order_type?: string;
+  waiter_name?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -69,6 +71,8 @@ export interface CreateOrderRequest {
   notes?: string;
   priority?: "low" | "medium" | "high";
   table_number?: string;
+  order_type?: string;
+  waiter_name?: string;
 }
 
 const sub_domain= getSubdomain()
@@ -79,13 +83,16 @@ export const createOrder = async (orderData: CreateOrderRequest) => {
   return response.data;
 };
 
-export const getOrders = async (page: number = 1, limit: number = 10, status?: string, priority?: string) => {
+export const getOrders = async (page: number = 1, limit: number = 10, status?: string, priority?: string, order_type?: string) => {
   const params: any = { page, limit };
   if (status) {
     params.order_status = status;
   }
   if (priority) {
     params.priority = priority;
+  }
+  if (order_type) {
+    params.order_type = order_type;
   }
   const response = await axiosInstance.get<OrdersResponse>("/api/v1/orders", { params });
   return response.data;
