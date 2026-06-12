@@ -64,6 +64,7 @@ const RESTAURANT_ORDER_TYPES = [
   { value: "takeaway", label: "Takeaway" },
   { value: "waiter", label: "Waiter Order" },
   { value: "qr", label: "QR Order" },
+  { value: "menu", label: "Menu Order" },
 ];
 
 const PRIORITY_LEVELS = [
@@ -190,7 +191,7 @@ export default function Orders() {
 
       // Fetch type counts for the top pill buttons (independent of status tab)
       if (isRestaurant) {
-        const orderTypes = ["online", "takeaway", "waiter", "qr"];
+        const orderTypes = ["online", "takeaway", "waiter", "qr", "menu"];
         await Promise.all(
           orderTypes.map(async (type) => {
             const data = await getOrders(1, 1, undefined, undefined, type);
@@ -723,7 +724,7 @@ export default function Orders() {
 
   const handleCreateOrder = async () => {
     if (isRestaurant) {
-      if (newOrderType === "online") {
+      if (newOrderType === "online" || newOrderType === "menu") {
         if (!newOrderCustomerName.trim()) {
           toast({
             title: "Validation Error",
@@ -1187,13 +1188,14 @@ export default function Orders() {
 
       {isRestaurant && (
         <Tabs value={activeOrderType} onValueChange={(val) => { setActiveOrderType(val); setCurrentPage(1); }} className="w-full mb-4">
-          <TabsList className="grid grid-cols-5 sm:flex sm:overflow-x-auto justify-start h-auto p-1 bg-muted/60 no-scrollbar scroll-smooth rounded-lg gap-1">
+          <TabsList className="grid grid-cols-6 sm:flex sm:overflow-x-auto justify-start h-auto p-1 bg-muted/60 no-scrollbar scroll-smooth rounded-lg gap-1">
             {[
               { value: "all", label: "All Types" },
               { value: "online", label: "Online" },
               { value: "takeaway", label: "Takeaway" },
               { value: "waiter", label: "Waiter Order" },
               { value: "qr", label: "QR Order" },
+              { value: "menu", label: "Menu Order" },
             ].map((type) => (
               <TabsTrigger
                 key={type.value}
@@ -2559,7 +2561,7 @@ export default function Orders() {
                           setNewOrderTableNumber("");
                           setNewOrderWaiterName("");
                           setNewOrderVehicleNumber("");
-                        } else if (value === "online") {
+                        } else if (value === "online" || value === "menu") {
                           setNewOrderTableNumber("");
                           setNewOrderWaiterName("");
                           setNewOrderVehicleNumber("");
@@ -2574,6 +2576,7 @@ export default function Orders() {
                         <SelectItem value="takeaway">Takeaway</SelectItem>
                         <SelectItem value="waiter">Waiter Order</SelectItem>
                         <SelectItem value="qr">QR Order</SelectItem>
+                        <SelectItem value="menu">Menu Order</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2654,6 +2657,7 @@ export default function Orders() {
             {/* Customer Details */}
             {(!isRestaurant || 
               newOrderType === "online" || 
+              newOrderType === "menu" || 
               newOrderType === "takeaway" || 
               (newOrderType === "waiter" && newOrderTableSubtype === "takeaway")
             ) && (
@@ -2661,7 +2665,7 @@ export default function Orders() {
                 <h3 className="font-semibold">Customer Information</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                   <div className="space-y-2">
-                    <Label>Select Customer {(!isRestaurant || newOrderType === "online") ? "*" : "(Optional)"}</Label>
+                    <Label>Select Customer {(!isRestaurant || newOrderType === "online" || newOrderType === "menu") ? "*" : "(Optional)"}</Label>
                     <Select
                       value={selectedCustomerId}
                       onValueChange={(value) => {
