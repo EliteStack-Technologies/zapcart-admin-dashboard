@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { getAccountDetails, updateAccountDetails } from "@/services/accountDetails";
 
@@ -48,11 +50,13 @@ const accountSchema = z.object({
   location: z.string().min(2, "Location must be at least 2 characters"),
   facebook_url: z.string().url().optional().or(z.literal("")),
   instagram_url: z.string().url().optional().or(z.literal("")),
+  menu_price_visibility: z.boolean().optional(),
 });
 
 type AccountFormValues = z.infer<typeof accountSchema>;
 
 const Account = () => {
+  const { isRestaurant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +73,7 @@ const Account = () => {
       location: "",
       facebook_url: "",
       instagram_url: "",
+      menu_price_visibility: true,
     },
     mode: "onChange", // Real-time validation
   });
@@ -88,6 +93,7 @@ const Account = () => {
           location: data?.location || "",
           facebook_url: data?.facebook_url || "",
           instagram_url: data?.instagram_url || "",
+          menu_price_visibility: data?.menu_price_visibility !== undefined ? data.menu_price_visibility : true,
         });
       } catch (error) {
         console.error("Error fetching account details:", error);
@@ -323,6 +329,38 @@ const Account = () => {
                     />
                   </CardContent>
                 </Card>
+
+                {/* Additional Settings */}
+                {isRestaurant && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-xl sm:text-2xl">Additional Settings</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="menu_price_visibility"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Menu Price Visibility</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Enable to show prices for the "Menu" order type, disable to hide them.
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? true}
+                                  onCheckedChange={field.onChange}
+                                  disabled={isLoading}
+                                />
+                              </FormControl>
+                            </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-4">
