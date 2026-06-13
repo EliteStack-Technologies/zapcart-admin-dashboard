@@ -3,7 +3,6 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
@@ -40,7 +39,6 @@ const ZohoCallback = lazy(() => import("@/pages/ZohoCallback"));
 const BulkEditProducts = lazy(() => import("@/pages/BulkEditProducts"));
 
 
-const queryClient = new QueryClient();
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -101,17 +99,15 @@ function AppRoutes() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CurrencyProvider>
-        <ProfileProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ProfileProvider>
-      </CurrencyProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <AuthProvider>
+    <CurrencyProvider>
+      <ProfileProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </ProfileProvider>
+    </CurrencyProvider>
+  </AuthProvider>
 );
 
 export default App;
