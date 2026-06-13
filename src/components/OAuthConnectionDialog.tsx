@@ -71,13 +71,21 @@ const OAuthConnectionDialog = ({ open, onOpenChange }: OAuthConnectionDialogProp
         redirect_uri: data.redirect_uri,
       });
 
+      // Generate anti-forgery state token and persist it for callback verification
+      const state = crypto.randomUUID();
+      sessionStorage.setItem("zoho_oauth_state", state);
+
       // Save credentials to sessionStorage (temporary storage during OAuth flow)
       sessionStorage.setItem("zoho_client_id", data.client_id);
       sessionStorage.setItem("zoho_client_secret", data.client_secret);
       sessionStorage.setItem("zoho_redirect_uri", data.redirect_uri);
 
+      // Append the state param to the auth URL before redirecting to Zoho
+      const authUrl = new URL(response.auth_url);
+      authUrl.searchParams.set("state", state);
+
       // Redirect to Zoho authorization page
-      window.location.href = response.auth_url;
+      window.location.href = authUrl.toString();
     } catch (error: any) {
       console.error("Error generating auth URL:", error);
       toast({

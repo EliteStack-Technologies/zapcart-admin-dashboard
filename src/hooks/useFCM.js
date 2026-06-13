@@ -3,8 +3,8 @@ import { getToken, onMessage } from 'firebase/messaging';
 import { getFirebaseMessaging } from '@/config/firebase';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
+import axiosInstance from '@/services/axiosInstance';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 export const FCM_TOKEN_KEY = 'fcm_token';
 
 // ─── Platform detection ──────────────────────────────────────────────────────
@@ -15,30 +15,20 @@ async function registerTokenWithBackend(clientId, token) {
   const platform = isNative ? 'android' : 'web';
   const deviceLabel = `${isNative ? 'Android App' : 'Web Browser'} – ${navigator.userAgent.slice(0, 60)}`;
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/register-token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientId, token, platform, deviceLabel }),
+  const response = await axiosInstance.post('/api/v1/notifications/register-token', {
+    clientId,
+    token,
+    platform,
+    deviceLabel,
   });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`register-token failed: ${response.status} – ${body}`);
-  }
-  return response.json();
+  return response.data;
 }
 
 async function removeTokenFromBackend(token) {
-  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/remove-token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token }),
+  const response = await axiosInstance.post('/api/v1/notifications/remove-token', {
+    token,
   });
-
-  if (!response.ok) {
-    throw new Error(`remove-token failed: ${response.status}`);
-  }
-  return response.json();
+  return response.data;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

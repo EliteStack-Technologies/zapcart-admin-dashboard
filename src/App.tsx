@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,34 +9,35 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import Dashboard from "@/pages/Dashboard";
-import Products from "@/pages/Products";
-import Categories from "@/pages/Categories";
-import CategoryProducts from "@/pages/CategoryProducts";
-import Rows from "@/pages/Rows";
-import Orders from "@/pages/Orders";
-import Customers from "@/pages/Customers";
-import Enquiries from "@/pages/Enquiries";
-import Offers from "@/pages/Offers";
-import Banners from "@/pages/Banners";
-import Flyers from "@/pages/Flyers";
-import DeliveryAgents from "@/pages/DeliveryAgents";
-import UploadImages from "@/pages/UploadImages";
-import Account from "@/pages/Account";
-import Profile from "@/pages/Profile";
-import Login from "@/pages/Login";
-import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import CustomerLogin from "@/pages/CustomerLogin";
-import CustomerProfile from "@/pages/CustomerProfile";
-import CustomerOrders from "@/pages/CustomerOrders";
-import StockIn from "@/pages/StockIn";
-import StockOut from "@/pages/StockOut";
-import LowStock from "@/pages/LowStock";
-import CurrentStock from "@/pages/CurrentStock";
-import ZohoBooksIntegration from "@/pages/ZohoBooksIntegration";
-import ZohoCallback from "@/pages/ZohoCallback";
-import BulkEditProducts from "@/pages/BulkEditProducts";
+
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Products = lazy(() => import("@/pages/Products"));
+const Categories = lazy(() => import("@/pages/Categories"));
+const CategoryProducts = lazy(() => import("@/pages/CategoryProducts"));
+const Rows = lazy(() => import("@/pages/Rows"));
+const Orders = lazy(() => import("@/pages/Orders"));
+const Customers = lazy(() => import("@/pages/Customers"));
+const Enquiries = lazy(() => import("@/pages/Enquiries"));
+const Offers = lazy(() => import("@/pages/Offers"));
+const Banners = lazy(() => import("@/pages/Banners"));
+const Flyers = lazy(() => import("@/pages/Flyers"));
+const DeliveryAgents = lazy(() => import("@/pages/DeliveryAgents"));
+const UploadImages = lazy(() => import("@/pages/UploadImages"));
+const Account = lazy(() => import("@/pages/Account"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Login = lazy(() => import("@/pages/Login"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const CustomerLogin = lazy(() => import("@/pages/CustomerLogin"));
+const CustomerProfile = lazy(() => import("@/pages/CustomerProfile"));
+const CustomerOrders = lazy(() => import("@/pages/CustomerOrders"));
+const StockIn = lazy(() => import("@/pages/StockIn"));
+const StockOut = lazy(() => import("@/pages/StockOut"));
+const LowStock = lazy(() => import("@/pages/LowStock"));
+const CurrentStock = lazy(() => import("@/pages/CurrentStock"));
+const ZohoBooksIntegration = lazy(() => import("@/pages/ZohoBooksIntegration"));
+const ZohoCallback = lazy(() => import("@/pages/ZohoCallback"));
+const BulkEditProducts = lazy(() => import("@/pages/BulkEditProducts"));
 
 
 const queryClient = new QueryClient();
@@ -47,6 +50,13 @@ function AppRoutes() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          }
+        >
         <Routes>
           {/* Admin Routes */}
           <Route path="/login" element={<Login />} />
@@ -84,6 +94,7 @@ function AppRoutes() {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </TooltipProvider>
     </NotificationProvider>
   );

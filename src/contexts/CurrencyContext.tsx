@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useRef } from "react";
 import { getClientProfile } from "@/services/profile";
 
 interface Currency {
@@ -83,8 +83,13 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const contextValue = useMemo<CurrencyContextType>(
+    () => ({ currency, setCurrency, refreshCurrency }),
+    [currency]
+  );
+
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, refreshCurrency }}>
+    <CurrencyContext.Provider value={contextValue}>
       {children}
     </CurrencyContext.Provider>
   );

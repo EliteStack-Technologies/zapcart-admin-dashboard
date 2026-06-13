@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef, ReactNode } from 'react';
 import { NotificationData, NotificationSettings, NotificationState } from '@/types/notifications';
 import { NotificationStorageService } from '@/services/notificationStorage';
 import { useToast } from '@/hooks/use-toast';
@@ -279,16 +279,28 @@ export function NotificationProvider({ children, onNavigate }: NotificationProvi
 
   const unreadCount = NotificationStorageService.getUnreadCount(notifications);
 
-  const contextValue: NotificationContextType = {
-    notifications,
-    unreadCount,
-    settings,
-    addNotification: handleNewNotification,
-    markAsRead,
-    markAllAsRead,
-    clearAllNotifications,
-    updateSettings,
-  };
+  const contextValue = useMemo<NotificationContextType>(
+    () => ({
+      notifications,
+      unreadCount,
+      settings,
+      addNotification: handleNewNotification,
+      markAsRead,
+      markAllAsRead,
+      clearAllNotifications,
+      updateSettings,
+    }),
+    [
+      notifications,
+      unreadCount,
+      settings,
+      handleNewNotification,
+      markAsRead,
+      markAllAsRead,
+      clearAllNotifications,
+      updateSettings,
+    ]
+  );
 
   return (
     <NotificationContext.Provider value={contextValue}>

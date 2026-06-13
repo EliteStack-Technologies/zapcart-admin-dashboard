@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getClientProfile, ClientProfile } from "@/services/profile";
 import { useAuth } from "./AuthContext";
 
@@ -51,14 +51,19 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
 
   const isRestaurant = profile?.business_type?.map((t) => t.toLowerCase()).includes("restaurant") ?? false;
 
+  const contextValue = useMemo<ProfileContextType>(
+    () => ({
+      profile,
+      isLoading,
+      refreshProfile,
+      isRestaurant,
+    }),
+    [profile, isLoading, isRestaurant]
+  );
+
   return (
     <ProfileContext.Provider
-      value={{
-        profile,
-        isLoading,
-        refreshProfile,
-        isRestaurant,
-      }}
+      value={contextValue}
     >
       {children}
     </ProfileContext.Provider>

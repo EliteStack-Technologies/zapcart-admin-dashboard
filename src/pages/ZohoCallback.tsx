@@ -6,18 +6,21 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { exchangeCode } from "@/services/zoho";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useToast } from "@/hooks/use-toast";
 
 const ZohoCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Completing authorization...");
   const [showRevokeInstructions, setShowRevokeInstructions] = useState(false);
 
   useEffect(() => {
     const handleCallback = async () => {
-      // Extract code and error from URL
+      // Extract code, state and error from URL
       const code = searchParams.get("code");
+      const returnedState = searchParams.get("state");
       const error = searchParams.get("error");
       const errorDescription = searchParams.get("error_description");
 
@@ -32,6 +35,21 @@ const ZohoCallback = () => {
       if (!code) {
         setStatus("error");
         setMessage("No authorization code received. Please try again.");
+        setTimeout(() => navigate("/settings/zoho-books"), 3000);
+        return;
+      }
+
+      // Verify the anti-forgery state token before doing the code exchange
+      const expectedState = sessionStorage.getItem("zoho_oauth_state");
+      sessionStorage.removeItem("zoho_oauth_state");
+      if (!expectedState || returnedState !== expectedState) {
+        setStatus("error");
+        setMessage("Security check failed. Please start the connection process again.");
+        toast({
+          title: "Security check failed",
+          description: "The authorization response could not be verified. Please try connecting again.",
+          variant: "destructive",
+        });
         setTimeout(() => navigate("/settings/zoho-books"), 3000);
         return;
       }
@@ -86,7 +104,7 @@ const ZohoCallback = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, toast]);
 
   return (
     <DashboardLayout>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 interface User {
   id: string;
@@ -203,23 +203,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isRestaurant = user?.business_type?.map((t) => t.toLowerCase()).includes("restaurant") ?? false;
 
+  const contextValue = useMemo<AuthContextType>(
+    () => ({
+      user,
+      isAuthenticated: !!token,
+      isLoading,
+      login,
+      logout,
+      token,
+      enquiryMode,
+      setEnquiryMode,
+      inventoryEnabled,
+      deliveryManagementEnabled,
+      zohoEnabled,
+      setZohoEnabled,
+      isRestaurant,
+    }),
+    [
+      user,
+      token,
+      isLoading,
+      enquiryMode,
+      inventoryEnabled,
+      deliveryManagementEnabled,
+      zohoEnabled,
+      isRestaurant,
+    ]
+  );
+
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!token,
-        isLoading,
-        login,
-        logout,
-        token,
-        enquiryMode,
-        setEnquiryMode,
-        inventoryEnabled,
-        deliveryManagementEnabled,
-        zohoEnabled,
-        setZohoEnabled,
-        isRestaurant,
-      }}
+      value={contextValue}
     >
       {children}
     </AuthContext.Provider>
