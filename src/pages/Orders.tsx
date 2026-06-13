@@ -886,11 +886,21 @@ export default function Orders() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    // Escape dynamic values before interpolating into the print HTML to prevent
+    // stored XSS (order/customer fields can contain attacker-controlled markup).
+    const htmlEscape = (value: unknown): string =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const printContent = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Order ${selectedOrder.order_number}</title>
+        <title>Order ${htmlEscape(selectedOrder.order_number)}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -975,34 +985,34 @@ export default function Orders() {
           <h2>Customer Information</h2>
           <div class="info-row">
             <div class="info-label">Customer Name:</div>
-            <div>${selectedOrder.customer_name}</div>
+            <div>${htmlEscape(selectedOrder.customer_name)}</div>
           </div>
           <div class="info-row">
             <div class="info-label">Phone Number:</div>
-            <div>${selectedOrder.customer_phone}</div>
+            <div>${htmlEscape(selectedOrder.customer_phone)}</div>
           </div>
           <div class="info-row">
             <div class="info-label">Order Number:</div>
-            <div>${selectedOrder.order_number}</div>
+            <div>${htmlEscape(selectedOrder.order_number)}</div>
           </div>
           <div class="info-row">
             <div class="info-label">Order Date:</div>
-            <div>${formatDate(selectedOrder.createdAt)}</div>
+            <div>${htmlEscape(formatDate(selectedOrder.createdAt))}</div>
           </div>
           ${selectedOrder.order_type ? `
           <div class="info-row">
             <div class="info-label">Order Type:</div>
-            <div><strong style="text-transform: capitalize;">${selectedOrder.order_type}</strong></div>
+            <div><strong style="text-transform: capitalize;">${htmlEscape(selectedOrder.order_type)}</strong></div>
           </div>` : ''}
           ${selectedOrder.table_number ? `
           <div class="info-row">
             <div class="info-label">Table Number:</div>
-            <div><strong>${selectedOrder.table_number}</strong></div>
+            <div><strong>${htmlEscape(selectedOrder.table_number)}</strong></div>
           </div>` : ''}
           ${selectedOrder.waiter_name ? `
           <div class="info-row">
             <div class="info-label">Waiter Name:</div>
-            <div><strong>${selectedOrder.waiter_name}</strong></div>
+            <div><strong>${htmlEscape(selectedOrder.waiter_name)}</strong></div>
           </div>` : ''}
       
         </div>
@@ -1022,11 +1032,11 @@ export default function Orders() {
             <tbody>
               ${selectedOrder.items.map(item => `
                 <tr>
-                  <td>${item.title}</td>
-                  <td>${item.product_code || '-'}</td>
-                  <td class="right">${currency?.symbol || ''} ${item.price.toFixed(2)}</td>
+                  <td>${htmlEscape(item.title)}</td>
+                  <td>${htmlEscape(item.product_code || '-')}</td>
+                  <td class="right">${htmlEscape(currency?.symbol || '')} ${item.price.toFixed(2)}</td>
                   <td class="center">${item.quantity}</td>
-                  <td class="right">${currency?.symbol || ''} ${(item.price * item.quantity).toFixed(2)}</td>
+                  <td class="right">${htmlEscape(currency?.symbol || '')} ${(item.price * item.quantity).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1036,19 +1046,19 @@ export default function Orders() {
         <div class="total-section">
           <div class="total-row">
             <div class="total-label">Subtotal:</div>
-            <div>${currency?.symbol || ''} ${selectedOrder.subtotal.toFixed(2)}</div>
+            <div>${htmlEscape(currency?.symbol || '')} ${selectedOrder.subtotal.toFixed(2)}</div>
           </div>
           <div class="total-row">
             <div class="total-label">Shipping Charge:</div>
-            <div>${currency?.symbol || ''} ${(selectedOrder.shipping_charge || 0).toFixed(2)}</div>
+            <div>${htmlEscape(currency?.symbol || '')} ${(selectedOrder.shipping_charge || 0).toFixed(2)}</div>
           </div>
           <div class="total-row">
             <div class="total-label">Discount:</div>
-            <div>${currency?.symbol || ''} ${(selectedOrder.discount || 0).toFixed(2)}</div>
+            <div>${htmlEscape(currency?.symbol || '')} ${(selectedOrder.discount || 0).toFixed(2)}</div>
           </div>
           <div class="total-row total-amount">
             <div class="total-label">Total Amount:</div>
-            <div>${currency?.symbol || ''} ${Number(selectedOrder.total_amount).toFixed(2)}</div>
+            <div>${htmlEscape(currency?.symbol || '')} ${Number(selectedOrder.total_amount).toFixed(2)}</div>
           </div>
         </div>
 
