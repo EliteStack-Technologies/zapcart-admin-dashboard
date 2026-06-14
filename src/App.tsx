@@ -22,6 +22,7 @@ const Offers = lazy(() => import("@/pages/Offers"));
 const Banners = lazy(() => import("@/pages/Banners"));
 const Flyers = lazy(() => import("@/pages/Flyers"));
 const DeliveryAgents = lazy(() => import("@/pages/DeliveryAgents"));
+const TableQrCodes = lazy(() => import("@/pages/TableQrCodes"));
 const UploadImages = lazy(() => import("@/pages/UploadImages"));
 const Account = lazy(() => import("@/pages/Account"));
 const Profile = lazy(() => import("@/pages/Profile"));
@@ -70,6 +71,7 @@ function AppRoutes() {
           <Route path="/banners" element={<ProtectedRoute><Banners /></ProtectedRoute>} />
           <Route path="/flyers" element={<ProtectedRoute><Flyers /></ProtectedRoute>} />
           <Route path="/delivery-agents" element={<ProtectedRoute><DeliveryAgents /></ProtectedRoute>} />
+          <Route path="/table-qr-codes" element={<ProtectedRoute><TableQrCodes /></ProtectedRoute>} />
           <Route path="/upload-images" element={<ProtectedRoute><UploadImages /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

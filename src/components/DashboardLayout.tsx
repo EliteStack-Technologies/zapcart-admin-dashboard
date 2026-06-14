@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck, QrCode } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +26,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return stored === 'true';
   });
 
-  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled, deliveryManagementEnabled } = useAuth();
+  const { logout, user, enquiryMode, inventoryEnabled, zohoEnabled, deliveryManagementEnabled, isRestaurant } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -133,6 +133,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     // { to: "/upload-images", icon: Upload, label: "Upload Images" },
     { to: "/settings/zoho-books", icon: Settings, label: "Zoho Books", requireZohoEnabled: true },
     { to: "/delivery-agents", icon: Truck, label: "Delivery Management", requireDeliveryManagement: true },
+    { to: "/table-qr-codes", icon: QrCode, label: "Table QR Codes", requireRestaurant: true },
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },
   ];
@@ -156,6 +157,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if ('requireDeliveryManagement' in item && item.requireDeliveryManagement) {
       return deliveryManagementEnabled === true;
     }
+    if ('requireRestaurant' in item && item.requireRestaurant) {
+      return isRestaurant === true;
+    }
     return true;
   });
 
@@ -165,7 +169,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     <div className="flex h-screen bg-background">
       {/* Sidebar - Desktop Only */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 hidden lg:flex flex-col
+        fixed inset-y-0 left-0 z-50 hidden lg:flex flex-col print:!hidden
         ${sidebarCollapsed ? 'w-20' : 'w-64'} h-screen bg-sidebar border-r border-sidebar-border
         transition-all duration-300 ease-in-out
       `}>
@@ -264,9 +268,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 w-full flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300`}>
+      <main className={`flex-1 w-full flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300 print:!ml-0`}>
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-2 flex items-center justify-between">
+        <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-2 flex items-center justify-between print:!hidden">
           <div className="flex flex-col">
             <h1 className="text-lg font-black text-primary leading-tight">ZapGoCart</h1>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
@@ -279,7 +283,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Desktop Header */}
-        <div className="hidden lg:block sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-6 py-4">
+        <div className="hidden lg:block sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-6 py-4 print:!hidden">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
@@ -338,12 +342,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
 
-        <div className="flex-1 p-2 sm:p-6 lg:p-8 pb-32 lg:pb-8">
+        <div className="flex-1 p-2 sm:p-6 lg:p-8 pb-32 lg:pb-8 print:!p-0">
           {children}
         </div>
 
         {/* Mobile Bottom Navigation - Floating Dock */}
-        <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-sm">
+        <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-sm print:!hidden">
           <div className="bg-background/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex items-center justify-around p-2 py-3 ring-1 ring-black/5">
             <NavLink
               to="/orders"
