@@ -1341,6 +1341,7 @@ export default function Orders() {
                       <TableHead>Phone</TableHead>
                       <TableHead>Items</TableHead>
                       {isRestaurant && <TableHead>Order Type</TableHead>}
+                      {isRestaurant && <TableHead>Table No</TableHead>}
                       <TableHead>Total Amount</TableHead>
                       <TableHead>Priority</TableHead>
                       <TableHead>Status</TableHead>
@@ -1351,7 +1352,7 @@ export default function Orders() {
                   <TableBody>
                     {filteredOrders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center">
+                        <TableCell colSpan={isRestaurant ? 12 : 10} className="text-center">
                           No orders found
                         </TableCell>
                       </TableRow>
@@ -1383,19 +1384,23 @@ export default function Orders() {
                                     {order.order_type}
                                   </span>
                                 )}
-                                {order.table_number ? (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 w-max">
-                                    🍽️ {order.table_number}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs">—</span>
-                                )}
                                 {order.waiter_name && (
                                   <span className="text-xs text-muted-foreground">
                                     Waiter: {order.waiter_name}
                                   </span>
                                 )}
                               </div>
+                            </TableCell>
+                          )}
+                          {isRestaurant && (
+                            <TableCell>
+                              {order.table_number ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 w-max">
+                                  🍽️ {order.table_number}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
                             </TableCell>
                           )}
                           <TableCell>{currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}</TableCell>
