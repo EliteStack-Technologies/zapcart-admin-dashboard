@@ -1361,17 +1361,17 @@ export default function Orders() {
                           <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                           <TableCell className="font-medium">{order.order_number}</TableCell>
                           <TableCell>
-                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter' || order.order_type === 'qr') ? (
-                              <span className="text-muted-foreground italic">Dining / QR</span>
+                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter') ? (
+                              <span className="text-muted-foreground italic">Dining</span>
                             ) : (
-                              order.customer_name
+                              order.customer_name || <span className="text-muted-foreground italic">Guest</span>
                             )}
                           </TableCell>
                           <TableCell>
-                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter' || order.order_type === 'qr') ? (
+                            {isRestaurant && (order.order_type === 'table' || order.order_type === 'waiter') ? (
                               <span className="text-muted-foreground">—</span>
                             ) : (
-                              order.customer_phone
+                              order.customer_phone || <span className="text-muted-foreground">—</span>
                             )}
                           </TableCell>
                           <TableCell>{order.items.length} item(s)</TableCell>
@@ -1718,15 +1718,15 @@ export default function Orders() {
                     )}
                   </>
                 )}
-                {(!isRestaurant || (selectedOrder.order_type !== "table" && selectedOrder.order_type !== "waiter" && selectedOrder.order_type !== "qr")) && (
+                {(!isRestaurant || (selectedOrder.order_type !== "table" && selectedOrder.order_type !== "waiter")) && (
                   <>
                     <div>
                       <Label className="text-muted-foreground">Customer Name</Label>
-                      <p className="font-semibold">{selectedOrder.customer_name}</p>
+                      <p className="font-semibold">{selectedOrder.customer_name || "Guest"}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Phone Number</Label>
-                      <p className="font-semibold">{selectedOrder.customer_phone}</p>
+                      <p className="font-semibold">{selectedOrder.customer_phone || "—"}</p>
                     </div>
                   </>
                 )}
