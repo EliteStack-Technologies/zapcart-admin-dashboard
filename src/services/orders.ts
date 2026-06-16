@@ -140,3 +140,37 @@ export const assignDeliveryAgent = async (orderId: string, deliveryAgentId: stri
   const response = await axiosInstance.patch(`/api/v1/orders/${orderId}/assign-delivery`, { delivery_agent_id: deliveryAgentId });
   return response.data;
 };
+
+// ---------------------------------------------------------------------------
+// WhatsApp status-notification settings (per shop / client)
+// ---------------------------------------------------------------------------
+
+// The order statuses that have a customer WhatsApp notification toggle.
+export type NotifiableStatus = "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+
+export type OrderStatusNotifications = Record<NotifiableStatus, boolean>;
+
+export interface NotificationSettingsResponse {
+  customer_whatsapp_notifications: boolean;
+  order_status_whatsapp_notifications: OrderStatusNotifications;
+}
+
+export const getNotificationSettings = async () => {
+  const response = await axiosInstance.get<NotificationSettingsResponse>(
+    "/api/v1/orders/notification-settings"
+  );
+  return response.data;
+};
+
+// Accepts a partial map of status -> boolean; unknown keys are ignored by the API.
+export const updateNotificationSettings = async (
+  settings: Partial<OrderStatusNotifications>
+) => {
+  const response = await axiosInstance.patch<{
+    message: string;
+    order_status_whatsapp_notifications: OrderStatusNotifications;
+  }>("/api/v1/orders/notification-settings", {
+    order_status_whatsapp_notifications: settings,
+  });
+  return response.data;
+};

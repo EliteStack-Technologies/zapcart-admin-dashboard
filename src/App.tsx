@@ -38,6 +38,7 @@ const CurrentStock = lazy(() => import("@/pages/CurrentStock"));
 const ZohoBooksIntegration = lazy(() => import("@/pages/ZohoBooksIntegration"));
 const ZohoCallback = lazy(() => import("@/pages/ZohoCallback"));
 const BulkEditProducts = lazy(() => import("@/pages/BulkEditProducts"));
+const NotificationSettings = lazy(() => import("@/pages/NotificationSettings"));
 
 
 
@@ -80,6 +81,7 @@ function AppRoutes() {
           <Route path="/inventory/low-stock" element={<ProtectedRoute><LowStock /></ProtectedRoute>} />
           <Route path="/inventory/current-stock" element={<ProtectedRoute><CurrentStock /></ProtectedRoute>} />
           <Route path="/settings/zoho-books" element={<ProtectedRoute><ZohoBooksIntegration /></ProtectedRoute>} />
+          <Route path="/settings/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
           <Route path="/zoho/callback" element={<ProtectedRoute><ZohoCallback /></ProtectedRoute>} />
           <Route path="/products/bulk-edit" element={<ProtectedRoute><BulkEditProducts /></ProtectedRoute>} />
           

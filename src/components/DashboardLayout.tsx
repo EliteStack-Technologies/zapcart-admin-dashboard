@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck, QrCode } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck, QrCode, Bell } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -131,6 +131,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/banners", icon: Image, label: "Banners" },
     { to: "/flyers", icon: FileText, label: "Flyers" },
     // { to: "/upload-images", icon: Upload, label: "Upload Images" },
+    { to: "/settings/notifications", icon: Bell, label: "WhatsApp Notifications" },
     { to: "/settings/zoho-books", icon: Settings, label: "Zoho Books", requireZohoEnabled: true },
     { to: "/delivery-agents", icon: Truck, label: "Delivery Management", requireDeliveryManagement: true },
     { to: "/table-qr-codes", icon: QrCode, label: "Table QR Codes", requireRestaurant: true },
