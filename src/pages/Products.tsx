@@ -90,7 +90,6 @@ const Products = () => {
     "unit_type",
     "stock_count",
     "status",
-    "image"
   ]);
   const [tempPrice, setTempPrice] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

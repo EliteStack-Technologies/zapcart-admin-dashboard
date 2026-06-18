@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/contexts/ProfileContext";
 import { uploadProductsExcel, parseExcelHeaders } from "@/services/product";
 import { 
   Upload, 
@@ -64,6 +65,16 @@ const MAPPABLE_FIELDS = [
   { key: "status", label: "Status (Active/Inactive)", required: false, description: "Must be 'active' or 'inactive'" },
 ];
 
+// Restaurant-only: variant (size) pricing. One row per variant — repeat the
+// product's title/code across rows and vary these columns per variant.
+const VARIANT_FIELDS = [
+  { key: "variant_name", label: "Variant Name", required: false, description: "Name of the size/variant (e.g. Small, Large). Use one row per variant." },
+  { key: "variant_actual_price", label: "Variant Actual Price", required: false, description: "Actual/MRP price for this variant" },
+  { key: "variant_offer_price", label: "Variant Offer Price", required: false, description: "Offer/selling price for this variant" },
+  { key: "variant_sku", label: "Variant SKU", required: false, description: "Optional SKU/code for this variant" },
+  { key: "variant_available", label: "Variant Available", required: false, description: "Availability of this variant (Yes/No)" },
+];
+
 const autoMapHeaders = (excelHeaders: string[]): Record<string, string> => {
   const initialMappings: Record<string, string> = {};
   
@@ -79,6 +90,11 @@ const autoMapHeaders = (excelHeaders: string[]): Record<string, string> => {
     stock_count: ["stock_count", "stock count", "stock", "qty", "quantity", "Quantity", "Qty", "avail_stock"],
     status: ["status", "Status", "active"],
     image: ["image", "Image", "image_url", "ImageUrl", "pic", "photo"],
+    variant_name: ["variant name"],
+    variant_actual_price: ["variant actual price", "variant price"],
+    variant_offer_price: ["variant offer price"],
+    variant_sku: ["variant sku"],
+    variant_available: ["variant available"],
   };
 
   excelHeaders.forEach(header => {
@@ -101,6 +117,9 @@ const ExcelUploadDialog = ({
   onUploadSuccess,
 }: ExcelUploadDialogProps) => {
   const { toast } = useToast();
+  const { isRestaurant } = useProfile();
+  // Restaurants can additionally map variant (size) pricing columns.
+  const mappableFields = isRestaurant ? [...MAPPABLE_FIELDS, ...VARIANT_FIELDS] : MAPPABLE_FIELDS;
   const [step, setStep] = useState<"upload" | "mapping" | "result">("upload");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -408,7 +427,7 @@ const ExcelUploadDialog = ({
                   <div className="col-span-5">Database Field</div>
                   <div className="col-span-7 pl-4">Excel Column Header</div>
                 </div>
-                {MAPPABLE_FIELDS.map((field) => {
+                {mappableFields.map((field) => {
                   const currentMapped = mappings[field.key] || "";
                   const isAutoMapped = currentMapped !== "" && autoMapHeaders(headers)[field.key] === currentMapped;
 
@@ -489,7 +508,7 @@ const ExcelUploadDialog = ({
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(mappings).map(([fieldKey, headerName]) => (
                     <Badge key={fieldKey} variant="secondary" className="text-xs bg-muted/65 py-0.5">
-                      {MAPPABLE_FIELDS.find(f => f.key === fieldKey)?.label || fieldKey} → {headerName}
+                      {mappableFields.find(f => f.key === fieldKey)?.label || fieldKey} → {headerName}
                     </Badge>
                   ))}
                 </div>
