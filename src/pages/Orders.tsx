@@ -67,6 +67,13 @@ const RESTAURANT_ORDER_TYPES = [
   { value: "menu", label: "Menu Order" },
 ];
 
+// Fulfillment method for online restaurant orders (delivery/pickup/dine-in).
+const FULFILLMENT_LABELS: Record<string, string> = {
+  delivery: "Delivery",
+  pickup: "Pickup",
+  dine_in: "Dine-in",
+};
+
 const PRIORITY_LEVELS = [
   { value: "low", label: "Low", color: "bg-gray-500" },
   { value: "medium", label: "Medium", color: "bg-orange-500" },
@@ -1014,7 +1021,17 @@ export default function Orders() {
             <div class="info-label">Waiter Name:</div>
             <div><strong>${htmlEscape(selectedOrder.waiter_name)}</strong></div>
           </div>` : ''}
-      
+          ${selectedOrder.fulfillment_type ? `
+          <div class="info-row">
+            <div class="info-label">Fulfillment:</div>
+            <div><strong>${htmlEscape(FULFILLMENT_LABELS[selectedOrder.fulfillment_type] || selectedOrder.fulfillment_type)}</strong></div>
+          </div>` : ''}
+          ${selectedOrder.delivery_address ? `
+          <div class="info-row">
+            <div class="info-label">Delivery Address:</div>
+            <div><strong>${htmlEscape(selectedOrder.delivery_address)}</strong></div>
+          </div>` : ''}
+
         </div>
 
         <div class="info-section">
@@ -1132,6 +1149,8 @@ export default function Orders() {
       `Phone: ${order.customer_phone}\n` +
       (order.table_number ? `Table: ${order.table_number}\n` : '') +
       (order.waiter_name ? `Waiter: ${order.waiter_name}\n` : '') +
+      (order.fulfillment_type ? `Fulfillment: ${FULFILLMENT_LABELS[order.fulfillment_type] || order.fulfillment_type}\n` : '') +
+      (order.delivery_address ? `Delivery Address: ${order.delivery_address}\n` : '') +
       addressText +
       `Total: ${currency?.symbol || ""}${Number(order.total_amount).toFixed(2)}\n\n` +
       `Items:\n${itemsList}\n\n` +
@@ -1384,6 +1403,11 @@ export default function Orders() {
                                     {order.order_type}
                                   </span>
                                 )}
+                                {order.fulfillment_type && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-200 w-max">
+                                    {FULFILLMENT_LABELS[order.fulfillment_type] || order.fulfillment_type}
+                                  </span>
+                                )}
                                 {order.waiter_name && (
                                   <span className="text-xs text-muted-foreground">
                                     Waiter: {order.waiter_name}
@@ -1467,6 +1491,11 @@ export default function Orders() {
                           {isRestaurant && order.table_number && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-orange-100 text-orange-700 border border-orange-200 shrink-0">
                               🍽️ {order.table_number}
+                            </span>
+                          )}
+                          {isRestaurant && order.fulfillment_type && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 border border-blue-200 shrink-0">
+                              {FULFILLMENT_LABELS[order.fulfillment_type] || order.fulfillment_type}
                             </span>
                           )}
                           {isRestaurant && order.waiter_name && (
@@ -1719,6 +1748,18 @@ export default function Orders() {
                       <div className="col-span-2">
                         <Label className="text-muted-foreground">Waiter Name</Label>
                         <p className="font-semibold">{selectedOrder.waiter_name}</p>
+                      </div>
+                    )}
+                    {selectedOrder.fulfillment_type && (
+                      <div>
+                        <Label className="text-muted-foreground">Fulfillment</Label>
+                        <p className="font-semibold">{FULFILLMENT_LABELS[selectedOrder.fulfillment_type] || selectedOrder.fulfillment_type}</p>
+                      </div>
+                    )}
+                    {selectedOrder.delivery_address && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground">Delivery Address</Label>
+                        <p className="font-semibold whitespace-pre-wrap">{selectedOrder.delivery_address}</p>
                       </div>
                     )}
                   </>

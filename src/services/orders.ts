@@ -42,6 +42,8 @@ export interface Order {
   table_number?: string;
   order_type?: string;
   waiter_name?: string;
+  fulfillment_type?: "delivery" | "pickup" | "dine_in" | null;
+  delivery_address?: string | null;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -73,6 +75,8 @@ export interface CreateOrderRequest {
   table_number?: string;
   order_type?: string;
   waiter_name?: string;
+  fulfillment_type?: "delivery" | "pickup" | "dine_in";
+  delivery_address?: string;
 }
 
 const sub_domain= getSubdomain()
