@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/contexts/ProfileContext";
 import { uploadProductsExcel, parseExcelHeaders } from "@/services/product";
 import { 
   Upload, 
@@ -24,6 +25,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -64,13 +66,23 @@ const MAPPABLE_FIELDS = [
   { key: "status", label: "Status (Active/Inactive)", required: false, description: "Must be 'active' or 'inactive'" },
 ];
 
+// Restaurant-only: variant (size) pricing. One row per variant — repeat the
+// product's title/code across rows and vary these columns per variant.
+const VARIANT_FIELDS = [
+  { key: "variant_name", label: "Variant Name", required: false, description: "Name of the size/variant (e.g. Small, Large). Use one row per variant." },
+  { key: "variant_actual_price", label: "Variant Actual Price", required: false, description: "Actual/MRP price for this variant" },
+  { key: "variant_offer_price", label: "Variant Offer Price", required: false, description: "Offer/selling price for this variant" },
+  { key: "variant_sku", label: "Variant SKU", required: false, description: "Optional SKU/code for this variant" },
+  { key: "variant_available", label: "Variant Available", required: false, description: "Availability of this variant (Yes/No)" },
+];
+
 const autoMapHeaders = (excelHeaders: string[]): Record<string, string> => {
   const initialMappings: Record<string, string> = {};
   
   const rules: Record<string, string[]> = {
     title: ["title", "name", "product name", "product_name", "product title", "product_title"],
     category: ["category", "category_name", "category name", "categories"],
-    section: ["section", "section_name", "section name", "row", "row_name", "row name", "sections", "rows"],
+    section: ["section", "section_name", "section name", "row", "row_name", "row name", "sections", "rows", "group", "groups", "sub category", "subcategory", "sub_category"],
     description: ["description", "desc", "details", "about"],
     product_code: ["product_code", "product code", "code", "barcode", "sku", "upc"],
     actual_price: ["actual_price", "actual price", "price", "cost", "cost price", "mrp", "original price"],
@@ -79,6 +91,11 @@ const autoMapHeaders = (excelHeaders: string[]): Record<string, string> => {
     stock_count: ["stock_count", "stock count", "stock", "qty", "quantity", "Quantity", "Qty", "avail_stock"],
     status: ["status", "Status", "active"],
     image: ["image", "Image", "image_url", "ImageUrl", "pic", "photo"],
+    variant_name: ["variant name"],
+    variant_actual_price: ["variant actual price", "variant price"],
+    variant_offer_price: ["variant offer price"],
+    variant_sku: ["variant sku"],
+    variant_available: ["variant available"],
   };
 
   excelHeaders.forEach(header => {
@@ -101,6 +118,9 @@ const ExcelUploadDialog = ({
   onUploadSuccess,
 }: ExcelUploadDialogProps) => {
   const { toast } = useToast();
+  const { isRestaurant } = useProfile();
+  // Restaurants can additionally map variant (size) pricing columns.
+  const mappableFields = isRestaurant ? [...MAPPABLE_FIELDS, ...VARIANT_FIELDS] : MAPPABLE_FIELDS;
   const [step, setStep] = useState<"upload" | "mapping" | "result">("upload");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -109,6 +129,10 @@ const ExcelUploadDialog = ({
   const [dragActive, setDragActive] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mappings, setMappings] = useState<Record<string, string>>({});
+  // When on, only existing products are updated (matched by title/code) and
+  // unmatched rows are skipped instead of being created as new zero-price
+  // products. Use this for sheets that only change category/section.
+  const [updateOnly, setUpdateOnly] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -229,6 +253,7 @@ const ExcelUploadDialog = ({
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("mapping", JSON.stringify(mappings));
+      formData.append("updateOnly", String(updateOnly));
 
       const result = await uploadProductsExcel(formData);
       setUploadResult(result);
@@ -260,6 +285,7 @@ const ExcelUploadDialog = ({
     setStep("upload");
     setHeaders([]);
     setMappings({});
+    setUpdateOnly(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -270,6 +296,7 @@ const ExcelUploadDialog = ({
     setSelectedFile(null);
     setHeaders([]);
     setMappings({});
+    setUpdateOnly(false);
     setStep("upload");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -408,7 +435,7 @@ const ExcelUploadDialog = ({
                   <div className="col-span-5">Database Field</div>
                   <div className="col-span-7 pl-4">Excel Column Header</div>
                 </div>
-                {MAPPABLE_FIELDS.map((field) => {
+                {mappableFields.map((field) => {
                   const currentMapped = mappings[field.key] || "";
                   const isAutoMapped = currentMapped !== "" && autoMapHeaders(headers)[field.key] === currentMapped;
 
@@ -461,6 +488,28 @@ const ExcelUploadDialog = ({
                   );
                 })}
               </div>
+
+              {/* Update-only safety toggle */}
+              <div
+                className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/10 cursor-pointer"
+                onClick={() => setUpdateOnly((v) => !v)}
+              >
+                <Checkbox
+                  checked={updateOnly}
+                  onCheckedChange={(v) => setUpdateOnly(v === true)}
+                  className="mt-0.5 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed select-none">
+                  <span className="font-semibold">Update existing products only — don't create new ones</span>
+                  <p className="text-amber-700/90 dark:text-amber-400/90 mt-0.5">
+                    Only the columns you mapped above are changed on matching products; all other fields
+                    (price, product code, stock, etc.) are left untouched. Rows that don't match an existing
+                    product are skipped instead of being added as empty products. Recommended when you only
+                    want to update <strong>Category</strong> and <strong>Section</strong>.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -489,7 +538,7 @@ const ExcelUploadDialog = ({
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(mappings).map(([fieldKey, headerName]) => (
                     <Badge key={fieldKey} variant="secondary" className="text-xs bg-muted/65 py-0.5">
-                      {MAPPABLE_FIELDS.find(f => f.key === fieldKey)?.label || fieldKey} → {headerName}
+                      {mappableFields.find(f => f.key === fieldKey)?.label || fieldKey} → {headerName}
                     </Badge>
                   ))}
                 </div>
