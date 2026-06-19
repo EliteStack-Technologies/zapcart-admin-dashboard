@@ -25,6 +25,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -81,7 +82,7 @@ const autoMapHeaders = (excelHeaders: string[]): Record<string, string> => {
   const rules: Record<string, string[]> = {
     title: ["title", "name", "product name", "product_name", "product title", "product_title"],
     category: ["category", "category_name", "category name", "categories"],
-    section: ["section", "section_name", "section name", "row", "row_name", "row name", "sections", "rows"],
+    section: ["section", "section_name", "section name", "row", "row_name", "row name", "sections", "rows", "group", "groups", "sub category", "subcategory", "sub_category"],
     description: ["description", "desc", "details", "about"],
     product_code: ["product_code", "product code", "code", "barcode", "sku", "upc"],
     actual_price: ["actual_price", "actual price", "price", "cost", "cost price", "mrp", "original price"],
@@ -128,6 +129,10 @@ const ExcelUploadDialog = ({
   const [dragActive, setDragActive] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mappings, setMappings] = useState<Record<string, string>>({});
+  // When on, only existing products are updated (matched by title/code) and
+  // unmatched rows are skipped instead of being created as new zero-price
+  // products. Use this for sheets that only change category/section.
+  const [updateOnly, setUpdateOnly] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -248,6 +253,7 @@ const ExcelUploadDialog = ({
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("mapping", JSON.stringify(mappings));
+      formData.append("updateOnly", String(updateOnly));
 
       const result = await uploadProductsExcel(formData);
       setUploadResult(result);
@@ -279,6 +285,7 @@ const ExcelUploadDialog = ({
     setStep("upload");
     setHeaders([]);
     setMappings({});
+    setUpdateOnly(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -289,6 +296,7 @@ const ExcelUploadDialog = ({
     setSelectedFile(null);
     setHeaders([]);
     setMappings({});
+    setUpdateOnly(false);
     setStep("upload");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -479,6 +487,28 @@ const ExcelUploadDialog = ({
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Update-only safety toggle */}
+              <div
+                className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/10 cursor-pointer"
+                onClick={() => setUpdateOnly((v) => !v)}
+              >
+                <Checkbox
+                  checked={updateOnly}
+                  onCheckedChange={(v) => setUpdateOnly(v === true)}
+                  className="mt-0.5 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed select-none">
+                  <span className="font-semibold">Update existing products only — don't create new ones</span>
+                  <p className="text-amber-700/90 dark:text-amber-400/90 mt-0.5">
+                    Only the columns you mapped above are changed on matching products; all other fields
+                    (price, product code, stock, etc.) are left untouched. Rows that don't match an existing
+                    product are skipped instead of being added as empty products. Recommended when you only
+                    want to update <strong>Category</strong> and <strong>Section</strong>.
+                  </p>
+                </div>
               </div>
             </div>
           )}
