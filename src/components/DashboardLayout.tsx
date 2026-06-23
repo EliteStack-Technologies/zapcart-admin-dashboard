@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck } from "lucide-react";
+import { Home, Package, Tag, Image, FileText, FolderOpen, Phone, Upload, Menu, X, LogOut, Columns3, ShoppingCart, UserCircle, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, PackageOpen, Warehouse, Settings, Building2, ArrowLeftRight, Truck, Plug } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -132,6 +132,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/flyers", icon: FileText, label: "Flyers" },
     // { to: "/upload-images", icon: Upload, label: "Upload Images" },
     { to: "/settings/zoho-books", icon: Settings, label: "Zoho Books", requireZohoEnabled: true },
+    { to: "/settings/pos-integration", icon: Plug, label: "POS Integration" },
     { to: "/delivery-agents", icon: Truck, label: "Delivery Management", requireDeliveryManagement: true },
     { to: "/account", icon: Phone, label: "Account Details" },
     { to: "/profile", icon: UserCircle, label: "Profile" },

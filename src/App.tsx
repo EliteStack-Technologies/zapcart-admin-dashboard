@@ -35,6 +35,7 @@ import CurrentStock from "@/pages/CurrentStock";
 import ZohoBooksIntegration from "@/pages/ZohoBooksIntegration";
 import ZohoCallback from "@/pages/ZohoCallback";
 import BulkEditProducts from "@/pages/BulkEditProducts";
+import PosIntegration from "@/pages/PosIntegration";
 
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ function AppRoutes() {
           <Route path="/inventory/low-stock" element={<ProtectedRoute><LowStock /></ProtectedRoute>} />
           <Route path="/inventory/current-stock" element={<ProtectedRoute><CurrentStock /></ProtectedRoute>} />
           <Route path="/settings/zoho-books" element={<ProtectedRoute><ZohoBooksIntegration /></ProtectedRoute>} />
+          <Route path="/settings/pos-integration" element={<ProtectedRoute><PosIntegration /></ProtectedRoute>} />
           <Route path="/zoho/callback" element={<ProtectedRoute><ZohoCallback /></ProtectedRoute>} />
           <Route path="/products/bulk-edit" element={<ProtectedRoute><BulkEditProducts /></ProtectedRoute>} />
           
