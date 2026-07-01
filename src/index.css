@@ -169,3 +169,10 @@ All colors MUST be HSL.
     /* Firefox */
   }
 }
+
+/* Decrease font size, padding, and layout scale for screen sizes between 768px and 1450px */
+@media (min-width: 768px) and (max-width: 1450px) {
+  html {
+    font-size: 14px;
+  }
+}

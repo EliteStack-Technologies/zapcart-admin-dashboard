@@ -16,9 +16,22 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      if (width >= 768 && width < 1450) {
+        return true;
+      }
+    }
     // Read initial value from localStorage
     const stored = localStorage.getItem('sidebarCollapsed');
     return stored === 'true';
+  });
+  const [isMediumScreen, setIsMediumScreen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      return width >= 768 && width < 1450;
+    }
+    return false;
   });
   const [inventoryExpanded, setInventoryExpanded] = useState(() => {
     // Auto-expand if on an inventory page
@@ -48,6 +61,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       localStorage.setItem('inventoryExpanded', 'true');
     }
   }, [location.pathname]);
+
+  // Handle responsive sidebar collapsing and screen size detection
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const isMed = width >= 768 && width < 1450;
+      setIsMediumScreen(isMed);
+      if (isMed) {
+        setSidebarCollapsed(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
 
 
@@ -168,20 +196,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar - Desktop Only */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 hidden lg:flex flex-col print:!hidden
-        ${sidebarCollapsed ? 'w-20' : 'w-64'} h-screen bg-sidebar border-r border-sidebar-border
+        fixed inset-y-0 left-0 z-50 hidden md:flex flex-col print:!hidden
+        ${sidebarCollapsed ? 'w-20' : (isMediumScreen ? 'w-56' : 'w-64')} h-screen bg-sidebar border-r border-sidebar-border
         transition-all duration-300 ease-in-out
       `}>
-        <div className={`flex flex-col h-full ${sidebarCollapsed ? 'p-2' : 'p-6'}`}>
-          <div className={`flex items-center justify-between mb-8 ${sidebarCollapsed ? 'flex-col gap-2' : ''}`}>
+        <div className={`flex flex-col h-full ${sidebarCollapsed ? 'p-2' : (isMediumScreen ? 'p-4' : 'p-6')}`}>
+          <div className={`flex items-center justify-between ${sidebarCollapsed ? 'mb-8 flex-col gap-2' : (isMediumScreen ? 'mb-6' : 'mb-8')}`}>
             <div className={sidebarCollapsed ? 'flex flex-col items-center' : ''}>
-              <h1 className={sidebarCollapsed ? "text-xl font-bold text-sidebar-foreground" : "text-2xl font-bold text-sidebar-foreground"}>
+              <h1 className={sidebarCollapsed ? "text-xl font-bold text-sidebar-foreground" : (isMediumScreen ? "text-xl font-bold text-sidebar-foreground" : "text-2xl font-bold text-sidebar-foreground")}>
                 {sidebarCollapsed ? "" : "ZapGoCart"}
               </h1>
               {!sidebarCollapsed && (
-                <p className="text-sm text-sidebar-foreground/60 mt-1">Management Dashboard</p>
+                <p className={`${isMediumScreen ? 'text-xs' : 'text-sm'} text-sidebar-foreground/60 mt-1`}>Management Dashboard</p>
               )}
             </div>
             {/* Collapse/Expand Button for desktop */}
@@ -206,11 +233,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <div key={item.to}>
                 <NavLink
                   to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
+                  className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-3 px-3 py-2.5' : (isMediumScreen ? 'gap-2 px-2.5 py-2' : 'gap-3 px-3 py-2.5')} rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors`}
                   activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                 >
-                  <item.icon className="w-5 h-5" />
-                  {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
+                  <item.icon className={isMediumScreen ? "w-4 h-4" : "w-5 h-5"} />
+                  {!sidebarCollapsed && <span className={`font-medium ${isMediumScreen ? 'text-xs' : 'text-sm'}`}>{item.label}</span>}
                 </NavLink>
 
                 {/* Insert Inventory Management after Products */}
@@ -218,31 +245,31 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <div className="space-y-1 mt-1">
                     <button
                       onClick={toggleInventory}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${location.pathname.startsWith('/inventory') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
-                        } ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}
+                      className={`w-full flex items-center rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${location.pathname.startsWith('/inventory') ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
+                        } ${sidebarCollapsed ? 'justify-center gap-3 px-3 py-2.5' : (isMediumScreen ? 'justify-between gap-2 px-2.5 py-2' : 'justify-between gap-3 px-3 py-2.5')}`}
                     >
-                      <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-                        <PackageOpen className="w-5 h-5" />
-                        {!sidebarCollapsed && <span className="font-medium">Inventory</span>}
+                      <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-3' : (isMediumScreen ? 'gap-2' : 'gap-3')}`}>
+                        <PackageOpen className={isMediumScreen ? "w-4 h-4" : "w-5 h-5"} />
+                        {!sidebarCollapsed && <span className={`font-medium ${isMediumScreen ? 'text-xs' : 'text-sm'}`}>Inventory</span>}
                       </div>
                       {!sidebarCollapsed && (
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform duration-200 ${inventoryExpanded ? 'rotate-180' : ''}`}
+                          className={`${isMediumScreen ? 'w-3.5 h-3.5' : 'w-4 h-4'} transition-transform duration-200 ${inventoryExpanded ? 'rotate-180' : ''}`}
                         />
                       )}
                     </button>
 
                     {/* Inventory Sub-items */}
                     {inventoryExpanded && !sidebarCollapsed && (
-                      <div className="ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+                      <div className={`${isMediumScreen ? 'ml-2 pl-2' : 'ml-4 pl-3'} space-y-1 border-l-2 border-sidebar-border`}>
                         {inventorySubItems.map((subItem) => (
                           <NavLink
                             key={subItem.to}
                             to={subItem.to}
-                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors text-sm"
+                            className={`flex items-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors ${isMediumScreen ? 'gap-2 px-2 py-1.5 text-xs' : 'gap-3 px-3 py-2 text-sm'}`}
                             activeClassName="bg-sidebar-accent/70 text-sidebar-accent-foreground"
                           >
-                            <subItem.icon className="w-4 h-4" />
+                            <subItem.icon className={isMediumScreen ? "w-3.5 h-3.5" : "w-4 h-4"} />
                             <span className="font-medium">{subItem.label}</span>
                           </NavLink>
                         ))}
@@ -255,13 +282,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </nav>
 
           {/* Logout */}
-          <div className={`pt-4 border-t border-sidebar-border ${sidebarCollapsed ? 'px-0' : 'px-3'}`}>
+          <div className={`pt-4 border-t border-sidebar-border ${sidebarCollapsed ? 'px-0' : (isMediumScreen ? 'px-1' : 'px-3')}`}>
             <Button
               variant="outline"
-              className={`w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 ${sidebarCollapsed ? 'px-0 flex justify-center' : ''}`}
+              className={`w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 ${sidebarCollapsed ? 'px-0 flex justify-center gap-2' : (isMediumScreen ? 'px-2 py-1.5 gap-1.5 text-xs' : 'px-3 py-2 gap-2 text-sm')}`}
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className={isMediumScreen ? "w-3.5 h-3.5" : "w-4 h-4"} />
               {!sidebarCollapsed && <span>Logout</span>}
             </Button>
           </div>
@@ -269,9 +296,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 w-full flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300 print:!ml-0`}>
+      <main className={`flex-1 w-full flex flex-col min-h-screen ${sidebarCollapsed ? 'md:ml-20' : (isMediumScreen ? 'md:ml-56' : 'md:ml-64')} transition-all duration-300 print:!ml-0`}>
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-2 flex items-center justify-between print:!hidden">
+        <div className="md:hidden sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-4 py-2 flex items-center justify-between print:!hidden">
           <div className="flex flex-col">
             <h1 className="text-lg font-black text-primary leading-tight">ZapGoCart</h1>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
@@ -284,12 +311,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Desktop Header */}
-        <div className="hidden lg:block sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b px-6 py-4 print:!hidden">
+        <div className={`hidden md:block sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b ${isMediumScreen ? 'px-4 py-3' : 'px-6 py-4'} print:!hidden`}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
+              <h1 className={`${isMediumScreen ? 'text-lg' : 'text-xl'} font-bold text-foreground`}>Admin Dashboard</h1>
               <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground font-medium">Welcome back, {user?.name || 'Admin'}</p>
+                <p className={`${isMediumScreen ? 'text-xs' : 'text-sm'} text-muted-foreground font-medium`}>Welcome back, {user?.name || 'Admin'}</p>
                 <span className="text-xs text-muted-foreground/40">|</span>
                 <p className="text-xs font-bold text-primary uppercase tracking-wide">{user?.business_name}</p>
               </div>
@@ -343,12 +370,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
 
-        <div className="flex-1 p-2 sm:p-6 lg:p-8 pb-32 lg:pb-8 print:!p-0">
+        <div className={`flex-1 ${isMediumScreen ? 'p-4 md:p-6 pb-32 md:pb-6' : 'p-2 sm:p-6 md:p-8 pb-32 md:pb-8'} print:!p-0`}>
           {children}
         </div>
 
         {/* Mobile Bottom Navigation - Floating Dock */}
-        <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-sm print:!hidden">
+        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-sm print:!hidden">
           <div className="bg-background/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex items-center justify-around p-2 py-3 ring-1 ring-black/5">
             <NavLink
               to="/orders"
