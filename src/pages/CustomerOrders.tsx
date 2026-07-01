@@ -190,7 +190,11 @@ export default function CustomerOrdersPage() {
             ) : (
               <div className="space-y-3">
                 {filteredOrders.map((order) => (
-                  <Card key={order._id} className="hover:shadow-lg transition-all border-0 shadow-md">
+                  <Card 
+                    key={order._id} 
+                    className="hover:shadow-lg transition-all border-0 shadow-md cursor-pointer hover:bg-gray-50/50"
+                    onClick={() => handleViewOrder(order._id)}
+                  >
                     <CardContent className="p-4 sm:p-6">
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-2 flex-1 min-w-0">
@@ -211,17 +215,22 @@ export default function CustomerOrdersPage() {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <CreditCard className="h-5 w-5 text-green-600" />
-                            <p className="text-2xl font-bold text-green-600">
-                              {currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="h-5 w-5 text-green-600" />
+                              <p className="text-2xl font-bold text-green-600">
+                                {currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}
+                              </p>
+                            </div>
                           </div>
                         </div>
                         
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewOrder(order._id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewOrder(order._id);
+                          }}
                           className="gap-2 hover:bg-blue-50 hover:border-blue-300 h-10"
                         >
                           <Eye className="h-4 w-4" />

@@ -1191,7 +1191,11 @@ export default function Orders() {
                       </TableRow>
                     ) : (
                       filteredOrders.map((order, index) => (
-                        <TableRow key={order._id}>
+                        <TableRow 
+                          key={order._id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => handleViewOrder(order._id)}
+                        >
                           <TableCell>{(currentPage - 1) * limit + index + 1}</TableCell>
                           <TableCell className="font-medium">{order.order_number}</TableCell>
                           <TableCell>{order.customer_name}</TableCell>
@@ -1201,7 +1205,7 @@ export default function Orders() {
                           <TableCell>{getPriorityBadge(order.priority)}</TableCell>
                           <TableCell>{getStatusBadge(order.order_status)}</TableCell>
                           <TableCell>{formatDate(order.createdAt)}</TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"

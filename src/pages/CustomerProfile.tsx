@@ -332,7 +332,11 @@ export default function CustomerProfilePage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedOrders.map((order, index) => (
-                    <TableRow key={order._id}>
+                    <TableRow 
+                      key={order._id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleViewOrder(order._id)}
+                    >
                       <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
                       <TableCell className="font-medium">{order.order_number}</TableCell>
                       <TableCell>
@@ -346,7 +350,7 @@ export default function CustomerProfilePage() {
                       <TableCell className="text-right font-semibold">
                         {currency?.symbol || ''} {Number(order.total_amount).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="sm"

@@ -169,3 +169,9 @@ All colors MUST be HSL.
     /* Firefox */
   }
 }
+
+@media (min-width: 768px) and (max-width: 1450px) {
+  html {
+    font-size: 14px !important;
+  }
+}
